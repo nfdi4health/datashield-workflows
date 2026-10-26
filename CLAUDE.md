@@ -186,9 +186,16 @@ the live caller used to validate changes before wider rollout.
   (outcome proposed / nothing / failed; channel release = a `vX` tag
   points to the commit that ran, dev = `@main` or a branch, i.e.
   development and testing). Anonymous; the download counts are the runs.
-  Only these (user's choice: Claude-assisted + authors). `collect-usage.yml` (not reusable)
-  keeps the release complete — the files for every workflow calling
-  `count-run` — and records the counts daily on the `usage-data` branch.
+  Only these (user's choice: Claude-assisted + authors). `collect-usage.yml` (not reusable,
+  "Usage counter files") keeps the release complete — the files for every
+  workflow calling `count-run`, with this repository's own token. The
+  daily counts are recorded by the private
+  `nfdi4health/datashield-kpi-reporting` (`R/collect_counts.R`, daily
+  workflow, `usage.csv` on its `main`), which only reads the public
+  release — no credential for this repository there (split, set up
+  2026-10-26). On `main` here the old collector still
+  writes the `usage-data` branch until v1 is merged; delete that branch
+  then.
   **A new Claude-assisted workflow gets the same last step** (copy it,
   with its own `workflow:` name); the collector adds its files. Design:
   [dev-notes/usage-counting.md](dev-notes/usage-counting.md).
@@ -396,7 +403,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
     the commit from its folder name. Not yet confirmed in CI. Inline
     `${{ }}` in `run:` scripts moved into `env:`; checkouts
     `persist-credentials: false` (pushes and fetches pass their token;
-    only `collect-usage.yml` keeps it); App tokens request only contents +
+    now none keeps it); App tokens request only contents +
     pull-requests. The repo name `FlorianSchw/package-workflows` is still
     hard-coded in `count-run.sh` (change at the move). actionlint (1.7.12)
     predates `$/`: `ci.yml` ignores that message.
