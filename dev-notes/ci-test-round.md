@@ -47,6 +47,10 @@ Found and fixed during the round:
   (`23f82bb`); full-review PR titles no longer say "Monthly … sweep"
   (`c659378`).
 
+After the move to nfdi4health/datashield-workflows (2026-10-21): a full
+review on `ci/datashield-workflows` logged in with the new CEL rule and
+opened #51 with the new title "Roxygen documentation: full review".
+
 Still open: `workflow-graph` on the push of the merge into `dev`, the
 release chain (`dev` → `main`, `dry-run`), a scheduled run, and
 the federation rules (now one CEL expression each, any ref — done).
