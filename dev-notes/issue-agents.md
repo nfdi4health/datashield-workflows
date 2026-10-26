@@ -75,7 +75,15 @@ refactor agent (applies the naming transformation config).
   template), usable locally and by claude-code-action (`plugins` input).
   If it comes: **its own repo**, so its clone count isn't drowned by the
   CI checkouts of the workflow repo. Name (user, 2026-10-21):
-  **`nfdi4health/datashield-skills`**.
+  **`nfdi4health/datashield-skills`**. **Created 2026-10-26** (public,
+  GPL-3.0): plugin + marketplace of the same name, four skills —
+  `client-server-pair`, `dslite-tests`, `roxygen-docs`, `design-note`
+  (with `template.md`) — built from this repository's role guidance,
+  DSLite setup and datasets, test categories and demo example; keep them
+  in step when those change. `claude plugin validate` passes (no icon,
+  only needed for a directory listing). Install:
+  `/plugin marketplace add nfdi4health/datashield-skills`, then
+  `/plugin install datashield-skills@datashield-skills`.
 - **Being told when an agent finished something substantial** (user's
   wish, 2026-10-16): its results are issues/PRs, so GitHub's own
   notifications (e-mail or GitHub mobile push) cover it — the agent
