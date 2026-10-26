@@ -226,3 +226,26 @@ the v1 plan). Run the CI test round once before and once after the
 accepted prompt changes on dsSupportClient, one profile at a time, and
 compare the reports (suggestions made, bugs reported, refusals). Re-run
 this audit at the Opus 5.5 switch.
+
+## Second pass (2026-10-26) — J closed
+
+After hunks A–F ran in the CI test round on dsSupportClient (2026-10-21:
+full reviews and a "changed" PR run of both bots, reports and proposals as
+expected), a second look at what the first pass didn't cover:
+
+- **Prompts** (`prompts/*.md`, all placeholders filled by R): no stale
+  facts left (test file names, `accept_reasons`, sweep wording), no
+  instructions the schema or R already enforce, safety rules with their
+  reasons. The analysis exclusions come only from config (hunk B).
+- **Special cases in R:** the remaining package names in code are domain
+  logic, not workarounds — DSLite/DSOpal/Armadillo detection of how tests
+  connect, and the analysis bot describing server objects with
+  dsBaseClient when it is installed.
+- **Context sizes:** capped since the cost pass (support files 20,000
+  characters each within a budget, example test files cut, failure
+  messages at 1,000 characters); the test prompt's shared part is cached.
+
+Nothing further to change. Flags stay: 7 (reasoning field for possible
+bugs — revisit if thinking is turned on for roxygen), 8 (style ceilings
+are house style — no change), 9 (`ALONG.WITH.name` example — revisit after
+the stepwise analysis has run in CI).

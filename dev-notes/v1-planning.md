@@ -199,9 +199,15 @@ items, **all of A–J before v1**:
   written into the prompt by R. Start with a systematic prompt audit
   (outdated rules, instructions the schema or R already enforce,
   duplicates, context sent but unused).
-  Step 1 done: [prompt-audit.md](prompt-audit.md) — 9 findings, 6 with
+  ~~Step 1 done: [prompt-audit.md](prompt-audit.md) — 9 findings, 6 with
   proposed hunks (A–F), nothing applied. Step 2 (choose hunks, test
-  before/after in the CI round) needs the user; hunk B depends on C.
+  before/after in the CI round) needs the user; hunk B depends on C.~~
+  **Done 2026-10-26:** hunks A–F applied (2026-10-19) and run in the CI
+  test round (2026-10-21, roxygen and tests on dsSupportClient, no
+  regressions seen); second pass (prompts, R special cases, context
+  sizes) found nothing further — details at the end of
+  [prompt-audit.md](prompt-audit.md). Flags 7–9 stay, each with the
+  condition to revisit.
 
 ## 7. New workflows — after v1 (user's decision)
 
