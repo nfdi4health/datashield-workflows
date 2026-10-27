@@ -454,10 +454,14 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   `b51dc5f` on `v1/foundation`: examples, docs, README, `count-run`, the
   analysis gap issues; workflow graphs still recognise the old name, which
   GitHub forwards). The 9 federation rules' `job_workflow_ref` changed by
-  hand in the Console; dsSupportClient's callers on branch
-  `ci/datashield-workflows` (PR into `dev`); the other callers
-  (dsAnalysis, dsSurvival, dsSurvivalClient, DataSHIELD_CONF_DEMO) still
-  use the old path through the redirect. `main` of this repository still
+  hand in the Console; dsSupportClient's callers updated on `dev` (its
+  `main` follows with the next release merge). **dsAnalysis moved to
+  nfdi4health too (2026-10-26/27):** its references on branch
+  `ci/nfdi4health-move` (PR into `dev`; callers stay `@main`, since its
+  inputs still have the old names), its two rules' CEL condition needs
+  `repository_owner_id == "60613705"` (done by the user in the Console).
+  The other callers (dsSurvival, dsSurvivalClient, DataSHIELD_CONF_DEMO)
+  still use the old path through the redirect. `main` of this repository still
   has the old names until v1 is merged. Docs site now
   `nfdi4health.github.io/datashield-workflows` (no redirect from the old
   one). Sections below still say package-workflows / FlorianSchw in
