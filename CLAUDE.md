@@ -459,7 +459,8 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   nfdi4health too (2026-10-26/27):** its references on branch
   `ci/nfdi4health-move` (PR into `dev`; callers stay `@main`, since its
   inputs still have the old names), its two rules' CEL condition needs
-  `repository_owner_id == "60613705"` (done by the user in the Console).
+  `repository_owner_id == "60613705"` (to be changed by the user in the
+  Console).
   The other callers (dsSurvival, dsSurvivalClient, DataSHIELD_CONF_DEMO)
   still use the old path through the redirect. `main` of this repository still
   has the old names until v1 is merged. Docs site now
