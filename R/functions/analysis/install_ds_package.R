@@ -19,11 +19,18 @@ install_ds_package <- function(package, version, catalogue, texts) {
   }
 
   entry <- catalogue[[package]]
-  repo <- if (!is.null(entry) && nzchar(entry$github)) sub("^https?://github.com/", "", entry$github) else NA_character_
-  refs <- c(
-    if (is.null(entry) || nzchar(entry$cran)) sprintf("%s@%s", package, version),
-    if (!is.na(repo)) c(sprintf("%s@v%s", repo, version), sprintf("%s@%s", repo, version), repo)
-  )
+  repo <- if (!is.null(entry) && nzchar(entry$github)) {
+    sub("^https?://github.com/", "", entry$github)
+  } else {
+    NA_character_
+  }
+  refs <- character(0)
+  if (is.null(entry) || nzchar(entry$cran)) {
+    refs <- c(refs, sprintf("%s@%s", package, version))
+  }
+  if (!is.na(repo)) {
+    refs <- c(refs, sprintf("%s@v%s", repo, version), sprintf("%s@%s", repo, version), repo)
+  }
 
   for (ref in refs) {
     ok <- tryCatch({
@@ -33,7 +40,9 @@ install_ds_package <- function(package, version, catalogue, texts) {
       message(sprintf("Installing %s from %s failed: %s", package, ref, conditionMessage(e)))
       FALSE
     })
-    if (!ok) next
+    if (!ok) {
+      next
+    }
     got <- installed_version()
     note <- if (!identical(got, version)) {
       fill_template(texts$notes$version_not_found, list(PACKAGE = package, VERSION = version, INSTALLED = got, REF = ref))

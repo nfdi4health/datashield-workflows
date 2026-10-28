@@ -19,7 +19,7 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
-    uses: FlorianSchw/package-workflows/.github/workflows/test-suggest.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/test-suggest.yml@main
     # PR or push: only what is new since the last run. Schedule: sweep of dev;
     # manual run: sweep of the branch chosen in "Run workflow".
     # with:
@@ -38,4 +38,4 @@ jobs:
     if: github.event_name == 'schedule'
     permissions:
       actions: write
-    uses: FlorianSchw/package-workflows/.github/workflows/workflow-keepalive.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/workflow-keepalive.yml@main

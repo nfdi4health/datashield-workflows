@@ -5,6 +5,10 @@
 # test-initMockData.R, also when the function is called initMockdata(). The
 # other workflows pair R files and tests the same way.
 test_file_path <- function(name, category = NA_character_) {
-  file <- if (is.na(category)) sprintf("test-%s.R", name) else sprintf("test-%s-%s.R", category, name)
+  file <- if (is.na(category)) {
+    sprintf("test-%s.R", name)
+  } else {
+    sprintf("test-%s-%s.R", category, name)
+  }
   file.path("tests", "testthat", file)
 }

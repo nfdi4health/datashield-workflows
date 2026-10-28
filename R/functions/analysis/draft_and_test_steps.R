@@ -27,11 +27,15 @@ draft_and_test_steps <- function(to_write, plan, steps, existing, context, check
     # A failed call in a repair round keeps what passed so far; only the
     # first call's failure ends the run.
     result <- tryCatch(ask_claude_for_scripts(context, requested, previous), error = function(e) {
-      if (round == 1) stop(e)
+      if (round == 1) {
+        stop(e)
+      }
       message(sprintf("Claude call in repair round %d failed: %s", round - 1, conditionMessage(e)))
       NULL
     })
-    if (is.null(result)) break
+    if (is.null(result)) {
+      break
+    }
     made <- round
     for (s in result) {
       id <- s$step_id
@@ -39,18 +43,23 @@ draft_and_test_steps <- function(to_write, plan, steps, existing, context, check
       unlink(c(candidate[[id]], existing$path[existing$step == id]))
       built <- assemble_step_files(Find(function(p) identical(p$id, id), plan$steps), s$sections, context$numbers[[id]],
         steps[[id]]$hash, context$header_values, s$notes, settings, texts)
-      for (f in built$files) writeLines(f$lines, f$path)
+      for (f in built$files) {
+        writeLines(f$lines, f$path)
+      }
       candidate[[id]] <- vapply(built$files, function(f) f$path, character(1))
       notes <- c(notes, built$notes)
     }
-    if (length(candidate) == 0) break
+    if (length(candidate) == 0) {
+      break
+    }
     # Every other bot script runs too: kept steps, and requested steps that
     # have no new version (yet), so each step finds the objects it needs.
     others <- sort(existing$path[!existing$step %in% names(candidate)])
     outcome <- test_step_scripts(candidate, answers, checks$reference, checks$variables, checks$login_file, others, settings, texts, context$connections)
-    if (length(outcome$problems) == 0 || round == attempts) break
+    if (length(outcome$problems) == 0 || round == attempts) {
+      break
+    }
     requested <- names(outcome$problems)
-    message(sprintf("Repair round for: %s", paste(requested, collapse = ", ")))
     previous <- format_repair_request(outcome$problems, answers, context$repair_template)
   }
 

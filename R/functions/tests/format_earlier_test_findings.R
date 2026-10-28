@@ -6,7 +6,9 @@
 # listed: they are part of the test files Claude sees
 # (materialize_bot_tests()).
 format_earlier_test_findings <- function(earlier) {
-  if (length(earlier) == 0) return("(none)")
+  if (length(earlier) == 0) {
+    return("(none)")
+  }
   lines <- vapply(earlier, function(e) {
     if (identical(e$kind, "failed")) {
       sprintf("- E%d — a generated test that failed (`%s`), not proposed: \"%s\". %s", e$id, e$classification, e$description, e$explanation)

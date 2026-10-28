@@ -1,0 +1,54 @@
+# DSLite's built-in test datasets the test bot can offer Claude when it
+# generates a DSLite setup for a DataSHIELD package. A project's own
+# config/dslite-canned-datasets.yml is merged over this file key by key
+# (datasets is replaced as a whole).
+
+datasets:
+  - name: CNSIM
+    setup_function: setupCNSIMTest
+    rows_per_study: 2163
+    description: >-
+      General-purpose simulated cardiovascular/health dataset. Continuous
+      lab values (LAB_TSC, LAB_TRIG, LAB_HDL, LAB_GLUC_ADJUSTED), a BMI
+      measure (PM_BMI_CONTINUOUS), and binary disease indicators (DIS_CVA,
+      DIS_DIAB, MEDI_LPD).
+    fits_when: >-
+      No more specific dataset below fits better — the sensible default for
+      most numeric/tabular operations.
+  - name: DASIM
+    setup_function: setupDASIMTest
+    rows_per_study: 10000
+    description: >-
+      Similar shape to CNSIM (health-style numeric/binary columns: LAB_TSC,
+      LAB_TRIG, LAB_HDL, LAB_GLUC_FASTING, PM_BMI_CONTINUOUS, DIS_CVA,
+      DIS_DIAB, DIS_AMI) but larger, 10000 rows per study.
+    fits_when: >-
+      The function's behavior specifically depends on a larger sample size
+      (e.g. aggregation stability, performance-sensitive logic).
+  - name: DATASET
+    setup_function: setupDATASETTest
+    rows_per_study: 71
+    description: >-
+      Small dataset purpose-built for type/edge-case coverage: columns
+      include CHARACTER, LOGICAL, NA_VALUES, NULL_VALUES, INTEGER,
+      NON_NEGATIVE_INTEGER, POSITIVE_INTEGER, and more.
+    fits_when: >-
+      The function's behavior depends on specific R data types, missing
+      values (NA/NULL), or value-range edge cases (e.g. type coercion,
+      validation, non-negative/positive constraints).
+  - name: DISCORDANT
+    setup_function: setupDISCORDANTTest
+    rows_per_study: 12
+    description: >-
+      Tiny 2-column dataset (A, B) for concordance/discordance-style paired
+      comparisons.
+    fits_when: >-
+      The function specifically computes agreement/concordance/discordance
+      between two paired variables.
+  - name: SURVIVAL
+    setup_function: setupSURVIVALTest
+    rows_per_study: 2060
+    description: >-
+      Survival-analysis-style dataset with time-to-event columns (time.id,
+      starttime, endtime, survtime, cens) plus covariates like age.60.
+    fits_when: The function performs or supports survival/time-to-event analysis.

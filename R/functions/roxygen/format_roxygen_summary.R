@@ -5,13 +5,28 @@
 # `state` from merge_roxygen_findings(). Same role as
 # format_test_summary() for the test workflow.
 format_roxygen_summary <- function(state) {
-  plural <- function(n, one, many) sprintf("%d %s", n, if (n == 1) one else many)
-  n <- function(kind) sum(vapply(state$entries, function(e) identical(e$kind, kind) && identical(e$status, "active"), logical(1)))
-  parts <- c(
-    if (n("applied") > 0) plural(n("applied"), "change applied", "changes applied"),
-    if (n("dropped") > 0) sprintf("%d not applied", n("dropped")),
-    if (n("bug") > 0) plural(n("bug"), "possible bug", "possible bugs")
-  )
-  if (length(parts) == 0) return("no changes")
+  plural <- function(n, one, many) {
+    if (n == 1) {
+      return(sprintf("%d %s", n, one))
+    }
+    sprintf("%d %s", n, many)
+  }
+  n <- function(kind) {
+    sum(vapply(state$entries, function(e) identical(e$kind, kind) && identical(e$status, "active"), logical(1)))
+  }
+
+  parts <- character(0)
+  if (n("applied") > 0) {
+    parts <- c(parts, plural(n("applied"), "change applied", "changes applied"))
+  }
+  if (n("dropped") > 0) {
+    parts <- c(parts, sprintf("%d not applied", n("dropped")))
+  }
+  if (n("bug") > 0) {
+    parts <- c(parts, plural(n("bug"), "possible bug", "possible bugs"))
+  }
+  if (length(parts) == 0) {
+    return("no changes")
+  }
   paste(parts, collapse = " · ")
 }

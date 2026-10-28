@@ -194,7 +194,7 @@ function gone → reported). `apply_naming_to_package()`:
 - Line endings and final newline kept.
 
 One PR per repository on `bot-suggest/ds-naming-apply/<target>` into
-`target-branch` / `server-target-branch` (e.g. `next`), commit
+`base-branch` / `server-base-branch` (e.g. `next`), commit
 `refactor!:` with a `BREAKING CHANGE` footer. The client PR also sets the
 entries to `status: applied`; merging it runs apply again, which then
 finds nothing to do. Unapproved counterparts of a renamed linked argument

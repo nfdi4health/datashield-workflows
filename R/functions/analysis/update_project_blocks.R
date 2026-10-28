@@ -9,9 +9,9 @@ update_project_blocks <- function(steps, installed, catalogue, settings, texts) 
   main_block <- update_marked_block(paths$main, settings$markers$main_start, settings$markers$main_end,
     sprintf("source(here::here(\"%s\", \"%s\"))", paths$scripts, scripts))
 
-  other_packages <- unique(unlist(lapply(steps, function(s) {
-    lapply(s$notes, function(n) if (identical(n$kind, "other_package") && nzchar(n$package)) n$package)
-  })))
+  notes <- unlist(lapply(steps, function(s) s$notes), recursive = FALSE)
+  other <- Filter(function(n) identical(n$kind, "other_package") && nzchar(n$package), notes)
+  other_packages <- unique(unlist(lapply(other, function(n) n$package)))
   deps_block <- update_dependencies_file(paths$dependencies, installed$clients, installed$servers, other_packages, catalogue, settings, texts)
 
   damaged <- c(paths$main, paths$dependencies)[c(main_block, deps_block) == "damaged"]

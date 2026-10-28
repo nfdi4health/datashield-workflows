@@ -9,8 +9,16 @@
 update_dependencies_file <- function(path, clients, servers, other_packages, catalogue, settings, texts) {
   start <- settings$markers$dependencies_start
   end <- settings$markers$dependencies_end
-  lines <- if (file.exists(path)) readLines(path, warn = FALSE) else character(0)
-  block <- if (sum(lines == start) == 1 && sum(lines == end) == 1) lines[which(lines == start):which(lines == end)] else character(0)
+  lines <- if (file.exists(path)) {
+    readLines(path, warn = FALSE)
+  } else {
+    character(0)
+  }
+  block <- if (sum(lines == start) == 1 && sum(lines == end) == 1) {
+    lines[which(lines == start):which(lines == end)]
+  } else {
+    character(0)
+  }
   listed <- sub("^# library\\((.+)\\)$", "\\1", grep("^# library\\(.+\\)$", block, value = TRUE))
 
   new <- unlist(lapply(other_packages, function(p) c(client_package_name(p, catalogue, settings$client_suffix), p)))

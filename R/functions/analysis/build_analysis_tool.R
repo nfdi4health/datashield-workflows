@@ -11,9 +11,13 @@
 # that already requests it (checked by verify_note_issues()).
 build_analysis_tool <- function(step_ids, catalogue_names, catalogue_functions, gap_issue_numbers) {
   note_package <- list(type = "string", description = "For kind other_package: the catalogue package that would make this possible (server package name). Empty string otherwise.")
-  if (length(catalogue_names) > 0) note_package$enum <- as.list(c("", unname(catalogue_names)))
+  if (length(catalogue_names) > 0) {
+    note_package$enum <- as.list(c("", unname(catalogue_names)))
+  }
   note_function <- list(type = "string", description = "For kind other_package: the client function of that package, from the catalogue list, that would do it. Empty string if none fits or for other kinds.")
-  if (length(catalogue_functions) > 0) note_function$enum <- as.list(c("", catalogue_functions))
+  if (length(catalogue_functions) > 0) {
+    note_function$enum <- as.list(c("", catalogue_functions))
+  }
   note_issue <- list(type = "string", description = "For kind missing_function: the number of an open issue from the list that already requests the same missing function (same method, not just a similar topic). Empty string if none matches or for other kinds.")
   note_issue$enum <- as.list(c("", as.character(gap_issue_numbers)))
 

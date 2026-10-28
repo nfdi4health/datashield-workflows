@@ -13,7 +13,11 @@ workflow_dispatches <- function(workflow) {
 
   for (job in workflow$jobs) {
     for (step in job$steps) {
-      run <- if (is.character(step$run)) step$run else ""
+      run <- if (is.character(step$run)) {
+        step$run
+      } else {
+        ""
+      }
       if (grepl("dispatches", run, fixed = TRUE)) {
         type_pattern <- "event_type[\"']?\\s*[=:]\\s*[\"']?([A-Za-z0-9_.-]+)"
         for (t in regmatches(run, gregexpr(type_pattern, run, perl = TRUE))[[1]]) {
@@ -24,7 +28,11 @@ workflow_dispatches <- function(workflow) {
         add("workflow_dispatch", sub("gh workflow run\\s+[\"']?", "", t, perl = TRUE))
       }
 
-      uses <- if (is.character(step$uses)) step$uses else ""
+      uses <- if (is.character(step$uses)) {
+        step$uses
+      } else {
+        ""
+      }
       if (startsWith(uses, "peter-evans/repository-dispatch@") && !is.null(step$with[["event-type"]])) {
         add("repository_dispatch", step$with[["event-type"]])
       }

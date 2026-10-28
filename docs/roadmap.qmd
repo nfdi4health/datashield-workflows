@@ -9,7 +9,7 @@ experience would help decide.
 
 ## How to give feedback {#feedback}
 
-For now, open an [issue](https://github.com/FlorianSchw/package-workflows/issues):
+For now, open an [issue](https://github.com/nfdi4health/datashield-workflows/issues):
 a missing input, a behaviour that doesn't fit your package, an idea, or a
 point from the list below.
 

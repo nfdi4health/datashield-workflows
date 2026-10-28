@@ -4,7 +4,9 @@
 # has no matching study group or (utility) the function doesn't use
 # DataSHIELD connections — in which case no example guidance is added.
 role_guidance <- function(datashield, ds_type, role_guidance_config, demo_snippet) {
-  if (!isTRUE(datashield)) return("")
+  if (!isTRUE(datashield)) {
+    return("")
+  }
 
   if (ds_type %in% c("client", "utility")) {
     cfg <- role_guidance_config[[ds_type]]

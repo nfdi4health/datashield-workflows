@@ -9,8 +9,12 @@ finish_suggestion_report <- function(body, state, legacy = NULL) {
   room <- 62000 - nchar(hidden)
   if (!is.null(legacy)) {
     legacy <- substr(legacy, 1, max(0, min(20000, room - nchar(body) - 200)))
-    if (nzchar(legacy)) body <- paste0(body, "\n\n<details><summary>Earlier reports (before this report format)</summary>\n\n", legacy, "\n\n</details>")
+    if (nzchar(legacy)) {
+      body <- paste0(body, "\n\n<details><summary>Earlier reports (before this report format)</summary>\n\n", legacy, "\n\n</details>")
+    }
   }
-  if (nchar(body) > room) body <- paste0(substr(body, 1, room), "\n\n… truncated — see the job log for the rest.")
+  if (nchar(body) > room) {
+    body <- paste0(substr(body, 1, room), "\n\n… truncated — see the job log for the rest.")
+  }
   paste0(body, "\n\n", hidden)
 }

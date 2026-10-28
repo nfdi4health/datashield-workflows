@@ -19,8 +19,8 @@ jobs:
     with:
       server-repository: datashield/dsBase
       server-ref: v7.0-dev
-      # target-branch: next            # a shared integration branch, if used
-      # server-target-branch: next
+      # base-branch: next              # a shared integration branch, if used
+      # server-base-branch: next
     secrets:
       # The App must be installed on both repositories (same owner).
       app-client-id: ${{ secrets.APP_CLIENT_ID }}

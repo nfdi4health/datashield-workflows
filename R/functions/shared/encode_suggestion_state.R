@@ -12,7 +12,9 @@ encode_suggestion_state <- function(state, max_chars = 25000) {
   out <- encode(entries)
   while (nchar(out) > max_chars) {
     crossed <- which(vapply(entries, function(e) !identical(e$status, "active"), logical(1)))
-    if (length(crossed) == 0) break
+    if (length(crossed) == 0) {
+      break
+    }
     entries <- entries[-crossed[1]]
     out <- encode(entries)
   }

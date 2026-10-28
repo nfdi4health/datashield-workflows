@@ -1,5 +1,5 @@
 # Builds the canonical multi-study DataSHIELD login example code from
-# datashield-example-env.json, for use in the @examples field.
+# datashield-example-env.yml, for use in the @examples field.
 build_demo_login_snippet <- function(package_name, group, server) {
   appends <- vapply(group$studies, function(s) {
     sprintf(

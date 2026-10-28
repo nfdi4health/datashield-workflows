@@ -11,11 +11,15 @@
 # this run doesn't propose.
 materialize_bot_tests <- function(bot_ref, base_rev) {
   out <- list(materialized = character(0), user_edited = character(0))
-  if (is.null(bot_ref)) return(out)
+  if (is.null(bot_ref)) {
+    return(out)
+  }
   git <- function(...) suppressWarnings(system2("git", shQuote(c(...)), stdout = TRUE, stderr = FALSE))
 
   base <- git("merge-base", "HEAD", bot_ref)
-  if (length(base) == 0) return(out)
+  if (length(base) == 0) {
+    return(out)
+  }
   for (path in git("diff", "--name-only", base[1], bot_ref, "--", "tests")) {
     if (nzchar(base_rev) && length(git("diff", "--name-only", base_rev, "HEAD", "--", path)) > 0) {
       out$user_edited <- c(out$user_edited, path)
@@ -23,13 +27,14 @@ materialize_bot_tests <- function(bot_ref, base_rev) {
     }
     content <- git("show", sprintf("%s:%s", bot_ref, path))
     if (!is.null(attr(content, "status"))) {
-      if (file.exists(path)) file.remove(path)
+      if (file.exists(path)) {
+        file.remove(path)
+      }
     } else {
       dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
       writeLines(content, path)
     }
     out$materialized <- c(out$materialized, path)
   }
-  if (length(out$materialized) > 0) message("Reviewing on top of the open bot PR's test files: ", paste(out$materialized, collapse = ", "))
   out
 }

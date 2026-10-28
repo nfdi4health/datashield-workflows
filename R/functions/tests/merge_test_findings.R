@@ -33,8 +33,10 @@
 merge_test_findings <- function(state, fn, run, sha) {
   entries <- state$entries
   next_id <- state$next_id
-  stats <- c(new = 0L, crossed = 0L, repeats = if (is.null(run$repeats)) 0L else as.integer(run$repeats))
-  text <- function(x) if (is.null(x)) "" else x
+  stats <- c(new = 0L, crossed = 0L, repeats = as.integer(run$repeats %||% 0L))
+  text <- function(x) {
+    x %||% ""
+  }
 
   is_open <- function(e, kinds) identical(e$status, "active") && isTRUE(e$kind %in% kinds)
   cross <- function(keep, status, note) {
@@ -53,12 +55,17 @@ merge_test_findings <- function(state, fn, run, sha) {
     entries[[length(entries) + 1]] <<- c(
       list(id = next_id, kind = kind, fn = fn),
       modifyList(blank, fields),
-      list(sha = sha, code = if (is.null(run$code)) "" else run$code, status = "active", status_sha = "", status_note = "")
+      list(sha = sha, code = run$code %||% "", status = "active", status_sha = "", status_note = "")
     )
     next_id <<- next_id + 1L
     stats[["new"]] <<- stats[["new"]] + 1L
   }
-  id_of <- function(label) if (is.null(label) || !nzchar(label)) NA_integer_ else suppressWarnings(as.integer(sub("^E", "", label)))
+  id_of <- function(label) {
+    if (is.null(label) || !nzchar(label)) {
+      return(NA_integer_)
+    }
+    suppressWarnings(as.integer(sub("^E", "", label)))
+  }
   same_test <- function(e, file, description) identical(e$file, file) && identical(e$description, description)
 
   if (length(run$user_edited) > 0) {
@@ -67,7 +74,9 @@ merge_test_findings <- function(state, fn, run, sha) {
   }
 
   for (d in run$decisions) {
-    if (!isTRUE(d$status %in% c("superseded", "resolved"))) next
+    if (!isTRUE(d$status %in% c("superseded", "resolved"))) {
+      next
+    }
     id <- id_of(d$id)
     cross(function(e) is_open(e, c("note", "bug", "failed")) && identical(e$fn, fn) && identical(as.integer(e$id), id), d$status, text(d$note))
   }
@@ -130,7 +139,9 @@ merge_test_findings <- function(state, fn, run, sha) {
   }
 
   for (path in run$setups) {
-    if (!any(vapply(entries, function(e) is_open(e, "setup") && identical(e$file, path), logical(1)))) add("setup", list(file = path))
+    if (!any(vapply(entries, function(e) is_open(e, "setup") && identical(e$file, path), logical(1)))) {
+      add("setup", list(file = path))
+    }
   }
 
   for (pkg in run$dependencies) {
@@ -140,7 +151,9 @@ merge_test_findings <- function(state, fn, run, sha) {
   }
 
   if (!is.null(run$untested)) {
-    if (!any(vapply(entries, function(e) is_open(e, "untested") && identical(e$file, run$untested), logical(1)))) add("untested", list(file = run$untested, description = fn))
+    if (!any(vapply(entries, function(e) is_open(e, "untested") && identical(e$file, run$untested), logical(1)))) {
+      add("untested", list(file = run$untested, description = fn))
+    }
   }
 
   state$entries <- entries

@@ -12,19 +12,35 @@ job_run_condition <- function(job, called) {
 
   cond <- job_condition(job)
   if (!is.na(cond$edge_label)) {
-    what <- if (cond$edge_label %in% names(words)) words[[cond$edge_label]] else cond$edge_label
+    what <- if (cond$edge_label %in% names(words)) {
+      words[[cond$edge_label]]
+    } else {
+      cond$edge_label
+    }
     needs <- sprintf("if %s %s", paste(unlist(job$needs), collapse = " and "), what)
   }
-  if (!is.na(cond$note)) own <- c(own, cond$note)
+  if (!is.na(cond$note)) {
+    own <- c(own, cond$note)
+  }
 
   ref <- parse_workflow_ref(job$uses)
-  inner <- if (!is.null(ref)) called[[ref$key]]$workflow else NULL
+  inner <- if (!is.null(ref)) {
+    called[[ref$key]]$workflow
+  } else {
+    NULL
+  }
   if (!is.null(inner) && length(inner$jobs) > 0) {
     notes <- unique(vapply(inner$jobs, function(ij) {
       n <- job_condition(ij)$note
-      if (is.na(n)) "" else n
+      if (is.na(n)) {
+        ""
+      } else {
+        n
+      }
     }, character(1)))
-    if (length(notes) == 1 && nzchar(notes)) own <- c(own, notes)
+    if (length(notes) == 1 && nzchar(notes)) {
+      own <- c(own, notes)
+    }
   }
   list(needs = needs, own = paste(own, collapse = ", "))
 }

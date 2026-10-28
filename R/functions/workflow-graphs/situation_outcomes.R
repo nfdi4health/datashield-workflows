@@ -10,10 +10,16 @@ situation_outcomes <- function(outcomes, trigger) {
   events <- vapply(c(trigger_order(), "workflow_dispatch"), event_noun, character(1))
   kept <- list()
   for (o in outcomes) {
-    parts <- if (nzchar(o$condition)) strsplit(o$condition, ", ", fixed = TRUE)[[1]] else character(0)
+    parts <- if (nzchar(o$condition)) {
+      strsplit(o$condition, ", ", fixed = TRUE)[[1]]
+    } else {
+      character(0)
+    }
     only <- sub("^only if: ", "", parts[startsWith(parts, "only if: ") & sub("^only if: ", "", parts) %in% events])
     skip <- sub("^skipped: ", "", parts[startsWith(parts, "skipped: ") & sub("^skipped: ", "", parts) %in% events])
-    if ((length(only) > 0 && !here %in% only) || here %in% skip) next
+    if ((length(only) > 0 && !here %in% only) || here %in% skip) {
+      next
+    }
     o$condition <- paste(setdiff(parts, c(paste("only if:", only), paste("skipped:", skip))), collapse = ", ")
     kept[[length(kept) + 1]] <- o
   }

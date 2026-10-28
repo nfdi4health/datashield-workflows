@@ -32,9 +32,6 @@ function; when code and documentation disagree, follow the code and say
 so in `reason`. Keep each `reason` to one sentence a maintainer can
 check.
 
-Call the submit_naming_classification tool with one entry per listed
-argument. Do not write any prose response — only call the tool.
-
 <!-- per function -->
 
 Package: {{PACKAGE}} ({{SIDE}} side)

@@ -4,8 +4,14 @@ col_to_index <- function(line, col) {
   chars <- strsplit(line, "")[[1]]
   pos <- 0
   for (i in seq_along(chars)) {
-    pos <- if (chars[i] == "\t") (pos %/% 8 + 1) * 8 else pos + 1
-    if (pos >= col) return(i)
+    pos <- if (chars[i] == "\t") {
+      (pos %/% 8 + 1) * 8
+    } else {
+      pos + 1
+    }
+    if (pos >= col) {
+      return(i)
+    }
   }
   NA_integer_
 }

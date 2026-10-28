@@ -13,8 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Verify PR source branch
+        # Branch names through the environment, never written into the
+        # script itself (a crafted name could otherwise run as shell code).
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          ALLOWED_HEAD: ${{ inputs.allowed-head }}
         run: |
-          if [ "${{ github.event.pull_request.head.ref }}" != "${{ inputs.allowed-head }}" ]; then
-            echo "::error::PRs into this branch must come from '${{ inputs.allowed-head }}', not '${{ github.event.pull_request.head.ref }}'."
+          if [ "$HEAD_REF" != "$ALLOWED_HEAD" ]; then
+            echo "::error::PRs into this branch must come from '$ALLOWED_HEAD', not '$HEAD_REF'."
             exit 1
           fi

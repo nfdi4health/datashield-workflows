@@ -8,5 +8,5 @@ can't be handled properly and may be closed without review until that is
 set up.
 
 Before opening an issue, have a look at the
-[roadmap and open questions](https://florianschw.github.io/package-workflows/roadmap.html)
+[roadmap and open questions](https://nfdi4health.github.io/datashield-workflows/roadmap.html)
 — your point may already be listed there.

@@ -16,7 +16,7 @@ It is the last job of the release trigger:
   trigger-release:
     needs: on-success
     if: needs.on-success.result == 'success'
-    uses: FlorianSchw/package-workflows/.github/workflows/trigger-release-publish.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/trigger-release-publish.yml@main
 ```
 
 The receiving side:

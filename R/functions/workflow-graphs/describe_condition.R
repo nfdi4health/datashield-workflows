@@ -21,7 +21,14 @@ describe_condition <- function(cond) {
   )
   for (p in patterns) {
     m <- regmatches(cond, regexec(p[[1]], cond, perl = TRUE))[[1]]
-    if (length(m) >= 1) return(p[[2]](if (length(m) >= 2) m[2] else NULL))
+    if (length(m) >= 1) {
+      # The pattern's captured value, if it has one.
+      captured <- NULL
+      if (length(m) >= 2) {
+        captured <- m[2]
+      }
+      return(p[[2]](captured))
+    }
   }
   paste("only if:", cond)
 }

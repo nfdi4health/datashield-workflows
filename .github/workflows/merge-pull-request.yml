@@ -19,4 +19,5 @@ jobs:
       - name: Merge PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge ${{ inputs.pr_number }} --merge --repo ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: gh pr merge "$PR_NUMBER" --merge --repo "$GITHUB_REPOSITORY"

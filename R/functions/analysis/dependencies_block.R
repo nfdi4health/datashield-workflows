@@ -4,12 +4,15 @@
 # packages needed for local DSLite testing, and — commented out, so renv
 # ignores them — packages from notes that the study servers don't have yet.
 dependencies_block <- function(clients, servers, not_on_servers, texts) {
-  c(
+  block <- c(
     texts$dependencies$clients,
     sprintf("library(%s)", clients),
     texts$dependencies$servers,
     "library(DSLite)",
-    sprintf("library(%s)", servers),
-    if (length(not_on_servers) > 0) c(unlist(texts$dependencies$not_on_servers), sprintf("# library(%s)", not_on_servers))
+    sprintf("library(%s)", servers)
   )
+  if (length(not_on_servers) > 0) {
+    block <- c(block, unlist(texts$dependencies$not_on_servers), sprintf("# library(%s)", not_on_servers))
+  }
+  block
 }

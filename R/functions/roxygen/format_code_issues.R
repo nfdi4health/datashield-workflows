@@ -6,7 +6,9 @@
 # those of kind "bug" are used. `style` from report_style().
 format_code_issues <- function(entries, style = report_style()) {
   bugs <- Filter(function(e) identical(e$kind, "bug"), entries)
-  if (length(bugs) == 0) return(character(0))
+  if (length(bugs) == 0) {
+    return(character(0))
+  }
   is_active <- function(e) identical(e$status, "active")
   n <- sum(vapply(bugs, is_active, logical(1)))
   paths <- unique(vapply(bugs, function(e) e$file, character(1)))
@@ -20,7 +22,11 @@ format_code_issues <- function(entries, style = report_style()) {
       of_file <- Filter(function(e) identical(e$file, p), bugs)
       of_file <- c(Filter(is_active, of_file), Filter(Negate(is_active), of_file))
       list(title = group_title(p, of_file), lines = vapply(of_file, function(e) {
-        label <- if (identical(e$confidence, "medium")) " _(medium confidence)_" else ""
+        label <- if (identical(e$confidence, "medium")) {
+          " _(medium confidence)_"
+        } else {
+          ""
+        }
         finding_line(e, sprintf("**%s**%s %s", e$summary, label, e$explanation), sprintf("**%s**", e$summary))
       }, character(1)))
     }), style)

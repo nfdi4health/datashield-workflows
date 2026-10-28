@@ -2,7 +2,7 @@
 # Decides whether a suggestion run does anything, its mode and its branch,
 # from the event alone (GITHUB_EVENT_NAME, the event JSON at
 # GITHUB_EVENT_PATH, GITHUB_REF, HEAD_REF, REF_NAME, ACTOR) and the inputs
-# (SCAN_MODE, SWEEP_BASE, ALLOW_SWEEP). Writes skip, mode, ref and branch
+# (REVIEW_SCOPE, REVIEW_BRANCH, ALLOW_SCHEDULED). Writes skip, mode, ref and branch
 # to GITHUB_OUTPUT. Called by action.yml.
 set -eo pipefail
 
@@ -35,22 +35,21 @@ fi
 
 # Scheduled and manual runs are about a branch other than the event's: the
 # one chosen in "Run workflow", dev on schedules (a schedule always starts
-# on the default branch), or sweep-base.
+# on the default branch), or review-branch.
 case "$event" in
   pull_request|push) ;;
   *)
-    [ "$ALLOW_SWEEP" = "true" ] || skip "this workflow runs on pull requests and pushes only."
-    if [ -n "$SWEEP_BASE" ]; then branch="$SWEEP_BASE"
+    [ "$ALLOW_SCHEDULED" = "true" ] || skip "this workflow runs on pull requests and pushes only."
+    if [ -n "$REVIEW_BRANCH" ]; then branch="$REVIEW_BRANCH"
     elif [ "$event" = "workflow_dispatch" ]; then branch="$REF_NAME"
     else branch="dev"; fi
     ;;
 esac
 
-# "auto": what changed since the last review — for a PR or push since the
+# "changed": what changed since the last review — for a PR or push since the
 # last run (determine-changes.sh), for a scheduled or manual run since the
 # last review of the branch in the run history. "all": every file.
-mode="$SCAN_MODE"
-[ "$mode" = "auto" ] && mode="changed"
+mode="$REVIEW_SCOPE"
 case "$mode" in
   changed)
     out skip false
@@ -59,12 +58,12 @@ case "$mode" in
     out branch "$branch"
     ;;
   all)
-    [ "$ALLOW_SWEEP" = "true" ] || skip "this workflow has no full review; it runs on pull requests and pushes."
+    [ "$ALLOW_SCHEDULED" = "true" ] || skip "this workflow has no full review; it runs on pull requests and pushes."
     echo "Full review of $branch."
     out skip false
     out mode all
     out ref "$branch"
     out branch "$branch"
     ;;
-  *) echo "::error::Unknown scan-mode \"$SCAN_MODE\" (auto, changed or all)."; exit 1 ;;
+  *) echo "::error::Unknown review-scope \"$REVIEW_SCOPE\" (changed or all)."; exit 1 ;;
 esac

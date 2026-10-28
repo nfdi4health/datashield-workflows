@@ -7,7 +7,9 @@
 example_test_files <- function(scheme, n = 2) {
   dir <- file.path("tests", "testthat")
   files <- list.files(dir, pattern = "^test-.*\\.[Rr]$", full.names = TRUE)
-  if (length(files) == 0) return(list())
+  if (length(files) == 0) {
+    return(list())
+  }
 
   pick_median <- function(paths) {
     sizes <- file.size(paths)

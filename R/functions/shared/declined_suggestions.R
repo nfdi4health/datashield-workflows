@@ -9,7 +9,9 @@
 declined_suggestions <- function(state, match, fingerprint, sha) {
   declined <- list()
   state$entries <- lapply(state$entries, function(e) {
-    if (!identical(suggestion_choice(e), "declined") || !isTRUE(match(e))) return(e)
+    if (!identical(suggestion_choice(e), "declined") || !isTRUE(match(e))) {
+      return(e)
+    }
     if (!is.null(e$code) && !identical(e$code, fingerprint)) {
       e$status <- "superseded"
       e$status_sha <- sha

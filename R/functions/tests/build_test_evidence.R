@@ -12,18 +12,29 @@ build_test_evidence <- function(function_file, test_paths, base_rev) {
   git <- function(...) suppressWarnings(system2("git", shQuote(c(...)), stdout = TRUE, stderr = FALSE))
   last_change <- function(path) {
     info <- git("log", "-1", "--format=%ct|%cs %h by %an: %s", "--", path)
-    if (length(info) == 0) return(NULL)
+    if (length(info) == 0) {
+      return(NULL)
+    }
     parts <- strsplit(info[1], "|", fixed = TRUE)[[1]]
     list(time = as.numeric(parts[1]), text = paste(parts[-1], collapse = "|"))
   }
 
-  fn_change <- last_change(function_file)
-  lines <- sprintf("Function file `%s` last changed: %s", function_file, if (is.null(fn_change)) "not committed yet" else fn_change$text)
+  changed_text <- function(change) {
+    if (is.null(change)) {
+      return("not committed yet")
+    }
+    change$text
+  }
 
-  if (length(test_paths) == 0) lines <- c(lines, "No test file exists yet.")
+  fn_change <- last_change(function_file)
+  lines <- sprintf("Function file `%s` last changed: %s", function_file, changed_text(fn_change))
+
+  if (length(test_paths) == 0) {
+    lines <- c(lines, "No test file exists yet.")
+  }
   for (test_path in test_paths) {
     test_change <- last_change(test_path)
-    lines <- c(lines, sprintf("Test file `%s` last changed: %s", test_path, if (is.null(test_change)) "not committed yet" else test_change$text))
+    lines <- c(lines, sprintf("Test file `%s` last changed: %s", test_path, changed_text(test_change)))
     if (!is.null(fn_change) && !is.null(test_change)) {
       order <- if (fn_change$time > test_change$time) {
         "The function file changed after this test file."
@@ -39,12 +50,21 @@ build_test_evidence <- function(function_file, test_paths, base_rev) {
   if (nzchar(base_rev)) {
     diff <- git("diff", base_rev, "HEAD", "--", function_file)
     tests_touched <- length(test_paths) > 0 && length(git("diff", "--name-only", base_rev, "HEAD", "--", test_paths)) > 0
+    function_change <- "did not change"
+    if (length(diff) > 0) {
+      function_change <- "changed"
+    }
+    tests_change <- "did not change"
+    if (tests_touched) {
+      tests_change <- "changed as well"
+    }
     lines <- c(lines, sprintf(
       "In the changes under review, the function file %s and its test files %s.",
-      if (length(diff) > 0) "changed" else "did not change",
-      if (tests_touched) "changed as well" else "did not change"
+      function_change, tests_change
     ))
-    if (length(diff) > 0) lines <- c(lines, "", "Diff of the function file in the changes under review:", "```diff", diff, "```")
+    if (length(diff) > 0) {
+      lines <- c(lines, "", "Diff of the function file in the changes under review:", "```diff", diff, "```")
+    }
   }
 
   paste(lines, collapse = "\n")

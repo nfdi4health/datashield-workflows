@@ -12,7 +12,7 @@ jobs:
       id-token: write
       contents: write
       pull-requests: write
-    uses: FlorianSchw/package-workflows/.github/workflows/datashield-analysis-suggest.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/datashield-analysis-suggest.yml@main
     # with:
     #   plan-file: config/analysis-plan.yml
     secrets:

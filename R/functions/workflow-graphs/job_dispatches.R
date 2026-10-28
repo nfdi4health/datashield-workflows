@@ -5,6 +5,10 @@
 job_dispatches <- function(job, called) {
   own <- workflow_dispatches(list(jobs = list(job)))
   ref <- parse_workflow_ref(job$uses)
-  via_call <- if (is.null(ref) || is.null(called[[ref$key]])) list() else called[[ref$key]]$dispatches
+  via_call <- if (is.null(ref) || is.null(called[[ref$key]])) {
+    list()
+  } else {
+    called[[ref$key]]$dispatches
+  }
   unique(c(own, via_call))
 }

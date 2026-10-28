@@ -1,0 +1,28 @@
+name: PR checks
+
+# This repository's own pull request checks under the main / dev /
+# feature branch model, calling its reusable workflows by local path
+# (they run from the PR's own commit). The job ids give the check names
+# the rulesets require (dev-notes/v1-drafts/): "commit-messages / lint"
+# on PRs into dev and main, "head-branch / verify-source-branch" on PRs
+# into main (only dev may merge into main). Not reusable.
+on:
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+jobs:
+  commit-messages:
+    # Not reusable itself: always this repository's own workflow file.
+    uses: ./.github/workflows/commitlint.yml  # zizmor: ignore[self-repository]
+    permissions:
+      contents: read
+      pull-requests: read   # the PR's commits
+
+  head-branch:
+    if: github.base_ref == 'main'
+    uses: ./.github/workflows/require-head-branch.yml  # zizmor: ignore[self-repository]
+    with:
+      allowed-head: dev

@@ -31,33 +31,43 @@ merge_roxygen_findings <- function(state, path, run, sha, user_edited = FALSE) {
     stats[["crossed"]] <<- stats[["crossed"]] + 1L
   }
   cross_where <- function(kinds, keep, status, note) {
-    for (i in seq_along(entries)) if (is_open(entries[[i]], kinds) && keep(entries[[i]])) cross(i, status, note)
+    for (i in seq_along(entries)) {
+      if (is_open(entries[[i]], kinds) && keep(entries[[i]])) {
+      cross(i, status, note)
+    }
+    }
   }
   add <- function(kind, fields) {
     blank <- list(field = "", reason = "", explanation = "", proposed = "", summary = "", confidence = "")
     entries[[length(entries) + 1]] <<- c(
       list(id = next_id, file = path, kind = kind),
       modifyList(blank, fields),
-      list(sha = sha, code = if (is.null(run$code)) "" else run$code, status = "active", status_sha = "", status_note = "")
+      list(sha = sha, code = run$code %||% "", status = "active", status_sha = "", status_note = "")
     )
     next_id <<- next_id + 1L
     stats[["new"]] <<- stats[["new"]] + 1L
   }
   # TRUE if `label` (e.g. "E3") names an open earlier entry of `kind`.
   repeats <- function(label, kind) {
-    if (is.null(label) || !nzchar(label)) return(FALSE)
+    if (is.null(label) || !nzchar(label)) {
+      return(FALSE)
+    }
     id <- suppressWarnings(as.integer(sub("^E", "", label)))
     hit <- Find(function(e) identical(as.integer(e$id), id), entries)
     !is.null(hit) && is_open(hit, kind)
   }
-  text <- function(x) if (is.null(x)) "" else x
+  text <- function(x) {
+    x %||% ""
+  }
 
   if (isTRUE(user_edited)) {
     cross_where("applied", function(e) TRUE, "superseded", "replaced by your own edit of this documentation")
   }
 
   for (d in run$decisions) {
-    if (!isTRUE(d$status %in% c("superseded", "resolved"))) next
+    if (!isTRUE(d$status %in% c("superseded", "resolved"))) {
+      next
+    }
     id <- suppressWarnings(as.integer(sub("^E", "", d$id)))
     cross_where(c("dropped", "bug"), function(e) identical(as.integer(e$id), id), d$status, text(d$note))
   }

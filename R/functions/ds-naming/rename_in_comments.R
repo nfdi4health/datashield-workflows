@@ -4,7 +4,9 @@
 # by rename_in_roxygen(). Returns list(lines, done).
 rename_in_comments <- function(lines, renames) {
   idx <- which(grepl("^\\s*#", lines) & !grepl("^\\s*#'", lines))
-  if (length(idx) == 0) return(list(lines = lines, done = 0))
+  if (length(idx) == 0) {
+    return(list(lines = lines, done = 0))
+  }
   prefix <- sub("^(\\s*#+).*$", "\\1", lines[idx])
   text <- substring(lines[idx], nchar(prefix) + 1)
   done <- 0
@@ -13,6 +15,8 @@ rename_in_comments <- function(lines, renames) {
     text <- res$lines
     done <- done + res$done
   }
-  if (done > 0) lines[idx] <- paste0(prefix, text)
+  if (done > 0) {
+    lines[idx] <- paste0(prefix, text)
+  }
   list(lines = lines, done = done)
 }

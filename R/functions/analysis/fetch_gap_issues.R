@@ -9,15 +9,21 @@ fetch_gap_issues <- function(repo, title_prefix, max_issues) {
   page <- 1
   while (length(found) < max_issues) {
     batch <- get_github_json(sprintf("/repos/%s/issues?state=open&per_page=100&page=%d", repo, page))
-    if (length(batch) == 0) break
+    if (length(batch) == 0) {
+      break
+    }
     for (i in batch) {
       if (is.null(i$pull_request) && startsWith(i$title, title_prefix)) {
         found[[length(found) + 1]] <- data.frame(number = i$number, title = i$title, url = i$html_url)
       }
     }
-    if (length(batch) < 100) break
+    if (length(batch) < 100) {
+      break
+    }
     page <- page + 1
   }
-  if (length(found) == 0) return(data.frame(number = integer(0), title = character(0), url = character(0)))
+  if (length(found) == 0) {
+    return(data.frame(number = integer(0), title = character(0), url = character(0)))
+  }
   head(do.call(rbind, found), max_issues)
 }

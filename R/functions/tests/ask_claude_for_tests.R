@@ -18,8 +18,8 @@
 # from the prompt cache. `context$dataset_choices` are the run's DSLite
 # datasets for the tool schema; `context$dslite_datasets` the ones offered
 # to this function (NULL unless it gets a fresh setup).
-ask_claude_for_tests <- function(parsed, context) {
-  prompt <- fill_template(test_review_prompt_template, list(
+ask_claude_for_tests <- function(claude, parsed, context) {
+  prompt <- fill_template(claude$prompt, list(
     ROLE_GUIDANCE         = context$role_text,
     TEST_FILE_SCHEME      = context$scheme_text,
     EXISTING_TEST_FILES   = format_test_files(context$test_files, "(none yet)"),
@@ -38,10 +38,16 @@ ask_claude_for_tests <- function(parsed, context) {
   # Cached only when the run reviews more than one file: the cache lives
   # minutes, runs are hours or days apart, and a single call would pay the
   # cache write (1.25x input) without ever reading it.
-  sent <- if (isTRUE(context$cache_prompt)) split_cached_prompt(prompt) else sub("<!-- per function -->\n", "", prompt, fixed = TRUE)
-  answer <- call_claude_tool(anthropic_config, tool, sent)
+  sent <- if (isTRUE(context$cache_prompt)) {
+    split_cached_prompt(prompt)
+  } else {
+    sub("<!-- per function -->\n", "", prompt, fixed = TRUE)
+  }
+  answer <- call_claude_tool(claude, tool, sent)
   # The schema's maxItems isn't sent in strict mode (strict_tool_schema()):
   # the cap holds here either way.
-  if (length(answer$tests) > context$max_new_tests) answer$tests <- answer$tests[seq_len(context$max_new_tests)]
+  if (length(answer$tests) > context$max_new_tests) {
+    answer$tests <- answer$tests[seq_len(context$max_new_tests)]
+  }
   answer
 }

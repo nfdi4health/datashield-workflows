@@ -7,7 +7,9 @@
 rename_in_templates <- function(pkg_dir, renames) {
   out <- list(files = character(0), counts = integer(0), notes = character(0))
   templates <- list.files(file.path(pkg_dir, "man-roxygen"), pattern = "\\.[Rr]$", full.names = TRUE)
-  if (length(templates) == 0 || nrow(renames) == 0) return(out)
+  if (length(templates) == 0 || nrow(renames) == 0) {
+    return(out)
+  }
 
   # which function's block uses which template
   users <- list()
@@ -18,24 +20,32 @@ rename_in_templates <- function(pkg_dir, renames) {
     for (d in defs) {
       fn <- sub("^\\s*`?([A-Za-z.][A-Za-z0-9._]*)`?.*$", "\\1", lines[d])
       i <- d - 1
-      while (i >= 1 && (rox[i] || !nzchar(trimws(lines[i])))) i <- i - 1
+      while (i >= 1 && (rox[i] || !nzchar(trimws(lines[i])))) {
+        i <- i - 1
+      }
       block <- lines[which(rox[seq_len(d - 1)] & seq_len(d - 1) > i)]
       used <- sub("^\\s*#'\\s*@template\\s+(\\S+).*$", "\\1", grep("^\\s*#'\\s*@template\\s", block, value = TRUE))
-      for (t in used) users[[t]] <- c(users[[t]], fn)
+      for (t in used) {
+        users[[t]] <- c(users[[t]], fn)
+      }
     }
   }
 
   for (path in templates) {
     name <- sub("\\.[Rr]$", "", basename(path))
     fns <- unique(users[[name]])
-    if (length(fns) == 0) next
+    if (length(fns) == 0) {
+      next
+    }
     file <- read_lines_keep_eol(path)
     lines <- file$lines
     params <- sub("^\\s*#'\\s*@param\\s+(\\S+).*$", "\\1", grep("^\\s*#'\\s*@param\\s", lines, value = TRUE))
     done <- 0
     for (p in unlist(strsplit(params, ","))) {
       r <- renames[renames$old == p & renames$fn %in% fns, ]
-      if (nrow(r) == 0) next
+      if (nrow(r) == 0) {
+        next
+      }
       if (length(unique(r$new)) == 1 && all(fns %in% r$fn)) {
         at <- grep(paste0("^\\s*#'\\s*@param\\s+", gsub("([.])", "\\\\\\1", p), "(\\s|,|$)"), lines)
         lines[at] <- sub(paste0("(@param\\s+)", gsub("([.])", "\\\\\\1", p)), paste0("\\1", r$new[1]), lines[at])

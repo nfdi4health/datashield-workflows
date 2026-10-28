@@ -10,8 +10,12 @@
 ensure_dslite_setup_file <- function(dataset_choice, package_name) {
   dir <- file.path("tests", "testthat")
   path <- file.path(dir, "setup.R")
-  if (file.exists(path)) path <- file.path(dir, "setup-dslite.R")
-  if (file.exists(path)) return(invisible(NULL))
+  if (file.exists(path)) {
+    path <- file.path(dir, "setup-dslite.R")
+  }
+  if (file.exists(path)) {
+    return(invisible(NULL))
+  }
 
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   snippet <- build_dslite_test_snippet(dataset_choice, package_name)

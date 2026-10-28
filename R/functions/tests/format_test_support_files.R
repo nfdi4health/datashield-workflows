@@ -5,7 +5,9 @@
 # files together at 60000; a cut, and files left out for the total, are
 # stated.
 format_test_support_files <- function(paths) {
-  if (length(paths) == 0) return("(none)")
+  if (length(paths) == 0) {
+    return("(none)")
+  }
   budget <- 60000
   parts <- character(0)
   left_out <- character(0)

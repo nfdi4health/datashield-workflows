@@ -45,7 +45,7 @@ In the Claude Console under **Settings → Workload identity**:
    the provider:
    - *Subject prefix*: `repo:<owner>/<repo>:*`
    - *Claim* `job_workflow_ref`:
-     `FlorianSchw/package-workflows/.github/workflows/roxygen-suggest.yml@refs/heads/main`
+     `nfdi4health/datashield-workflows/.github/workflows/roxygen-suggest.yml@refs/heads/main`
      (or `test-suggest.yml` for the test rule,
      `datashield-analysis-suggest.yml` for the analysis rule)
    - *Target*: the repository's service account, in the matching workspace

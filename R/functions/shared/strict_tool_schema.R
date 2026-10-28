@@ -11,15 +11,23 @@ strict_tool_schema <- function(schema) {
                    "exclusiveMinimum", "exclusiveMaximum", "multipleOf")
   ok <- TRUE
   convert <- function(x) {
-    if (!is.list(x)) return(x)
+    if (!is.list(x)) {
+      return(x)
+    }
     if (!is.null(names(x))) {
       x <- x[setdiff(names(x), unsupported)]
       if (identical(x$type, "object")) {
-        if (is.null(x$properties)) ok <<- FALSE
+        if (is.null(x$properties)) {
+          ok <<- FALSE
+        }
         x$additionalProperties <- FALSE
       }
     }
-    for (i in seq_along(x)) if (is.list(x[[i]])) x[[i]] <- convert(x[[i]])
+    for (i in seq_along(x)) {
+      if (is.list(x[[i]])) {
+      x[[i]] <- convert(x[[i]])
+    }
+    }
     x
   }
   list(schema = convert(schema), ok = ok)

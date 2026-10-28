@@ -1,0 +1,64 @@
+# Draft — structure of the configuration-as-code file in the user's
+# private governance repo (v1 plan, section 5). Made-up names and no
+# values: IDs are written by the reconcile script, secret *values* never
+# appear in this file. The script, on push to main: creates what is
+# missing in Anthropic, reports differences, deletes nothing without
+# confirmation; then writes the resulting IDs as GitHub secrets.
+
+anthropic:
+  organization: my-org            # the user's own organization only
+  workspaces:
+    # One per workflow type; spend limits stay a one-time Console setting.
+    - name: docs
+    - name: tests
+    - name: analysis
+    - name: naming
+
+  service_accounts:
+    # One per GitHub owner (all its repositories), member of every
+    # workspace its repositories use. The Cost page groups by it.
+    - name: owner-example-org
+      workspaces: [docs, tests]
+    - name: owner-example-user
+      workspaces: [docs, tests, analysis]
+
+  federation_rules:
+    # One per owner × workflow. subject_prefix scopes the owner; the
+    # job_workflow_ref claim pins the reusable workflow and the refs it
+    # may run from (main for @main callers, v* tags for released ones).
+    - owner: example-org
+      service_account: owner-example-org
+      workspace: docs
+      workflow: roxygen-suggest.yml
+      refs: [refs/heads/main, refs/tags/v*]
+    - owner: example-org
+      service_account: owner-example-org
+      workspace: tests
+      workflow: test-suggest.yml
+      refs: [refs/heads/main, refs/tags/v*]
+    # This repository's own smoke test: PR merge refs (refs/pull/*/merge).
+    - owner: example-org
+      repository: datashield-workflows
+      service_account: owner-example-org
+      workspace: tests
+      workflow: smoke-test.yml
+      refs: [refs/pull/*]
+
+github:
+  # Secrets and variables per repository, written with the fine-grained
+  # PAT of the github-admin environment. `from:` names where the value
+  # comes from; nothing secret is stored here.
+  repositories:
+    example-org/somepackage:
+      secrets:
+        ANTHROPIC_ORGANIZATION_ID: { from: anthropic.organization }
+        ANTHROPIC_SERVICE_ACCOUNT_ID: { from: anthropic.service_accounts.owner-example-org }
+        ANTHROPIC_FEDERATION_RULE_ID_DOCS: { from: "anthropic.federation_rules[example-org, roxygen-suggest.yml]" }
+        ANTHROPIC_FEDERATION_RULE_ID_TESTS: { from: "anthropic.federation_rules[example-org, test-suggest.yml]" }
+        APP_CLIENT_ID: { from: manual }
+        APP_PRIVATE_KEY: { from: manual }    # set once by hand, never read back
+
+  rulesets:
+    # The existing part of the governance repo: rulesets per repository
+    # (see ruleset-main.json, ruleset-dev.json, ruleset-release-tags.json).
+    example-org/datashield-workflows: [main, dev, release-tags]

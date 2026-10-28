@@ -9,7 +9,9 @@ check_column_references <- function(code, all_code, variables, texts) {
   strings_in <- function(text, only_arg = NULL) {
     found <- character(0)
     walk_code(text, function(x, arg) {
-      if (is.character(x) && length(x) == 1 && (is.null(only_arg) || startsWith(arg, only_arg))) found <<- c(found, x)
+      if (is.character(x) && length(x) == 1 && (is.null(only_arg) || startsWith(arg, only_arg))) {
+        found <<- c(found, x)
+      }
     })
     found
   }
@@ -17,7 +19,9 @@ check_column_references <- function(code, all_code, variables, texts) {
   known <- c(variables, strings_in(all_code, only_arg = "newobj"))
   refs <- grep("^[A-Za-z.][A-Za-z0-9._]*\\$[A-Za-z.][A-Za-z0-9._]*$", strings_in(code), value = TRUE)
   unknown <- unique(refs[!sub("^.*\\$", "", refs) %in% known])
-  if (length(unknown) == 0) return(character(0))
+  if (length(unknown) == 0) {
+    return(character(0))
+  }
   fill_template(texts$checks$unknown_column, list(
     COLUMNS = paste(sprintf("\"%s\"", unknown), collapse = ", "), VARIABLES = paste(variables, collapse = ", ")
   ))

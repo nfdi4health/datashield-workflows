@@ -28,25 +28,20 @@ on:
         required: false
         type: string
         default: '.github/ds-naming/transformations.yml'
-      use-claude:
-        description: 'Let Claude classify the arguments the code cannot place; false: they stay unresolved.'
-        required: false
-        type: boolean
-        default: true
       max-claude-calls:
-        description: 'At most this many functions are sent to Claude per run (one call each); earlier answers are reused.'
+        description: 'At most this many functions are sent to Claude per run (one call each) to classify the arguments the code cannot place; earlier answers are reused. 0: no Claude, those arguments stay unresolved.'
         required: false
         type: number
         default: 40
     secrets:
       anthropic-organization-id:
-        description: 'Anthropic organization ID (only with use-claude).'
+        description: 'Anthropic organization ID (only when max-claude-calls is above 0).'
         required: false
       anthropic-service-account-id:
-        description: 'Anthropic service account ID, svac_... (only with use-claude).'
+        description: 'Anthropic service account ID, svac_... (only when max-claude-calls is above 0).'
         required: false
       anthropic-federation-rule-id:
-        description: 'Federation rule ID for this workflow, fdrl_... (only with use-claude).'
+        description: 'Federation rule ID for this workflow, fdrl_... (only when max-claude-calls is above 0).'
         required: false
       app-client-id:
         description: 'GitHub App Client ID (Iv23li...); its token lets the review PR trigger checks (optional).'
@@ -70,25 +65,23 @@ jobs:
       id-token: write
     env:
       BASE_BRANCH: ${{ inputs.base-branch || github.ref_name }}
-      USE_CLAUDE: ${{ inputs.use-claude && secrets.anthropic-federation-rule-id != '' }}
+      USE_CLAUDE: ${{ inputs.max-claude-calls > 0 && secrets.anthropic-federation-rule-id != '' }}
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           ref: ${{ env.BASE_BRANCH }}
           fetch-depth: 0
 
-      - name: Checkout shared scripts
-        uses: actions/checkout@v7
-        with:
-          repository: FlorianSchw/package-workflows
-          ref: main
-          path: .shared-workflows
+      - name: Shared scripts
+        uses: $/.github/actions/shared-files
 
       - name: Checkout server package
         if: inputs.server-repository != '' && inputs.package-side == 'client'
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           repository: ${{ inputs.server-repository }}
           ref: ${{ inputs.server-ref }}
           path: .ds-naming-server
@@ -105,24 +98,26 @@ jobs:
           echo "bot_branch=$BOT_BRANCH" >> "$GITHUB_OUTPUT"
           PREVIOUS="$FILE"
           if [ -n "$(gh pr list --head "$BOT_BRANCH" --state open --json number --jq '.[0].number // empty')" ]; then
-            git fetch origin "$BOT_BRANCH"
+            # The checkout keeps no token; pass it for this fetch only.
+            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')" \
+              fetch origin "$BOT_BRANCH"
             if git show "FETCH_HEAD:$FILE" > .ds-naming-previous.yml 2>/dev/null; then PREVIOUS=.ds-naming-previous.yml; fi
           fi
           echo "file=$PREVIOUS" >> "$GITHUB_OUTPUT"
           echo "server_sha=$(git -C .ds-naming-server rev-parse HEAD 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
 
-      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
-          packages: any::yaml, any::jsonlite, any::httr2, any::purrr, any::config
+          packages: any::yaml, any::jsonlite, any::httr2, any::purrr
 
       - name: Get Anthropic access token
         id: anthropic_auth
         if: env.USE_CLAUDE == 'true'
-        uses: FlorianSchw/package-workflows/.github/actions/anthropic-token@main
+        uses: $/.github/actions/anthropic-token
         with:
           organization-id: ${{ secrets.anthropic-organization-id }}
           service-account-id: ${{ secrets.anthropic-service-account-id }}
@@ -130,7 +125,6 @@ jobs:
 
       - name: Check argument names
         env:
-          R_CONFIG_ACTIVE: ds-naming-classification
           ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
           # For renewing the token in a long run (refresh_anthropic_token()).
           ANTHROPIC_ORG_ID: ${{ secrets.anthropic-organization-id }}
@@ -147,13 +141,13 @@ jobs:
 
       - name: Resolve push token
         id: push_token
-        uses: FlorianSchw/package-workflows/.github/actions/resolve-push-token@main
+        uses: $/.github/actions/resolve-push-token
         with:
           client-id: ${{ secrets.app-client-id }}
           app-private-key: ${{ secrets.app-private-key }}
 
       - name: Propose for review
-        uses: FlorianSchw/package-workflows/.github/actions/propose-branch@main
+        uses: $/.github/actions/propose-branch
         with:
           manifest: updated_files.txt
           branch: ${{ steps.previous.outputs.bot_branch }}
@@ -168,7 +162,7 @@ jobs:
       - name: Count this run
         if: always()
         continue-on-error: true
-        uses: FlorianSchw/package-workflows/.github/actions/count-run@main
+        uses: $/.github/actions/count-run
         with:
           workflow: ds-naming-check
           job-status: ${{ job.status }}

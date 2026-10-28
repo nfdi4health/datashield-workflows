@@ -1,7 +1,7 @@
 # Settings for datashield-analysis-suggest.yml. A project can change them
 # with its own file at the same path (config/analysis-suggest.yml) that
 # holds only the entries to change; it is merged over these defaults, key
-# by key (a list, e.g. excluded_functions, is replaced as a whole).
+# by key (a list, e.g. package_status, is replaced as a whole).
 # The analysis plan itself is a different file (config/analysis-plan.yml
 # by default, the workflow's plan-file input). Wording lives in
 # config/analysis-texts.yml.
@@ -82,8 +82,15 @@ client_suffix: Client    # dsBase -> dsBaseClient
 # its own package-status list.
 package_status: [production]
 
-# Installed functions Claude must not use (the login already ran).
-excluded_functions: [datashield.login, datashield.logout, ds.glmSLMA, ds.forestplot]
+# Installed functions Claude must not use, each with the reason it is
+# told (written into the prompt). A step that needs one gets a
+# limitation note instead. A project's own config can add one, or allow
+# one again with `name: ~` (merged key by key).
+excluded_functions:
+  datashield.login: the login has already run
+  datashield.logout: the session stays open for the later scripts
+  ds.glmSLMA: study-level meta-analysis isn't available in the test environment; fit pooled models with ds.glm()
+  ds.forestplot: forest plots aren't available in the test environment
 
 # A line in the real login file matching this is reported as a possible
 # plain-text credential (case-insensitive; comments are ignored).
@@ -93,5 +100,5 @@ credential_pattern: '(password|pwd|passwd|token|secret)\s*=\s*["''][^"'']+["'']'
 # open issues on missing functions (title as in texts$issue$title) are
 # shown to Claude, so a gap already requested links to that issue instead
 # of offering a new one; at most this many, newest first.
-gap_issue_repo: FlorianSchw/package-workflows
+gap_issue_repo: nfdi4health/datashield-workflows
 gap_issues_max: 200

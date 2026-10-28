@@ -16,6 +16,8 @@ write_test_file <- function(existing_test_file, content) {
 
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   writeLines(content, path)
-  if (existing_test_file$exists && identical(content, existing_test_file$content)) return(invisible(NULL))
+  if (existing_test_file$exists && identical(content, existing_test_file$content)) {
+    return(invisible(NULL))
+  }
   path
 }

@@ -10,7 +10,7 @@ workflow_readme_starter <- function(wrapped) {
     "",
     "The GitHub Actions workflows of this repository, and how they connect.",
     "The table and diagrams are generated from the workflow files by",
-    "[workflow-graphs](https://github.com/FlorianSchw/package-workflows) and",
+    "[workflow-graphs](https://github.com/nfdi4health/datashield-workflows) and",
     "updated when the workflows change. For the details of a workflow, see",
     "its file in `.github/workflows/`. Text outside the marked block is yours",
     "and never overwritten.",

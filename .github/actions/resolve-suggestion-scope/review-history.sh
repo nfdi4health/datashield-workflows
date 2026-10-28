@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034  # history_* are read by determine-changes.sh, which sources this file
 # What earlier runs of this workflow reviewed, read from the run history
 # (no storage of its own): every review job ends with a notice annotation
 # "<kind> <branch> <sha>" (title "bot-suggest review", step "Record

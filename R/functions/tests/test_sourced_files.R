@@ -13,7 +13,13 @@ test_sourced_files <- function(support_files) {
     vapply(Filter(function(x) length(x) == 4, m), function(x) x[4], character(1))
   }))
   paths <- vapply(found, function(p) {
-    if (file.exists(file.path(dir, p))) file.path(dir, p) else if (file.exists(p)) p else NA_character_
+    if (file.exists(file.path(dir, p))) {
+      file.path(dir, p)
+    } else if (file.exists(p)) {
+      p
+    } else {
+      NA_character_
+    }
   }, character(1), USE.NAMES = FALSE)
   setdiff(unique(paths[!is.na(paths)]), support_files)
 }

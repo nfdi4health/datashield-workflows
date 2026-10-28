@@ -1,0 +1,25 @@
+# Commits the bots leave out: by author name (bot_names) or by the start of
+# the subject (bot_commit_subjects) — their own commits are neither
+# reviewed nor credited in DESCRIPTION. Read by R (suggest_authors.R) and
+# by determine-changes.sh (yq). A project's own config/bot-authors.yml is
+# merged over this file key by key (each list is replaced as a whole).
+
+bot_names:
+  - github-actions[bot]
+  - semantic-release-bot
+  - dependabot[bot]
+
+bot_commit_subjects:
+  - "docs: apply roxygen suggestion for"
+  - "test: suggested test changes for"
+  - "chore: update contributors in"
+  - "feat: suggested analysis file"
+  - "Merge branch 'bot-suggest/"
+  - Roxygen documentation suggestions
+  - Test suggestions
+  - Update contributors in DESCRIPTION
+  - DataSHIELD analysis scripts
+  - Monthly roxygen documentation sweep
+  - Monthly test coverage sweep
+  - "Roxygen documentation: full review"
+  - "Test suggestions: full review"

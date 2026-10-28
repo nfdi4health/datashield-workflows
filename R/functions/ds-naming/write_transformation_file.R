@@ -23,7 +23,9 @@ write_transformation_file <- function(entries, meta, path, classifications = lis
   # `proposed` is always written, as "" when there is none to fill in.
   empty <- function(v) length(v) == 0 || (is.atomic(v) && length(v) == 1 && (is.na(v) || identical(v, "") || identical(v, FALSE)))
   entries <- lapply(unname(entries), function(e) {
-    if (empty(e$proposed)) e$proposed <- ""
+    if (empty(e$proposed)) {
+      e$proposed <- ""
+    }
     e <- e[intersect(order, names(e))]
     e[!vapply(e, empty, logical(1)) | names(e) == "proposed"]
   })

@@ -30,26 +30,26 @@
 library(httr2)
 library(jsonlite)
 library(purrr)
-# config package is used namespaced (config::get()) only — see
-# R/suggest_roxygen.R for why library(config) is avoided.
 
-functions_dir <- if (dir.exists("R/functions")) "R/functions" else ".shared-workflows/R/functions"
+functions_dir <- if (dir.exists("R/functions")) {
+  "R/functions"
+} else {
+  ".shared-workflows/R/functions"
+}
 walk(list.files(file.path(functions_dir, c("shared", "tests")), pattern = "\\.R$", full.names = TRUE), source)
+use_recorded_answers()  # self-test mode only (input self-test-fixture)
 
-# R_CONFIG_ACTIVE (an env var set by the calling workflow step) selects
-# "test-review" as the active profile; the failure classifier has its own
-# profile, fetched explicitly by name.
-config_path <- resolve_shared_path("config/claude.yml")
-test_review_settings <- config::get(file = config_path)
-anthropic_config <- test_review_settings$anthropic
-accept_reasons <- accepted_reasons(Sys.getenv("ACCEPT_REASONS"), test_review_settings$accept_reasons, "tests")
-max_new_tests <- if (is.null(test_review_settings$max_new_tests)) 10L else as.integer(test_review_settings$max_new_tests)
-failure_classification_config <- config::get(config = "test-failure-classification", file = config_path)$anthropic
-# Possible bugs in the code to report, by Claude's confidence (input
-# code-issue-confidence, else config); an issue is opened only for "high".
-code_issue_confidence <- code_issue_confidence_levels(Sys.getenv("CODE_ISSUE_CONFIDENCE"), test_review_settings$code_issue_confidence)
+# The run's rules (config/suggestion-policy.yml; the inputs override them):
+# accepted reasons, max new tests, which possible bugs in the code are
+# reported (by Claude's confidence) and which open an issue, and where
+# findings go without a bot PR.
+policy <- suggestion_policy()
+accept_reasons <- accepted_reasons(Sys.getenv("ACCEPT_REASONS"), suggestion_reasons("tests", accepted = TRUE, policy = policy), "tests")
+max_new_tests <- as.integer(policy$tests$max_new_tests)
+code_issue_confidence <- code_issue_confidence_levels(Sys.getenv("CODE_ISSUE_CONFIDENCE"), policy$possible_bugs$report)
+issue_confidence <- unlist(policy$possible_bugs$open_issue)
+report_routing <- check_routing(policy$routing$tests$report, "tests report")
 
-api_key    <- Sys.getenv("ANTHROPIC_API_KEY")
 gh_token   <- Sys.getenv("GH_TOKEN")
 repo       <- Sys.getenv("GITHUB_REPOSITORY")
 pr_number  <- Sys.getenv("PR_NUMBER")
@@ -60,9 +60,8 @@ is_sweep   <- !nzchar(pr_number)  # no PR to comment on (a sweep, or a push with
 reviewed_sha <- substr(Sys.getenv("REVIEWED_SHA"), 1, 7)
 sub_branch   <- Sys.getenv("SUB_BRANCH")
 builds_on_open_pr <- nzchar(sub_branch) && identical(Sys.getenv("OPEN_SUGGESTION_PR", "add"), "add") && !identical(Sys.getenv("REBUILD"), "true")
-datashield <- as.logical(Sys.getenv("DATASHIELD", "false"))
-ds_type    <- Sys.getenv("DATASHIELD_TYPE", "")
-check_datashield_type(datashield, ds_type)
+ds_type    <- check_datashield_type(Sys.getenv("DATASHIELD_TYPE", "none"))
+datashield <- !identical(ds_type, "none")
 # Client packages always test against DSLite; utility packages only for
 # functions that use DataSHIELD connections (decided per function below).
 may_use_dslite <- isTRUE(datashield) && ds_type %in% c("client", "utility")
@@ -71,16 +70,23 @@ may_use_dslite <- isTRUE(datashield) && ds_type %in% c("client", "utility")
 dslite_setup_mode <- Sys.getenv("DSLITE_SETUP", "auto")
 check_dslite_setup_mode(dslite_setup_mode)
 
-test_review_prompt_template           <- read_text_file("prompts/test-review-prompt.md")
-failure_classification_prompt_template <- read_text_file("prompts/test-failure-classification-prompt.md")
-test_role_guidance                    <- read_json_config("config/test-role-guidance.json", required = TRUE)
-category_meanings                     <- read_json_config("config/test-categories.json")$categories
+# The Claude clients (profile settings, prompt template), sharing one
+# access token.
+claude_access <- claude_auth()
+review_claude <- claude_client("test-review", "prompts/test-review-prompt.md", claude_access)
+classification_claude <- claude_client("test-failure-classification", "prompts/test-failure-classification-prompt.md", claude_access)
+test_role_guidance                    <- read_config_yaml("config/test-role-guidance.yml")
+category_meanings                     <- read_config_yaml("config/test-categories.yml", required = FALSE)$categories
 package_name                          <- read_package_name()
 
 # DSLite's built-in canned datasets need no server/credentials/per-package
-# matching — unlike datashield-example-env.json, which describes the real
+# matching — unlike datashield-example-env.yml, which describes the real
 # Opal demo server for roxygen's usage examples, a different scenario.
-dslite_datasets <- if (may_use_dslite) read_json_config("config/dslite-canned-datasets.json")$datasets else NULL
+dslite_datasets <- if (may_use_dslite) {
+  read_config_yaml("config/dslite-canned-datasets.yml", required = FALSE)$datasets
+} else {
+  NULL
+}
 
 
 files <- readLines("files_to_check.txt")
@@ -91,218 +97,81 @@ files <- files[nzchar(files)]
 # runs, so its tests count as existing, and its report is merged with this
 # run's findings instead of growing an update per run (see
 # dev-notes/test-suggest.md).
-pr_body <- if (builds_on_open_pr) fetch_suggestion_pr_body(sub_branch) else NULL
+pr_body <- if (builds_on_open_pr) {
+  fetch_suggestion_pr_body(sub_branch)
+} else {
+  NULL
+}
 state <- decode_suggestion_state(pr_body)
 # The user's checkboxes (dev-notes/suggestion-choices.md): recorded before
 # anything else, so the rebuilt description keeps them.
 state <- record_suggestion_choices(state, read_suggestion_choices(pr_body))
 # code-issue-confidence "none": no possible bugs, also not earlier ones.
-if (length(code_issue_confidence) == 0) state$entries <- Filter(function(e) !identical(e$kind, "bug"), state$entries)
-bot_ref <- if (!is.null(pr_body)) fetch_bot_branch(sub_branch) else NULL
-bot_tests <- materialize_bot_tests(bot_ref, base_rev)
-stats <- c(new = 0L, crossed = 0L, repeats = 0L)
-merge_run <- function(fn, run) {
-  merged <- merge_test_findings(state, fn, run, reviewed_sha)
-  state <<- merged$state
-  stats <<- stats + merged$stats
+if (length(code_issue_confidence) == 0) {
+  state$entries <- Filter(function(e) !identical(e$kind, "bug"), state$entries)
 }
+bot_ref <- if (!is.null(pr_body)) {
+  fetch_bot_branch(sub_branch)
+} else {
+  NULL
+}
+bot_tests <- materialize_bot_tests(bot_ref, base_rev)
 
 # How the repository names its test files (test-<name>.R or
 # test-<category>-<name>.R, <name> being the R file's name) — once per
 # run. The names to recognise: the R files' names (test_file_name()), plus
 # the function names, which other repositories' category files may use.
 scheme <- detect_test_scheme(unique(c(test_file_name(list.files("R", pattern = "[.][Rr]$")), package_function_names())))
-if (scheme$categorised) message("Test files are named by category: ", paste(scheme$categories, collapse = ", "))
 
 # Structure of the test data the package's setup/helper files create —
 # once per run, in a separate R process.
 test_data <- summarize_test_data(test_support_files(), file.path(functions_dir, "tests"))
 message("Test data:\n", test_data)
 
-run_quietly <- function(path, what) {
-  tryCatch(run_test_blocks(path, package_name), error = function(e) {
-    message(sprintf("Running %s failed: %s", what, conditionMessage(e)))
-    list()
-  })
-}
+# --- Main loop: one review per file (review_test_file()) --------------------
 
-# --- Main loop ---------------------------------------------------------------
-
-updated_files <- character(0)
-new_total <- 0  # new tests kept in this run, for ensure_testthat_setup()
-
-for (f in files) {
-  parsed <- tryCatch(parse_r_file(f), error = function(e) {
-    message(sprintf("Skipping %s: %s", f, conditionMessage(e)))
-    NULL
-  })
-  if (is.null(parsed)) next
-  function_name <- parsed$fn_name
-  # Test files are named after the R file, not the function (R/initMockData.R
-  # -> test-initMockData.R, also when the function is initMockdata()), as in
-  # the other workflows that pair R files with their tests.
-  file_name <- test_file_name(f)
-  # What the user declined for this function stays out, unless its code
-  # changed since (declined_suggestions()).
-  fingerprint <- code_fingerprint(fn_source(parsed))
-  declined <- declined_suggestions(state, function(e) identical(e$fn, function_name), fingerprint, reviewed_sha)
-  state <- declined$state
-  declined <- declined$declined
-  declined_of <- function(kinds) vapply(Filter(function(e) e$kind %in% kinds, declined), function(e) e$description, character(1))
-  run <- list(user_edited = bot_tests$user_edited, new = list(), changes = list(), notes = list(), bugs = list(), failed = list(), repeats = 0L, code = fingerprint)
-
-  # Re-checked per function: a DSLite setup generated for an earlier function
-  # in this run is reused by later ones.
-  uses_connections <- uses_ds_connections(parsed)
-  needs_dslite <- may_use_dslite && (identical(ds_type, "client") || uses_connections)
-  setup_plan <- if (needs_dslite) decide_dslite_setup(dslite_setup_mode, detect_connection_approaches()) else "not_needed"
-  if (identical(setup_plan, "none")) {
-    message(sprintf("%s: needs DataSHIELD connections, but the tests have none and dslite-setup is 'never' — not tested.", function_name))
-    merge_run(function_name, c(run, list(untested = f)))
-    next
-  }
-
-  test_files <- find_test_files(file_name, scheme)
-  paths <- vapply(test_files, function(t) t$path, character(1))
-  names(test_files) <- paths
-  blocks <- lapply(test_files, function(t) parse_test_file(t$content))
-  baseline <- lapply(test_files, function(t) run_quietly(t$path, sprintf("existing tests in %s", t$path)))
-  run$current <- unlist(lapply(paths, function(p) lapply(baseline[[p]], function(r) list(file = p, description = r$description, passed = isTRUE(r$passed)))), recursive = FALSE)
-  earlier <- Filter(function(e) identical(e$fn, function_name) && identical(e$status, "active") && e$kind %in% c("note", "bug", "failed"), state$entries)
-
-  offered_datasets <- if (identical(setup_plan, "create")) dslite_datasets else NULL
-  support_files <- test_support_files()
-  context <- list(
-    role_text = build_test_role_guidance(datashield, ds_type, identical(setup_plan, "reuse"), offered_datasets, test_role_guidance, uses_connections),
-    scheme_text = format_test_scheme_guidance(scheme, category_meanings, file_name, test_files),
-    categories = if (scheme$categorised) scheme$categories,
-    test_files = test_files,
-    examples = if (length(test_files) == 0) example_test_files(scheme) else list(),
-    support_files = c(support_files, test_sourced_files(support_files)),
-    test_data = test_data,
-    test_results = format_test_results(baseline),
-    evidence = build_test_evidence(f, paths, base_rev),
-    dslite_datasets = offered_datasets,
-    dataset_choices = dslite_datasets,  # the run's, for a tool schema that is the same for every function
-    cache_prompt = length(files) > 1,   # the prompt cache only pays with a second call in the run
-    max_new_tests = max_new_tests,
-    earlier = earlier
-  )
-
-  result <- tryCatch(ask_claude_for_tests(parsed, context), error = function(e) {
-    message(sprintf("Claude call failed for %s: %s", function_name, conditionMessage(e)))
-    warn_failed_call(paste0(function_name, "()"), f, e)
-    note_retry_file(f)
-    NULL
-  })
-  if (is.null(result)) {
-    merge_run(function_name, run)
-    next
-  }
-  run$decisions <- result$earlier_findings
-
-  # Decisions on existing tests, per test file; declined ones stay out.
-  sorted <- sort_test_decisions(result$existing_tests, paths, blocks, baseline, declined_of("updated"), declined_of("deleted"), code_issue_confidence, function_name)
-  reviews <- sorted$reviews
-  run$notes <- c(run$notes, sorted$notes)
-  run$bugs <- c(run$bugs, sorted$bugs)
-
-  # New tests, each into its file; declined ones stay out.
-  placed <- place_new_tests(result, test_files, blocks, declined_of("new"), scheme, file_name, accept_reasons, function_name)
-  new_tests <- placed$tests
-  targets <- placed$targets
-  new_by_file <- placed$by_file
-  new_test_of <- function(description) Find(function(t) identical(t$description, description), new_tests)
-
-  changed_paths <- unique(c(
-    names(new_by_file),
-    Filter(function(p) length(reviews[[p]]$updates) + length(reviews[[p]]$deletes) > 0, paths)
-  ))
-  if (length(changed_paths) == 0) {
-    message(sprintf("%s: nothing to change.", function_name))
-    merge_run(function_name, run)
-    next
-  }
-
-  created_setup <- NULL
-  if (length(new_by_file) > 0 && !is.null(offered_datasets) && isTRUE(nzchar(result$dslite_dataset))) {
-    dataset_choice <- Find(function(d) identical(d$name, result$dslite_dataset), offered_datasets)
-    if (is.null(dataset_choice)) {
-      message(sprintf(
-        "%s: Claude returned dslite_dataset '%s', which isn't one of the offered options — skipping DSLite setup.",
-        function_name, result$dslite_dataset
-      ))
-    } else {
-      created_setup <- ensure_dslite_setup_file(dataset_choice, package_name)
-    }
-  }
-
-  # Per test file: run all candidates, keep only what passed
-  # (apply_test_file_changes()).
-  kept_new_total <- 0
-  for (path in changed_paths) {
-    test_file <- if (path %in% paths) test_files[[path]] else read_test_file(path, if (scheme$categorised) new_tests[targets %in% path][[1]]$category else NA_character_)
-    review <- if (path %in% paths) reviews[[path]] else list(updates = character(0), deletes = character(0), explanations = character(0))
-    test_blocks <- if (is.null(new_by_file[[path]])) character(0) else new_by_file[[path]]
-    applied <- apply_test_file_changes(test_file, if (path %in% paths) blocks[[path]] else list(), review$updates, review$deletes, test_blocks, result, function_name, package_name)
-
-    for (d in applied$failed_updates) {
-      run$notes[[length(run$notes) + 1]] <- list(file = path, description = d, text = sprintf("an update was proposed (%s) but still failed, so the original test was kept.", review$explanations[[d]]))
-    }
-    if (!is.null(applied$path)) {
-      updated_files <- c(updated_files, applied$path)
-      kept_new_total <- kept_new_total + length(applied$passing_new)
-      for (d in applied$passing_new) {
-        t <- new_test_of(d)
-        run$new[[length(run$new) + 1]] <- list(file = path, description = d, reason = t$reason, repeats_earlier = t$repeats_earlier)
-      }
-      for (d in names(applied$kept_updates)) {
-        run$changes[[length(run$changes) + 1]] <- list(file = path, description = d, action = "updated", reason = "contract_changed", explanation = review$explanations[[d]])
-      }
-      for (d in review$deletes) {
-        run$changes[[length(run$changes) + 1]] <- list(file = path, description = d, action = "deleted", reason = "", explanation = review$explanations[[d]])
-      }
-      message(sprintf("%s: %d new test(s), %d update(s), %d deletion(s) in %s.", function_name, length(applied$passing_new), length(applied$kept_updates), length(review$deletes), path))
-    }
-
-    # Failed new tests: repeats skipped, real bugs reported, others
-    # commented or listed (handle_failed_new_test()).
-    for (fail in applied$failing_new) {
-      outcome <- handle_failed_new_test(fail, new_test_of(fail$description), test_blocks[[fail$description]], path, earlier,
-                                        fn_source(parsed), function_name, code_issue_confidence, is_sweep)
-      if (is.null(outcome)) next
-      if (outcome$kind == "repeat") run$repeats <- run$repeats + 1L
-      if (outcome$kind == "bug") run$bugs[[length(run$bugs) + 1]] <- outcome$entry
-      if (outcome$kind == "failed") run$failed[[length(run$failed) + 1]] <- outcome$entry
-    }
-  }
-
-  # A freshly generated DSLite setup is only kept alongside at least one
-  # passing new test.
-  if (!is.null(created_setup)) {
-    if (kept_new_total > 0) {
-      updated_files <- c(updated_files, created_setup)
-      run$setups <- created_setup
-    } else {
-      file.remove(created_setup)
-    }
-  }
-  new_total <- new_total + kept_new_total
-  merge_run(function_name, run)
+ctx <- list(
+  review_claude = review_claude, classification_claude = classification_claude,
+  bot_tests = bot_tests, reviewed_sha = reviewed_sha, base_rev = base_rev,
+  datashield = datashield, ds_type = ds_type, may_use_dslite = may_use_dslite,
+  dslite_setup_mode = dslite_setup_mode, dslite_datasets = dslite_datasets,
+  test_role_guidance = test_role_guidance, scheme = scheme, category_meanings = category_meanings,
+  test_data = test_data,
+  cache_prompt = length(files) > 1,   # the prompt cache only pays with a second call in the run
+  max_new_tests = max_new_tests, accept_reasons = accept_reasons,
+  code_issue_confidence = code_issue_confidence, issue_confidence = issue_confidence, package_name = package_name,
+  comment_failures = !is_sweep && isTRUE(policy$routing$tests$failed_test_comments)
+)
+reviewed <- review_files(files, state, function(f, parsed, state) review_test_file(f, parsed, state, ctx))
+state <- reviewed$state
+stats <- reviewed$stats
+updated_files <- reviewed$updated
+new_total <- sum(vapply(reviewed$results, function(r) r$new_kept, numeric(1)))  # new tests kept, for ensure_testthat_setup()
+# Findings that belong to no function (testthat setup, Suggests).
+merge_run <- function(run) {
+  merged <- merge_test_findings(state, "", run, reviewed_sha)
+  state <<- merged$state
+  stats <<- stats + merged$stats
 }
 
 # Proposed tests only count if R CMD check runs them: set up testthat in
 # packages that don't have it yet.
-testthat_setup <- if (new_total > 0) ensure_testthat_setup(package_name) else character(0)
+testthat_setup <- if (new_total > 0) {
+  ensure_testthat_setup(package_name)
+} else {
+  character(0)
+}
 updated_files <- c(updated_files, testthat_setup)
-if (length(testthat_setup) > 0) merge_run("", list(setups = testthat_setup))
+if (length(testthat_setup) > 0) {
+  merge_run(list(setups = testthat_setup))
+}
 
 # Packages the proposed tests use but DESCRIPTION doesn't declare go into
 # Suggests, so R CMD check doesn't warn about them.
 added_packages <- declare_test_packages(package_name, grep("^tests/", updated_files, value = TRUE))
 if (length(added_packages) > 0) {
   updated_files <- unique(c(updated_files, "DESCRIPTION"))
-  merge_run("", list(dependencies = added_packages))
+  merge_run(list(dependencies = added_packages))
   message("Added to Suggests (used by the proposed tests): ", paste(added_packages, collapse = ", "))
 }
 
@@ -320,8 +189,10 @@ restore_unproposed_files(bot_tests$materialized, updated_files)
 # or issue on every run would be noise.
 has_pr <- length(updated_files) > 0 || !is.null(pr_body)
 open_kinds <- vapply(Filter(function(e) identical(e$status, "active"), state$entries), function(e) e$kind, character(1))
-if (length(updated_files) > 0) writeLines(format_test_summary(state), "suggestion_summary.md")
+if (length(updated_files) > 0) {
+  writeLines(format_test_summary(state), "suggestion_summary.md")
+}
 if (has_pr || any(open_kinds %in% c("note", "bug")) || any(vapply(state$entries, function(e) isTRUE(e$in_report), logical(1)))) {
   report <- format_test_report(state, list(sha = reviewed_sha, stats = stats), state$legacy)
-  publish_test_report(report, has_pr = has_pr)
+  publish_test_report(report, has_pr = has_pr, routing = report_routing)
 }

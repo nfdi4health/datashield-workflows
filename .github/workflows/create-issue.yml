@@ -29,23 +29,26 @@ jobs:
   create_issue:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-        with:
-          repository: FlorianSchw/package-workflows
-          ref: main
+      - name: Shared files
+        uses: $/.github/actions/shared-files
 
       - name: Build assignee list
         id: all_assignees
+        # Inputs through the environment, never written into the script
+        # itself (a crafted value could otherwise run as shell code).
+        env:
+          PR_AUTHOR: ${{ inputs.pr_author }}
+          EXTRA_ASSIGNEES: ${{ inputs.extra_assignees }}
         run: |
-          combined="${{ inputs.pr_author }},${{ inputs.extra_assignees }}"
+          combined="$PR_AUTHOR,$EXTRA_ASSIGNEES"
           deduped=$(echo "$combined" | tr ',' '\n' | sed '/^\s*$/d' | sed 's/^ *//;s/ *$//' | sort -u | paste -sd ',' -)
           echo "list=$deduped" >> "$GITHUB_OUTPUT"
 
-      - uses: JasonEtco/create-an-issue@v2
+      - uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5 # v2.9.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_AUTHOR: ${{ inputs.pr_author }}
           RUN_URL: ${{ inputs.run_url }}
         with:
-          filename: ${{ inputs.template }}
+          filename: .shared-workflows/${{ inputs.template }}
           assignees: ${{ steps.all_assignees.outputs.list }}

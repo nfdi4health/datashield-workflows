@@ -1,0 +1,73 @@
+name: Self-test
+
+# The reusable bot workflows themselves — not only their R scripts — on a
+# made-up fixture package (tests/fixtures/r-package) with recorded Claude
+# and GitHub answers (input self-test-fixture): roxygen, tests and authors;
+# no Claude call, no token, nothing pushed or counted, GitHub requests of
+# the scripts answered locally.
+# Then tests/self-test/check-results.sh checks what they produced. Not
+# reusable; runs on every push and pull request, like ci.yml.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  roxygen:
+    # Not reusable itself: always this repository's own workflow file.
+    uses: ./.github/workflows/roxygen-suggest.yml  # zizmor: ignore[self-repository]
+    # What the called job declares; in self-test mode it writes nothing.
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+      checks: read
+    with:
+      self-test-fixture: r-package
+    secrets:
+      anthropic-organization-id: unused-in-self-test
+      anthropic-service-account-id: unused-in-self-test
+      anthropic-federation-rule-id: unused-in-self-test
+
+  tests:
+    uses: ./.github/workflows/test-suggest.yml  # zizmor: ignore[self-repository]
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+      checks: read
+    with:
+      self-test-fixture: r-package
+    secrets:
+      anthropic-organization-id: unused-in-self-test
+      anthropic-service-account-id: unused-in-self-test
+      anthropic-federation-rule-id: unused-in-self-test
+
+  authors:
+    uses: ./.github/workflows/authors-suggest.yml  # zizmor: ignore[self-repository]
+    permissions:
+      contents: write
+      pull-requests: write
+    with:
+      self-test-fixture: r-package
+
+  check:
+    name: Check the results
+    needs: [roxygen, tests, authors]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: self-test-*
+          path: results
+      - name: Check
+        run: bash tests/self-test/check-results.sh results

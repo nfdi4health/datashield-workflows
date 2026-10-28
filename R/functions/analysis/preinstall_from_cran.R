@@ -9,7 +9,9 @@ preinstall_from_cran <- function(wanted, catalogue) {
   missing <- on_cran[vapply(on_cran, function(p) {
     !identical(tryCatch(as.character(utils::packageVersion(p)), error = function(e) NA_character_), wanted[[p]])
   }, logical(1))]
-  if (length(missing) == 0) return(invisible(character(0)))
+  if (length(missing) == 0) {
+    return(invisible(character(0)))
+  }
   refs <- sprintf("%s@%s", missing, wanted[missing])
   tryCatch(pak::pkg_install(refs, ask = FALSE, upgrade = FALSE), error = function(e) {
     message(sprintf("Installing %s together failed, trying one by one: %s", paste(refs, collapse = ", "), conditionMessage(e)))

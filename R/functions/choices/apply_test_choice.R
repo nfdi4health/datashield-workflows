@@ -14,7 +14,11 @@
 apply_test_choice <- function(e, ticked, base_rev) {
   path <- e$file
   name <- e$description
-  current <- if (file.exists(path)) paste(readLines(path, warn = FALSE), collapse = "\n") else ""
+  current <- if (file.exists(path)) {
+    paste(readLines(path, warn = FALSE), collapse = "\n")
+  } else {
+    ""
+  }
   blocks <- parse_test_file(current)
   present <- test_block_text(current, name)
   base_block <- test_block_text(git_file_at(base_rev, path), name)
@@ -25,16 +29,22 @@ apply_test_choice <- function(e, ticked, base_rev) {
   if (identical(e$kind, "new")) {
     if (ticked && is.null(present)) {
       block <- test_block_from_history(path, name)
-      if (is.null(block)) return(missing())
+      if (is.null(block)) {
+        return(missing())
+      }
       new_content <- rewrite_test_content(current, blocks, appended = block, insert_after = test_insert_line(current, blocks))
     } else if (!ticked && !is.null(present)) {
       new_content <- rewrite_test_content(current, blocks, deletes = name)
     }
   } else if (identical(e$kind, "updated")) {
-    if (is.null(present)) return(missing())
+    if (is.null(present)) {
+      return(missing())
+    }
     if (ticked && identical(present, base_block)) {
       block <- test_block_from_history(path, name, except = base_block)
-      if (is.null(block)) return(missing())
+      if (is.null(block)) {
+        return(missing())
+      }
       new_content <- rewrite_test_content(current, blocks, updates = stats::setNames(block, name))
     } else if (!ticked && !is.null(base_block) && !identical(present, base_block)) {
       new_content <- rewrite_test_content(current, blocks, updates = stats::setNames(base_block, name))
@@ -43,11 +53,15 @@ apply_test_choice <- function(e, ticked, base_rev) {
     if (ticked && !is.null(present)) {
       new_content <- rewrite_test_content(current, blocks, deletes = name)
     } else if (!ticked && is.null(present)) {
-      if (is.null(base_block)) return(missing())
+      if (is.null(base_block)) {
+        return(missing())
+      }
       new_content <- rewrite_test_content(current, blocks, appended = base_block, insert_after = test_insert_line(current, blocks))
     }
   }
-  if (is.null(new_content)) return(done())
+  if (is.null(new_content)) {
+    return(done())
+  }
 
   if (length(parse_test_file(new_content)) == 0 && is.null(git_file_at(base_rev, path))) {
     file.remove(path)

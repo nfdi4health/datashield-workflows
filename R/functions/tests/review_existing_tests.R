@@ -20,8 +20,8 @@ review_existing_tests <- function(decisions, blocks, baseline, function_name) {
 
   out <- list(updates = character(0), deletes = character(0), explanations = character(0), notes = list())
   note <- function(d, text, possible_bug = FALSE) {
-    list(description = d$description, text = text, repeats_earlier = if (is.null(d$repeats_earlier)) "" else d$repeats_earlier,
-         possible_bug = possible_bug, explanation = d$explanation, confidence = if (is.null(d$confidence)) "" else d$confidence)
+    list(description = d$description, text = text, repeats_earlier = d$repeats_earlier %||% "",
+         possible_bug = possible_bug, explanation = d$explanation, confidence = d$confidence %||% "")
   }
   for (d in decisions) {
     block <- Find(function(b) identical(b$description, d$description), blocks)
@@ -53,12 +53,16 @@ review_existing_tests <- function(decisions, blocks, baseline, function_name) {
           NULL
         }
       )
-      if (is.null(assembled)) next
+      if (is.null(assembled)) {
+        next
+      }
       out$updates[d$description] <- assembled[[1]]
+      done <- "updated"
     } else {
       out$deletes <- c(out$deletes, d$description)
+      done <- "deleted"
     }
-    out$explanations[d$description] <- sprintf("%s (`%s`): %s", if (d$action == "update") "updated" else "deleted", d$reason, d$explanation)
+    out$explanations[d$description] <- sprintf("%s (`%s`): %s", done, d$reason, d$explanation)
   }
   out
 }

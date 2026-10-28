@@ -12,8 +12,12 @@ workflow_summary_table <- function(workflows, called, outcomes, chains) {
   cell <- function(x) gsub("*", "\\*", gsub("|", "\\|", x, fixed = TRUE), fixed = TRUE)
   # Entries are already escaped; one stays plain, several become bullets.
   entries <- function(x) {
-    if (length(x) == 0) return("—")
-    if (length(x) == 1) return(x)
+    if (length(x) == 0) {
+      return("—")
+    }
+    if (length(x) == 1) {
+      return(x)
+    }
     paste0("• ", x, collapse = "<br>")
   }
   name_of <- stats::setNames(vapply(workflows, function(wf) wf$name, character(1)), vapply(workflows, function(wf) wf$file, character(1)))
@@ -24,18 +28,31 @@ workflow_summary_table <- function(workflows, called, outcomes, chains) {
     runs_on <- vapply(events, function(e) {
       filter <- event_filter(wf$triggers[[e]])
       text <- describe_trigger(e, wf$triggers[[e]])
-      cell(if (nzchar(filter)) sprintf("%s (%s)", text, filter) else text)
+      if (nzchar(filter)) {
+        text <- sprintf("%s (%s)", text, filter)
+      }
+      cell(text)
     }, character(1), USE.NAMES = FALSE)
 
     calls <- unique(unlist(lapply(wf$jobs, function(job) {
       ref <- parse_workflow_ref(job$uses)
-      if (is.null(ref)) return(NULL)
-      cell(paste0(ref$label, if (isTRUE(called[[ref$key]]$readable)) "" else " (not readable)"))
+      if (is.null(ref)) {
+        return(NULL)
+      }
+      label <- ref$label
+      if (!isTRUE(called[[ref$key]]$readable)) {
+        label <- paste0(label, " (not readable)")
+      }
+      cell(label)
     })))
 
     produced <- vapply(outcomes[[wf$file]], function(o) {
       condition <- paste(Filter(nzchar, c(o$needs, o$condition)), collapse = ", ")
-      if (nzchar(condition)) sprintf("%s — *%s*", cell(o$text), cell(condition)) else cell(o$text)
+      if (nzchar(condition)) {
+        sprintf("%s — *%s*", cell(o$text), cell(condition))
+      } else {
+        cell(o$text)
+      }
     }, character(1))
     starts <- unique(vapply(Filter(function(ch) identical(ch$from, wf$file), chains), function(ch) sprintf("starts **%s**", cell(name_of[[ch$to]])), character(1)))
 

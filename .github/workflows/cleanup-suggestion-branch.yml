@@ -12,14 +12,15 @@ jobs:
       pull-requests: read
     steps:
       - name: Delete the suggestion branch
+        # The branch name through the environment, never written into the
+        # script itself (a crafted name could otherwise run as shell code).
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
-
-          if [ "$(gh pr list --repo ${{ github.repository }} --head "$BRANCH" --state open --json number --jq 'length')" != "0" ]; then
+          if [ "$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq 'length')" != "0" ]; then
             echo "Another open PR still references $BRANCH — leaving it."
             exit 0
           fi
 
-          gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/$BRANCH" || echo "Branch already gone."
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$BRANCH" || echo "Branch already gone."

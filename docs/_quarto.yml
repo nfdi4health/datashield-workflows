@@ -6,15 +6,15 @@ shortcodes:
   - _shortcodes/workflow.lua
 
 website:
-  title: "package-workflows"
+  title: "datashield-workflows"
   description: "Reusable GitHub Actions workflows for R packages and DataSHIELD analysis projects"
-  repo-url: https://github.com/FlorianSchw/package-workflows
+  repo-url: https://github.com/nfdi4health/datashield-workflows
   repo-actions: [source, issue]
   page-navigation: true
   navbar:
     right:
       - icon: github
-        href: https://github.com/FlorianSchw/package-workflows
+        href: https://github.com/nfdi4health/datashield-workflows
         aria-label: GitHub repository
   sidebar:
     style: docked

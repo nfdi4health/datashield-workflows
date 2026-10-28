@@ -20,7 +20,9 @@ place_new_tests <- function(result, test_files, blocks, declined, scheme, name, 
   tests <- Filter(function(t) !t$description %in% declined, tests)
 
   target_of <- function(t) {
-    if (!scheme$categorised) return(test_file_path(name))
+    if (!scheme$categorised) {
+      return(test_file_path(name))
+    }
     if (!isTRUE(t$category %in% scheme$categories)) {
       message(sprintf("%s: dropping test '%s' — unknown category '%s'.", function_name, t$description, t$category))
       return(NA_character_)
@@ -35,7 +37,9 @@ place_new_tests <- function(result, test_files, blocks, declined, scheme, name, 
       message(sprintf("Failed to assemble test blocks for %s: %s", function_name, conditionMessage(e)))
       character(0)
     })
-    if (length(assembled) > 0) by_file[[path]] <- assembled
+    if (length(assembled) > 0) {
+      by_file[[path]] <- assembled
+    }
   }
   list(tests = tests, targets = targets, by_file = by_file)
 }

@@ -7,17 +7,27 @@
 # from its type via `variable_types` (settings: type names -> kind).
 read_analysis_plan <- function(path, variable_types, texts) {
   fail <- function(key, ...) stop(fill_template(texts$plan[[key]], list(PATH = path, ...)), call. = FALSE)
-  if (!file.exists(path)) fail("not_found")
+  if (!file.exists(path)) {
+    fail("not_found")
+  }
   plan <- tryCatch(yaml::read_yaml(path), error = function(e) fail("not_yaml", ERROR = conditionMessage(e)))
-  if (!is.list(plan)) fail("not_mapping")
+  if (!is.list(plan)) {
+    fail("not_mapping")
+  }
 
-  if (is.null(plan$symbol)) plan$symbol <- "D"
+  if (is.null(plan$symbol)) {
+    plan$symbol <- "D"
+  }
   plan$steps <- lapply(plan$steps, function(s) {
-    if (is.list(s) && is.null(s$id) && is.character(s$title)) s$id <- step_id_from_title(s$title)
+    if (is.list(s) && is.null(s$id) && is.character(s$title)) {
+      s$id <- step_id_from_title(s$title)
+    }
     s
   })
   plan$variables <- lapply(plan$variables, function(v) {
-    if (is.list(v) && is.character(v$type) && !is.null(variable_types[[v$type]])) v$kind <- variable_types[[v$type]]
+    if (is.list(v) && is.character(v$type) && !is.null(variable_types[[v$type]])) {
+      v$kind <- variable_types[[v$type]]
+    }
     v
   })
 

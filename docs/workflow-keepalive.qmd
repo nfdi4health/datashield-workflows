@@ -22,7 +22,7 @@ Add this job to **each workflow that has a `schedule`** trigger:
     if: github.event_name == 'schedule'
     permissions:
       actions: write
-    uses: FlorianSchw/package-workflows/.github/workflows/workflow-keepalive.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/workflow-keepalive.yml@main
 ```
 
 The example callers of the [roxygen](roxygen-suggest.qmd) and

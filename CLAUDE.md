@@ -27,7 +27,8 @@ the live caller used to validate changes before wider rollout.
     `extra-r-packages` (plain names, `any::` added internally).
   - `package-release.yml` — semantic-release. Uses a caller-root
     `.releaserc.json` if present, else this repo's `.releaserc.json`
-    fetched at `config-ref` (default: `main`). Pushes with the
+    from the workflow's own commit (`config-repo` / `config-ref` removed on
+    `v1/foundation`, 2026-10-19). Pushes with the
     `resolve-push-token` App token → `commit-push-pat` → `GITHUB_TOKEN`.
     The shared config drafts the release and turns off the GitHub
     plugin's comments, labels and failure issue, so the App needs no
@@ -51,7 +52,7 @@ the live caller used to validate changes before wider rollout.
     Reasons go into the sub-PR body (`suggestion_report.md`). Needs a
     caller trigger on all PRs (no `paths` filter), or tests/docs-only
     contributors are never seen. Bots are skipped per
-    `config/bot-authors.json` (overridable, see `resolve_shared_path()`
+    `config/bot-authors.yml` (overridable, merged, see `read_config_yaml()`
     below). New people: name split by `split_person_name()` (last word +
     particles like `van`/`de` = family; one-word names flagged). Matching
     (`find_author()`): commit e-mail (noreply ignored; e-mails are never
@@ -101,8 +102,8 @@ the live caller used to validate changes before wider rollout.
     (paths, markers, limits, variable types, …), wording
     `config/analysis-texts.yml`, prompts `prompts/analysis-*.md`. A
     project's own copy of either config is merged over the defaults key
-    by key (`read_config_yaml()`), unlike the other workflows' overrides,
-    which replace the whole file. Adjustments go there rather than into R.
+    by key (`read_config_yaml()`), like every config file since v1 (before,
+    the others replaced the whole file). Adjustments go there rather than into R.
     Design, marker formats and the dsAnalysis checklist are in
     [dev-notes/analysis-suggest.md](dev-notes/analysis-suggest.md).
   - `ds-naming-check.yml`, `ds-naming-apply.yml` — DataSHIELD argument
@@ -117,6 +118,14 @@ the live caller used to validate changes before wider rollout.
     `R/check_ds_naming.R`, `R/apply_ds_naming.R`, functions in
     `R/functions/ds-naming/`; generic `propose-branch` action. Design and
     state: [dev-notes/datashield-naming/](dev-notes/datashield-naming/README.md).
+- This repository's own, non-reusable workflows (besides `ci.yml`,
+  `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `pr-checks.yml`
+  (commit messages on PRs into dev/main, only `dev` into `main`) and
+  `release.yml` (semantic-release of this repository: `vX.Y.Z`, moving
+  `vX`, CHANGELOG.md, config `.github/release/releaserc.json` copied over
+  the root `.releaserc.json` in the runner — the root one is the R-package
+  default of `package-release.yml`). `release.yml` only runs once the
+  repository variable `RELEASE_ENABLED` is `true` (at v1).
 - Branch-protection rulesets (formerly `rulesets/` + `apply-ruleset.yml`)
   now live in a separate private repo.
 - `.github/actions/` — composite actions: `anthropic-token` (suggestion
@@ -152,6 +161,24 @@ the live caller used to validate changes before wider rollout.
   Claude call settings for the suggestion workflows.
 - `dev-notes/` — internal design notes and status per suggestion workflow
   (not published).
+- `tests/` (branch `v1/foundation` until merged) — `testthat/` (R
+  functions sourced into the global environment by `helper-load.R`;
+  Claude and GitHub answered by stand-ins: `local_global_mock()`,
+  `run_entry_script_mocked()` with recorded answers from
+  `fixtures/claude-answers/`), `shell/test-scope.sh` (stand-ins for
+  `gh`/`jq`), `fixtures/` (made-up packages only: `r-package`,
+  `ds-client` + `ds-server`). Run by `ci.yml` with the static checks;
+  locally `Rscript tests/testthat.R` and `bash tests/shell/test-scope.sh`.
+  `self-test.yml` (not reusable) runs `roxygen-suggest.yml` and
+  `test-suggest.yml` and `authors-suggest.yml` themselves with the input `self-test-fixture:
+  r-package` (fixture instead of the caller checkout via
+  `tests/self-test/use-fixture.sh`, no token, `CLAUDE_RECORDED_ANSWERS`
+  → `use_recorded_answers()`, nothing pushed or counted, results as an
+  artifact) and checks them with `tests/self-test/check-results.sh`.
+  A change to an entry script or a bot's output should keep
+  `test-entry-scripts.R` passing (or update its recorded answers).
+  External actions are pinned to commit SHAs with the version as a
+  comment; Dependabot updates them — pin new ones the same way.
 - **Usage counting:** the Claude-assisted workflows (roxygen, tests,
   analysis scripts, naming check) and `authors-suggest.yml` end with a "Count this run"
   step — the composite action `count-run` — that downloads one file from
@@ -159,9 +186,16 @@ the live caller used to validate changes before wider rollout.
   (outcome proposed / nothing / failed; channel release = a `vX` tag
   points to the commit that ran, dev = `@main` or a branch, i.e.
   development and testing). Anonymous; the download counts are the runs.
-  Only these (user's choice: Claude-assisted + authors). `collect-usage.yml` (not reusable)
-  keeps the release complete — the files for every workflow calling
-  `count-run` — and records the counts daily on the `usage-data` branch.
+  Only these (user's choice: Claude-assisted + authors). `collect-usage.yml` (not reusable,
+  "Usage counter files") keeps the release complete — the files for every
+  workflow calling `count-run`, with this repository's own token. The
+  daily counts are recorded by the private
+  `nfdi4health/datashield-kpi-reporting` (`R/collect_counts.R`, daily
+  workflow, `usage.csv` on its `main`), which only reads the public
+  release — no credential for this repository there (split, set up
+  2026-10-26). On `main` here the old collector still
+  writes the `usage-data` branch until v1 is merged; delete that branch
+  then.
   **A new Claude-assisted workflow gets the same last step** (copy it,
   with its own `workflow:` name); the collector adds its files. Design:
   [dev-notes/usage-counting.md](dev-notes/usage-counting.md).
@@ -213,24 +247,31 @@ Details per workflow: [dev-notes/roxygen-suggest.md](dev-notes/roxygen-suggest.m
   packages using the `config` package often have one, which would override
   it), one `default` profile plus one per
   task (`roxygen-review`, `test-review`, `test-failure-classification`),
-  read with `config::get()`. The workflow sets `R_CONFIG_ACTIVE` as an env
-  var on the script step. Every Claude call goes through
+  read with `claude_settings(profile)` (default merged with the profile;
+  no `config` package, no `R_CONFIG_ACTIVE` — since 2026-10-19 on
+  `v1/foundation`). Every Claude call goes through
   `call_claude_tool()` (forced tool call; it sets the tool name from config).
 - **Claude returns fields, R assembles the output.** Never trust prompt
   wording where a structural constraint (schema field, `maxItems`, enum)
   is possible.
 - **Threshold for what gets proposed:** Claude states a reason per change
-  from a fixed enum (`suggestion_reasons()`), R keeps only the accepted
-  ones — the `accept-reasons` input, else `accept_reasons` of
-  `config/claude.yml` (`accepted_reasons()`) — and adds mechanical
+  from a fixed enum (`suggestion_reasons()`, reasons and their meaning in
+  `config/suggestion-policy.yml`), R keeps only the accepted
+  ones — the `accept-reasons` input, else those marked `accept: true` in
+  the policy file (`accepted_reasons()`) — and adds mechanical
   filters.
   A revisable decision, recorded in
   [dev-notes/suggestion-thresholds.md](dev-notes/suggestion-thresholds.md)
   — update that note when changing it.
 - **Where shared files come from:** callers get this repo checked out into
-  `.shared-workflows/`. `resolve_shared_path("config/x.json")` uses the
-  caller's own file at that same relative path if it exists (an override),
-  else the `.shared-workflows/` copy.
+  `.shared-workflows/`. Config files are YAML and read with
+  `read_config_yaml("config/x.yml")`: the shared copy with the caller's own
+  file at the same path merged over it key by key (lists replaced) — on
+  `v1/foundation` since 2026-10-19 for every config (before: only the
+  analysis and naming configs; the others replaced the whole file and were
+  JSON). Prompt templates are still replaced as a whole
+  (`resolve_shared_path()`). `bot-authors.yml` is also read by
+  `determine-changes.sh`, merged the same way with `yq`.
 - **Committing:** scripts write `updated_files.txt`; `commit-updated-files`
   commits exactly those files. `changed` mode (PR or push; what's new
   since the last run, `determine-changes.sh`):
@@ -260,9 +301,9 @@ Details per workflow: [dev-notes/roxygen-suggest.md](dev-notes/roxygen-suggest.m
   - **Link comment** on the originating PR when the sub-PR is newly
     created and `origin-pr-number` is set.
 
-  `all` mode (sweep): checks out and scans the `sweep-base` (empty: the
+  `all` mode (full review): checks out and scans the `review-branch` (`sweep-base` until v1; empty: the
   chosen branch on manual runs, `dev` on schedules, since a schedule
-  starts on `main`), one commit on `bot-suggest/<kind>-sweep-<base>-YYYY-MM`,
+  starts on `main`), one commit on `bot-suggest/<kind>-all-<base>-YYYY-MM` (`-sweep-` until v1),
   force-pushed, plus a PR against the base; a re-run in the same month
   updates that month's open PR instead of failing or duplicating it. In
   both modes only an
@@ -331,28 +372,131 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
 
 - Versioning: all workflows are referenced `@main`, and `package-release.yml`
   reads its release config from `main` too. The old `v1` tag is unused.
-  Decide after the internal feedback round (inputs may still change) and
-  once it's clear how to test versioned refs. Proposed shape (not decided):
-  - **Branches:** trunk-based — `main` + short-lived feature branches via
+  **Decided in the v1 planning round (2026-10-16)** — details, and the
+  state of the work on branch `v1/foundation`, in
+  [dev-notes/v1-planning.md](dev-notes/v1-planning.md):
+  - ~~**Branches:** trunk-based — `main` + short-lived feature branches via
     PR, `main` protected (commitlint, `actionlint`). No `dev`: here a
-    release is a tag, not a merge into `main`.
+    release is a tag, not a merge into `main`.~~ Replaced: main / dev /
+    feature, only `dev` merges into `main`, release on every merge into
+    `main` (rulesets drafted in `dev-notes/v1-drafts/`).
   - **Releases:** semantic-release tags `vX.Y.Z` and moves the major tag
     `vX`; callers pin `@v1`; breaking changes (`feat!:`) become `v2`.
   - **Testing:** dsSupportClient points a caller at `@<feature-branch>`.
-  - **Prerequisite:** all internal references are hard-coded to `main`
-    (`uses: …/actions/…@main`, `.shared-workflows` checkout `ref: main`),
-    so a caller on `@v1` or a branch still gets `main`'s actions, scripts
-    and prompts. Check out the shared repo at `github.job_workflow_sha`
-    and use the composite actions via local path
-    (`uses: ./.shared-workflows/.github/actions/…`).
+  - ~~**Prerequisite:** all internal references are hard-coded to `main`~~
+    Done on branch `v1/foundation` (2026-10-16, not yet run from a
+    caller): composite actions are referenced with GitHub's
+    **self-repository syntax** `uses: $/.github/actions/…` — resolves to
+    the file's own repository at the running commit, no checkout
+    (changelog 2026-07-30; runner ≥ 2.336.0, not on GHES; no `@ref`).
+    ~~`.shared-workflows` (R scripts, config, prompts) is checked out at
+    `github.job_workflow_sha`~~ — **that context property is empty**
+    (first test-round run, dsSupportClient PR #46, 2026-10-21: the authors
+    bot got `main`'s files, `bot-authors.json` instead of `.yml`), and
+    actions/checkout then silently takes the default branch. **Fixed
+    2026-10-21:** the composite action `shared-files` (`uses:
+    $/.github/actions/shared-files`, after the caller's checkout, which
+    would clean the workspace) copies this repository from its own action
+    folder — the runner fetches it at the running commit — into
+    `.shared-workflows` (`package-release.yml`: `.shared-config`;
+    `create-issue.yml` reads its template from there); `count-run` reads
+    the commit from its folder name. Not yet confirmed in CI. Inline
+    `${{ }}` in `run:` scripts moved into `env:`; checkouts
+    `persist-credentials: false` (pushes and fetches pass their token;
+    now none keeps it); App tokens request only contents +
+    pull-requests. The repo name `FlorianSchw/package-workflows` is still
+    hard-coded in `count-run.sh` (change at the move). actionlint (1.7.12)
+    predates `$/`: `ci.yml` ignores that message.
   - **Federation rules** match `job_workflow_ref` exactly (incl.
     `@refs/heads/main`); tags need a prefix/condition match.
   - **Usage counting** relies on it: runs on a `vX` tag count as
     `release`, everything else as `dev`. Delete the old unused `v1` tag
     (`8d11341`) before the first real release, and recommend pinning
     `@vX` in the docs.
+- **v1 work on branch `v1/foundation`** (2026-10-16, pushed, not merged —
+  `main` only with the user): this repository's own CI (`ci.yml`:
+  testthat incl. end-to-end runs of the roxygen, test and authors bots on
+  `tests/fixtures/r-package` with recorded Claude/GitHub answers, shell
+  tests, actionlint, shellcheck, zizmor; green); external actions pinned
+  to commits (Dependabot updates them); refactoring A, E–I done (one
+  R-file parser, main loops as `review_files()` +
+  `review_roxygen_file()` / `review_test_file()`). Reports and drafts
+  waiting for the user: prompt audit (`dev-notes/prompt-audit.md`, hunks
+  A–F), input renames B (`dev-notes/v1-input-review.md`), config/policy
+  C+D (`dev-notes/v1-config-proposal.md`), rulesets, own release,
+  governance YAML (`dev-notes/v1-drafts/`). Decisions of 2026-10-19 on
+  all of these: in the notes; built: B (except 8), C, D.
+  **Docs pending at v1** (user-facing pages, batched): config files are
+  YAML and merged over the defaults (override table and wording in
+  `suggestions.qmd#adjusting-the-guidance`, file names on the authors,
+  roxygen and test pages); `config` package and `R_CONFIG_ACTIVE` gone;
+  the policy file `config/suggestion-policy.yml` (suggestions page:
+  what gets proposed, the override table, routing; `accept_reasons` no
+  longer in `claude.yml`); the input renames (B) on the input tables'
+  prose and in `examples/` (`review-scope`, `review-branch`, one
+  `datashield-type` incl. authors, no `config-repo`/`config-ref`) — the
+  examples call `@main`, so they change when v1 is merged. Also from the
+  test round (2026-10-21): full-review PR titles ("… : full review"); the
+  test bot's bug issue gets one post per function and run — a new issue
+  lists all the failing tests (code folded), an open one only a short
+  "still failing" comment with the test names
+  (`test-suggest-review.qmd#failing-tests`); the checkboxes also work on
+  full-review PRs. Release page: the shared release configs use the
+  `conventionalcommits` preset (2026-10-21), so `feat!:` as well as a
+  `BREAKING CHANGE:` footer make a major release (with the default angular
+  preset only the footer did); a caller's own `.releaserc.json` needs the
+  preset itself to get that; squash-merging non-conventional commits
+  (e.g. dsSupportClient #21) needs a conventional title, and a
+  `BREAKING CHANGE:` line for a major release (dsSupportClient's first
+  real release is meant to be 2.0.0, user 2026-10-21).
+- **Moved 2026-10-21:** `FlorianSchw/package-workflows` →
+  **`nfdi4health/datashield-workflows`** (transfer + rename by the user;
+  `b51dc5f` on `v1/foundation`: examples, docs, README, `count-run`, the
+  analysis gap issues; workflow graphs still recognise the old name, which
+  GitHub forwards). The 9 federation rules' `job_workflow_ref` changed by
+  hand in the Console; dsSupportClient's callers updated on `dev` (its
+  `main` follows with the next release merge). **dsAnalysis moved to
+  nfdi4health too (2026-10-26/27):** its references on branch
+  `ci/nfdi4health-move` (PR into `dev`; callers stay `@main`, since its
+  inputs still have the old names), its two rules' CEL condition needs
+  `repository_owner_id == "60613705"` (changed by the user in the
+  Console).
+  The other callers (dsSurvival, dsSurvivalClient, DataSHIELD_CONF_DEMO)
+  still use the old path through the redirect. `main` of this repository still
+  has the old names until v1 is merged. Docs site now
+  `nfdi4health.github.io/datashield-workflows` (no redirect from the old
+  one). Sections below still say package-workflows / FlorianSchw in
+  places — historical.
 - Federation rules for the other two accounts, before rolling out beyond
   dsSupportClient.
+- **Federation rules are managed by hand in the Console** (2026-10-21):
+  the Admin API is unavailable for individual Anthropic accounts, so the
+  repo-governance automation was removed; `anthropic/config.json` there
+  is the record of all 9 rules / 5 service accounts with their IDs (keep
+  it in step with the Console). Details in
+  [dev-notes/v1-planning.md](dev-notes/v1-planning.md) §5. ~~For the CI
+  test round: pin `@refs/heads/v1/foundation`, switch back after~~
+  **Since the move (2026-10-21) all 9 rules use one CEL expression**
+  (no subject, no static claims): `repository_owner_id` and
+  `repository_id` of the repository, and
+  `claims.job_workflow_ref.startsWith("nfdi4health/datashield-workflows/.github/workflows/<file>@")`
+  — any branch or tag, both GitHub subject forms; nothing to switch back.
+  Template in repo-governance's README.
+- **High priority — service accounts per GitHub owner instead of per
+  repository** (raised 2026-10-20; the user talks to the people involved
+  first, keep everything as is until then). Decided in principle in
+  [dev-notes/v1-planning.md](dev-notes/v1-planning.md) §2, but the
+  Console still has one per repository: 5 service accounts / 9 rules
+  (datashield: ds-survival + ds-survival-client; FlorianSchw: ds-analysis
+  + datashield-demo-analysis; nfdi4health: ds-support-client) would become
+  3 / 7, one rule per owner × workflow with an explicit
+  `repository_id in [...]` list (not all of an owner's repositories). Gains:
+  fewer objects, a new repository is one line, the same service account
+  and rule IDs for all of an owner's repositories (organization secrets in
+  datashield and nfdi4health). Costs: no cost split per repository on the
+  Cost page; caller secrets change for merged repositories; obsolete rules
+  archived by hand. Lives in repo-governance (`anthropic/config.json`:
+  `owner` + `repositories` map instead of one `repository`).
 - **Review of the Claude-assisted workflows** (2026-10-14): token levers
   and refactoring, ordered —
   [dev-notes/claude-workflow-review.md](dev-notes/claude-workflow-review.md).
@@ -551,7 +695,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
 
   Added while building: new tests go before a file's clean-up
   ("shutdown" test, disconnect), and a new file can get top-level setup
-  and teardown code. Category meanings: `config/test-categories.json`.
+  and teardown code. Category meanings: `config/test-categories.yml`.
   Decisions and implementation in
   [dev-notes/test-suggest.md](dev-notes/test-suggest.md).
   ~~**Docs pending**~~ Done 2026-10-01: `test-suggest.qmd#test-files`,
@@ -605,8 +749,15 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   `getting-started.qmd#usage-counting`, roadmap "Recent changes". Still
   to do: the data protection note in dsAnalysis's README (its CLAUDE.md,
   item D11).
-- **Policy file for the bot's rules** (`config/suggestion-policy.yml`):
-  today reasons, action↔reason mapping, the `aut`/`ctb` rule, name
+- ~~**Policy file for the bot's rules**~~ Done on `v1/foundation`
+  (2026-10-19): `config/suggestion-policy.yml` — reasons with meaning and
+  `accept`, `max_new_tests`, `possible_bugs` (`report`, `open_issue`),
+  author roles and name particles, `routing` per situation (on a PR /
+  without a PR: comment, issue, log; checked by `check_routing()`),
+  read with `suggestion_policy()`; reason meanings written into the tool
+  schemas and the roxygen prompt (`format_reason_meanings()`).
+  `accept_reasons`, `code_issue_confidence`, `max_new_tests` left
+  `config/claude.yml`. Docs pending at v1. The original item: today reasons, action↔reason mapping, the `aut`/`ctb` rule, name
   particles and report routing live partly only in R code. Move the
   tunable policy to one readable file that R and the tool schemas read
   (schema descriptions from the same source); keep safety invariants
@@ -626,7 +777,8 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   instead of the job log. ~~**Docs pending:**~~ Done 2026-10-01: the
   roxygen page's report section, and the "Recent changes" in the roadmap
   (as a required caller change).
-- **Report routing is code, not config:** where test failures, possible
+- ~~**Report routing is code, not config:**~~ Done with the policy file
+  (`routing`, today's behaviour as the default). The original item: where test failures, possible
   bugs, deletion notes and code issues go (PR comment, PR description,
   issue, log) is decided in R (`publish_test_report()`,
   `suggest_roxygen.R`). The user expects it to be configurable — do it as

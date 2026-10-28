@@ -17,7 +17,9 @@ apply_naming_to_package <- function(pkg_dir, renames, server_renames = NULL) {
   counts <- integer(0)
   notes <- character(0)
   save <- function(path, file, lines, n) {
-    if (n == 0 || identical(lines, file$lines)) return()
+    if (n == 0 || identical(lines, file$lines)) {
+      return()
+    }
     write_lines_keep_eol(lines, file, path)
     files <<- c(files, rel(path))
     counts[[rel(path)]] <<- n

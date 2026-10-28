@@ -12,8 +12,20 @@
 # `e$choice` (TRUE/FALSE) is the user's choice, recorded from the boxes by
 # record_suggestion_choices(); without it, the default applies.
 suggestion_choice <- function(e) {
-  if (!identical(e$status, "active") || !isTRUE(e$kind %in% c("new", "updated", "deleted", "applied", "dropped"))) return("none")
+  if (!identical(e$status, "active") || !isTRUE(e$kind %in% c("new", "updated", "deleted", "applied", "dropped"))) {
+    return("none")
+  }
   applied_by_default <- !identical(e$kind, "dropped")
-  ticked <- if (is.null(e$choice)) applied_by_default else isTRUE(e$choice)
-  if (ticked) "ticked" else if (applied_by_default) "declined" else "unticked"
+  ticked <- if (is.null(e$choice)) {
+    applied_by_default
+  } else {
+    isTRUE(e$choice)
+  }
+  if (ticked) {
+    "ticked"
+  } else if (applied_by_default) {
+    "declined"
+  } else {
+    "unticked"
+  }
 }

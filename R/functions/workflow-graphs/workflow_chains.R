@@ -11,13 +11,21 @@ workflow_chains <- function(workflows, called) {
   for (wf in workflows) {
     for (job_id in names(wf$jobs)) {
       for (d in job_dispatches(wf$jobs[[job_id]], called)) {
-        label <- if (identical(d$kind, "repository_dispatch")) sprintf("dispatch: %s", d$target) else "workflow_dispatch"
-        for (to in dispatch_targets(d, workflows)) add(wf$file, to, job_id, label)
+        label <- if (identical(d$kind, "repository_dispatch")) {
+          sprintf("dispatch: %s", d$target)
+        } else {
+          "workflow_dispatch"
+        }
+        for (to in dispatch_targets(d, workflows)) {
+          add(wf$file, to, job_id, label)
+        }
       }
     }
     listens_to <- unlist(wf$triggers$workflow_run$workflows)
     for (other in workflows) {
-      if (other$name %in% listens_to) add(other$file, wf$file, NA, "after it runs")
+      if (other$name %in% listens_to) {
+        add(other$file, wf$file, NA, "after it runs")
+      }
     }
   }
   unique(chains)

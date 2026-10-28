@@ -1,0 +1,4 @@
+export(ds.mean)
+export(ds.merge)
+export(ds.cor)
+export(ds.recode)

@@ -4,17 +4,38 @@
 # the short form (describe_trigger()).
 situation_title <- function(event, settings) {
   list_of <- function(x) paste(unlist(x), collapse = ", ")
-  into <- if (!is.null(settings$branches)) sprintf(" into %s", list_of(settings$branches)) else ""
+
+  if (event %in% c("pull_request", "pull_request_target")) {
+    into <- ""
+    if (!is.null(settings$branches)) {
+      into <- sprintf(" into %s", list_of(settings$branches))
+    }
+    types <- unlist(settings$types)
+    if (identical(types, "closed")) {
+      return(sprintf("When a pull request%s is closed", into))
+    }
+    if (length(types) > 0) {
+      return(sprintf("When a pull request%s is %s", into, list_of(types)))
+    }
+    return(sprintf("When a pull request%s is opened or updated", into))
+  }
+
+  if (event == "push") {
+    if (!is.null(settings$branches)) {
+      return(sprintf("On a push to %s", list_of(settings$branches)))
+    }
+    return("On a push")
+  }
+
+  if (event == "repository_dispatch") {
+    if (is.null(settings$types)) {
+      return("When a dispatch event is sent")
+    }
+    return(sprintf("When the %s event is sent", list_of(settings$types)))
+  }
+
   switch(event,
-    pull_request = , pull_request_target = {
-      types <- unlist(settings$types)
-      if (identical(types, "closed")) sprintf("When a pull request%s is closed", into)
-      else if (length(types) > 0) sprintf("When a pull request%s is %s", into, list_of(types))
-      else sprintf("When a pull request%s is opened or updated", into)
-    },
-    push = if (!is.null(settings$branches)) sprintf("On a push to %s", list_of(settings$branches)) else "On a push",
     schedule = "On a schedule",
-    repository_dispatch = sprintf("When %s is sent", if (is.null(settings$types)) "a dispatch event" else sprintf("the %s event", list_of(settings$types))),
     workflow_run = sprintf("After %s", list_of(settings$workflows)),
     release = "When a release is published",
     describe_trigger(event, settings)

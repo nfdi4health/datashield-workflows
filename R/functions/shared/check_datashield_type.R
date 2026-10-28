@@ -1,12 +1,14 @@
-# Stops the run when a DataSHIELD package names an unknown datashield-type,
-# so a typo fails loudly instead of silently dropping the role guidance.
-check_datashield_type <- function(datashield, ds_type) {
-  allowed <- c("client", "server", "utility")
-  if (isTRUE(datashield) && !ds_type %in% allowed) {
-    stop(sprintf(
-      "datashield is true, but datashield-type is '%s' — it must be one of: %s.",
-      ds_type, paste(allowed, collapse = ", ")
-    ), call. = FALSE)
+# The datashield-type input: "none" (not a DataSHIELD package; also when
+# empty), "client", "server" or "utility". Returns it; stops the run on
+# anything else, so a typo fails loudly instead of silently dropping the
+# role guidance.
+check_datashield_type <- function(ds_type) {
+  if (!nzchar(ds_type)) {
+    ds_type <- "none"
   }
-  invisible(TRUE)
+  allowed <- c("none", "client", "server", "utility")
+  if (!ds_type %in% allowed) {
+    stop(sprintf("datashield-type is '%s' — it must be one of: %s.", ds_type, paste(allowed, collapse = ", ")), call. = FALSE)
+  }
+  ds_type
 }

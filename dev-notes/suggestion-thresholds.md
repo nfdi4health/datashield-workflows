@@ -15,7 +15,8 @@ structural rule is possible.
    options (`clarity`, `style`, `other`): a model with a place for that
    case uses it more reliably than one told "don't make style changes".
 2. **R keeps only accepted reasons.** The default accept lists live in
-   `config/claude.yml` (`accept_reasons` per profile). A repository tunes
+   `config/suggestion-policy.yml` (`accept: true` per reason; until v1:
+   `accept_reasons` in `config/claude.yml`). A repository tunes
    them with the `accept-reasons` input of `roxygen-suggest.yml` /
    `test-suggest.yml` (added 2026-10-02, user's request, e.g. to also get
    `style` or `clarity` changes), or by overriding that file, without
@@ -77,7 +78,7 @@ pass a real run are proposed. (`filter_generated_tests()`.)
 has tests or not — the old "test file mentions the function name → skip"
 heuristic is gone. Claude decides whether new tests add value; the
 threshold above decides what is proposed. At most ~~5~~ `max_new_tests`
-(default 10, `config/claude.yml`) new tests per function and run — 5 was
+(default 10, `config/suggestion-policy.yml`) new tests per function and run — 5 was
 too few to check real behavior.
 
 ### ~~Existing tests that could be deleted~~ Existing tests

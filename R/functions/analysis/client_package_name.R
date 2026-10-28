@@ -4,6 +4,8 @@
 # has no client to install.
 client_package_name <- function(server_package, catalogue, suffix) {
   client <- paste0(server_package, suffix)
-  if (length(catalogue) > 0 && !client %in% names(catalogue)) return(NA_character_)
+  if (length(catalogue) > 0 && !client %in% names(catalogue)) {
+    return(NA_character_)
+  }
   client
 }

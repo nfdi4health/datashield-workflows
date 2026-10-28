@@ -29,10 +29,14 @@ runs:
     - name: Generate App token
       id: app_token
       if: inputs.client-id != ''
-      uses: actions/create-github-app-token@v3
+      uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
       with:
         client-id: ${{ inputs.client-id }}
         private-key: ${{ inputs.app-private-key }}
         # Empty: the current repository only (the action's default).
         owner: ${{ steps.scope.outputs.repositories != '' && github.repository_owner || '' }}
         repositories: ${{ steps.scope.outputs.repositories }}
+        # Only what the bots' pushes, PRs and releases need, not everything
+        # the App's installation may do.
+        permission-contents: write
+        permission-pull-requests: write

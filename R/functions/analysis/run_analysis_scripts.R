@@ -20,9 +20,13 @@ run_analysis_scripts <- function(login_file, scripts, profile, timeout, connecti
     describe_objects <- function(expr) {
       out <- character(0)
       for (s in unique(all.vars(expr))) {
-        if (!exists(s, envir = globalenv(), inherits = FALSE)) next
+        if (!exists(s, envir = globalenv(), inherits = FALSE)) {
+          next
+        }
         obj <- get(s, envir = globalenv())
-        if (is.function(obj)) next
+        if (is.function(obj)) {
+          next
+        }
         d <- paste(utils::capture.output(utils::str(obj, max.level = 2, give.attr = FALSE, vec.len = 3)), collapse = "\n")
         out <- c(out, sprintf("%s: %s", s, substr(d, 1, 500)))
       }
@@ -30,7 +34,9 @@ run_analysis_scripts <- function(login_file, scripts, profile, timeout, connecti
     }
     run <- function(path) {
       exprs <- tryCatch(parse(path, keep.source = FALSE), error = function(e) e)
-      if (inherits(exprs, "error")) return(conditionMessage(exprs))
+      if (inherits(exprs, "error")) {
+        return(conditionMessage(exprs))
+      }
       for (i in seq_along(exprs)) {
         res <- tryCatch({
           eval(exprs[[i]], envir = globalenv())
@@ -43,37 +49,56 @@ run_analysis_scripts <- function(login_file, scripts, profile, timeout, connecti
           }
           stmt <- paste(deparse(exprs[[i]], width.cutoff = 500L), collapse = " ")
           objs <- tryCatch(describe_objects(exprs[[i]]), error = function(e2) "")
-          paste0(msg, " [failing statement: ", substr(stmt, 1, 400), "]",
-                 if (nzchar(objs)) paste0("\nObjects used in that statement:\n", objs) else "")
+          used <- ""
+          if (nzchar(objs)) {
+            used <- paste0("\nObjects used in that statement:\n", objs)
+          }
+          paste0(msg, " [failing statement: ", substr(stmt, 1, 400), "]", used)
         })
-        if (!is.na(res)) return(res)
+        if (!is.na(res)) {
+          return(res)
+        }
       }
       NA_character_
     }
     # What the scripts left on the servers, for the next step's prompt:
     # names, and with dsBaseClient also classes and data frame columns.
     server_objects <- function(connections) {
-      if (is.null(connections) || !exists(connections, envir = globalenv())) return("")
+      if (is.null(connections) || !exists(connections, envir = globalenv())) {
+        return("")
+      }
       conns <- get(connections, envir = globalenv())
       symbols <- sort(unique(unlist(DSI::datashield.symbols(conns))))
-      if (length(symbols) == 0) return("")
+      if (length(symbols) == 0) {
+        return("")
+      }
       describe <- requireNamespace("dsBaseClient", quietly = TRUE)
       lines <- vapply(utils::head(symbols, 40), function(s) {
-        if (!describe) return(sprintf("- `%s`", s))
+        if (!describe) {
+          return(sprintf("- `%s`", s))
+        }
         cls <- tryCatch(unique(unlist(dsBaseClient::ds.class(s, datasources = conns))), error = function(e) character(0))
         extra <- ""
         if ("data.frame" %in% cls) {
           dims <- tryCatch(unlist(dsBaseClient::ds.dim(s, type = "combine", datasources = conns))[1:2], error = function(e) NULL)
           cols <- tryCatch(unique(unlist(dsBaseClient::ds.colnames(s, datasources = conns))), error = function(e) character(0))
-          extra <- sprintf("%s; columns: %s", if (length(dims) == 2) sprintf(", %s rows x %s columns in total", dims[1], dims[2]) else "",
-                           paste(utils::head(cols, 40), collapse = ", "))
+          if (length(dims) == 2) {
+            extra <- sprintf(", %s rows x %s columns in total", dims[1], dims[2])
+          }
+          extra <- sprintf("%s; columns: %s", extra, paste(utils::head(cols, 40), collapse = ", "))
         }
-        sprintf("- `%s` (%s%s)", s, if (length(cls) > 0) paste(cls, collapse = "/") else "class unknown", extra)
+        class_text <- "class unknown"
+        if (length(cls) > 0) {
+          class_text <- paste(cls, collapse = "/")
+        }
+        sprintf("- `%s` (%s%s)", s, class_text, extra)
       }, character(1))
       paste(lines, collapse = "\n")
     }
     login_error <- run(login_file)
-    if (!is.na(login_error)) return(list(login_error = login_error, errors = character(0), objects = ""))
+    if (!is.na(login_error)) {
+      return(list(login_error = login_error, errors = character(0), objects = ""))
+    }
     errors <- vapply(scripts, run, character(1), USE.NAMES = FALSE)
     objects <- tryCatch(server_objects(connections), error = function(e) "")
     list(login_error = NA_character_, errors = stats::setNames(errors, scripts), objects = objects)

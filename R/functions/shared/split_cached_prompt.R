@@ -7,7 +7,9 @@
 # sent uncached.
 split_cached_prompt <- function(prompt, marker = "<!-- per function -->") {
   at <- regexpr(marker, prompt, fixed = TRUE)
-  if (at < 0) return(prompt)
+  if (at < 0) {
+    return(prompt)
+  }
   list(
     cached = trimws(substr(prompt, 1, at - 1)),
     rest = trimws(substr(prompt, at + attr(at, "match.length"), nchar(prompt)))

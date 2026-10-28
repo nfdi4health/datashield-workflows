@@ -1,5 +1,5 @@
 ---
-title: "package-workflows"
+title: "datashield-workflows"
 subtitle: "Reusable GitHub Actions workflows for R packages and DataSHIELD analysis projects"
 ---
 
@@ -16,7 +16,7 @@ workflow from here:
 ```yaml
 jobs:
   check:
-    uses: FlorianSchw/package-workflows/.github/workflows/r-cmd-check.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/r-cmd-check.yml@main
 ```
 
 ::: {.callout-note}

@@ -1,0 +1,66 @@
+name: Release this repository
+
+# Releases this workflow repository (not R packages — that is the
+# reusable package-release.yml) on every push to main, i.e. a merged
+# dev → main PR: semantic-release tags vX.Y.Z from the conventional
+# commits, commits CHANGELOG.md to main ("[skip ci]"), publishes the
+# GitHub release and moves the major tag vX (successCmd). Config:
+# .github/release/releaserc.json.
+#
+# Off until v1: runs only when the repository variable RELEASE_ENABLED is
+# "true" (Settings → Secrets and variables → Actions → Variables), set
+# once the branch model, the rulesets and the App are in place — before
+# the first release, delete the old unused v1 tag (8d11341).
+#
+# The App token pushes the CHANGELOG commit and moves vX: its App is the
+# bypass actor of the main and "release tags" rulesets (GITHUB_TOKEN
+# can't). Secrets APP_CLIENT_ID and APP_PRIVATE_KEY of this repository.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: vars.RELEASE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # tags, the CHANGELOG commit and the GitHub release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve push token
+        id: token
+        uses: $/.github/actions/resolve-push-token
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "lts/*"
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "::error::No App token (secrets APP_CLIENT_ID / APP_PRIVATE_KEY)."; exit 1; fi
+          # The root .releaserc.json is the R-package default of
+          # package-release.yml. semantic-release prefers a config file over
+          # --extends, so this repository's own config replaces it in the
+          # runner only (never committed: @semantic-release/git commits
+          # CHANGELOG.md alone).
+          cp .github/release/releaserc.json .releaserc.json
+          # The CHANGELOG commit and the moving-tag push go through this remote.
+          git remote set-url origin "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          npx --yes -p semantic-release@25.0.9 -p @semantic-release/changelog@7.0.0 -p @semantic-release/git@11.0.1 -p @semantic-release/exec@7.1.0 -p conventional-changelog-conventionalcommits@8.0.0 semantic-release  # zizmor: ignore[adhoc-packages] exact versions, no package.json here

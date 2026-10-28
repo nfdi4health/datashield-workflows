@@ -8,13 +8,26 @@
 report_groups <- function(groups, style = report_style()) {
   summary <- function(title) {
     h <- style$group_heading
-    if (identical(h, "bold")) sprintf("<b>%s</b>", title)
-    else if (identical(h, "plain")) title
-    else sprintf("<h%d>%s</h%d>", as.integer(h), title, as.integer(h))
+    if (identical(h, "bold")) {
+      sprintf("<b>%s</b>", title)
+    } else if (identical(h, "plain")) {
+      title
+    } else {
+      sprintf("<h%d>%s</h%d>", as.integer(h), title, as.integer(h))
+    }
   }
-  gap <- if (isTRUE(style$blank_line_between_groups)) "" else character(0)
-  blocks <- lapply(groups, function(g) {
-    c(sprintf("<details%s><summary>%s</summary>", if (isTRUE(g$open)) " open" else "", summary(g$title)), "", g$lines, "", "</details>")
-  })
-  c(unlist(Map(function(b, last) c(b, if (!last) gap), blocks, seq_along(blocks) == length(blocks))), "")
+
+  out <- character(0)
+  for (i in seq_along(groups)) {
+    g <- groups[[i]]
+    open <- ""
+    if (isTRUE(g$open)) {
+      open <- " open"
+    }
+    out <- c(out, sprintf("<details%s><summary>%s</summary>", open, summary(g$title)), "", g$lines, "", "</details>")
+    if (i < length(groups) && isTRUE(style$blank_line_between_groups)) {
+      out <- c(out, "")
+    }
+  }
+  c(out, "")
 }

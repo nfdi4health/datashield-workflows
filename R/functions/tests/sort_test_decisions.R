@@ -18,9 +18,19 @@ sort_test_decisions <- function(decisions, paths, blocks, baseline, declined_upd
   decisions <- Filter(Negate(declined), decisions)
 
   file_of <- function(d) {
-    name <- if (is.null(d$test_file)) "" else d$test_file
+    name <- if (is.null(d$test_file)) {
+      ""
+    } else {
+      d$test_file
+    }
     hit <- paths[basename(paths) == name]
-    if (length(hit) == 1) hit else if (length(paths) == 1) paths else NA_character_
+    if (length(hit) == 1) {
+      hit
+    } else if (length(paths) == 1) {
+      paths
+    } else {
+      NA_character_
+    }
   }
   decision_paths <- vapply(decisions, file_of, character(1))
   for (d in decisions[is.na(decision_paths)]) {

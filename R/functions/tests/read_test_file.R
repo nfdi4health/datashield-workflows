@@ -4,10 +4,9 @@
 # test-<function>.R.
 read_test_file <- function(path, category = NA_character_) {
   exists <- file.exists(path)
-  list(
-    path = path,
-    exists = exists,
-    content = if (exists) paste(readLines(path, warn = FALSE), collapse = "\n") else "",
-    category = category
-  )
+  content <- ""
+  if (exists) {
+    content <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  }
+  list(path = path, exists = exists, content = content, category = category)
 }

@@ -15,7 +15,9 @@ detect_test_scheme <- function(function_names) {
   files <- list.files(file.path("tests", "testthat"), pattern = "^test-.*\\.[Rr]$")
   parts <- regmatches(files, regexec("^test-([A-Za-z0-9_]+)-(.+)\\.[Rr]$", files))
   is_categorised <- vapply(parts, function(p) {
-    if (length(p) != 3 || !p[3] %in% function_names) return(FALSE)
+    if (length(p) != 3 || !p[3] %in% function_names) {
+      return(FALSE)
+    }
     whole <- paste(p[2], p[3], sep = "-")
     !any(c(gsub("-", "_", whole), gsub("-", ".", whole)) %in% function_names)
   }, logical(1))

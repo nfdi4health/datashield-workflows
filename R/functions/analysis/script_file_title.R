@@ -5,6 +5,8 @@
 script_file_title <- function(title, max_chars) {
   words <- strsplit(iconv(title, to = "ASCII//TRANSLIT", sub = ""), "[^A-Za-z0-9]+")[[1]]
   words <- words[nzchar(words)]
-  if (length(words) == 0) return("Step")
+  if (length(words) == 0) {
+    return("Step")
+  }
   substr(paste0(toupper(substr(words, 1, 1)), substr(words, 2, nchar(words)), collapse = ""), 1, max_chars)
 }

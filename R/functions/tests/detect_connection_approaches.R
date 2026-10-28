@@ -6,7 +6,9 @@
 # if none.
 detect_connection_approaches <- function() {
   dir <- file.path("tests", "testthat")
-  if (!dir.exists(dir)) return(character(0))
+  if (!dir.exists(dir)) {
+    return(character(0))
+  }
   files <- list.files(dir, pattern = "\\.[Rr]$", recursive = TRUE, full.names = TRUE)
   text <- paste(unlist(lapply(files, readLines, warn = FALSE)), collapse = "\n")
   patterns <- c(

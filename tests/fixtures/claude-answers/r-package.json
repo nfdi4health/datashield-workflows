@@ -1,0 +1,85 @@
+{
+  "_about": "Recorded (made-up) answers for tests/fixtures/r-package. Claude: by tool name, served in order of the calls (R/add1.R first, then R/clamp.R). github: the GitHub login per commit author name of tests/self-test/history-r-package.sh (none: no account) and the profiles of those logins. Used by test-entry-scripts.R and the self-test workflow (use_recorded_answers()).",
+  "github": {
+    "logins": {
+      "Bea M": "bea",
+      "dependabot[bot]": "dependabot[bot]"
+    },
+    "users": {
+      "bea": { "login": "bea", "name": "Beatrice van Muster" }
+    }
+  },
+  "submit_review": [
+    {
+      "needs_changes": true,
+      "return_doc": "A numeric vector of the same length as `x`, each element increased by one.",
+      "changes": [
+        { "field": "return", "reason": "missing", "explanation": "An exported function needs @return." }
+      ],
+      "code_issues": []
+    },
+    {
+      "needs_changes": false,
+      "changes": [],
+      "code_issues": [
+        {
+          "explanation": "clamp() never checks that lo <= hi. With lo > hi, pmax() raises every value to lo and pmin() then lowers it to hi, so the result is hi everywhere without any error.",
+          "verdict": "defect",
+          "confidence": "medium",
+          "summary": "clamp() silently returns hi everywhere when lo > hi instead of stopping."
+        }
+      ]
+    }
+  ],
+  "submit_tests": [
+    {
+      "needs_tests": true,
+      "dslite_dataset": "",
+      "existing_tests": [],
+      "earlier_findings": [],
+      "tests": [
+        {
+          "description": "add1 works element-wise on vectors",
+          "reason": "edge_case",
+          "setup_code": "",
+          "assertions_code": "expect_equal(add1(c(1, 2)), c(2, 3))",
+          "repeats_earlier": ""
+        }
+      ]
+    },
+    {
+      "needs_tests": true,
+      "dslite_dataset": "",
+      "existing_tests": [],
+      "earlier_findings": [],
+      "tests": [
+        {
+          "description": "clamp keeps values inside the range",
+          "reason": "uncovered_branch",
+          "setup_code": "",
+          "assertions_code": "expect_equal(clamp(c(-1, 0.5, 2)), c(0, 0.5, 1))",
+          "repeats_earlier": ""
+        },
+        {
+          "description": "clamp stops when lo is above hi",
+          "reason": "error_handling",
+          "setup_code": "",
+          "assertions_code": "expect_error(clamp(1, lo = 2, hi = 0))",
+          "repeats_earlier": ""
+        }
+      ]
+    }
+  ],
+  "submit_failure_classification": [
+    {
+      "failures": [
+        {
+          "failure": "F1",
+          "explanation": "The test expects an error for lo > hi, which is the sensible contract; clamp() has no such check and returns hi instead.",
+          "category": "real_bug",
+          "confidence": "medium"
+        }
+      ]
+    }
+  ]
+}

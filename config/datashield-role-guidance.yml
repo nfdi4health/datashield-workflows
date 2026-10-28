@@ -1,0 +1,93 @@
+# What the roxygen bot tells Claude about documenting a function of a
+# DataSHIELD package, by datashield-type (role_guidance()). A project's
+# own config/datashield-role-guidance.yml is merged over this file key by
+# key.
+
+client:
+  intro: >-
+    This function is part of a DataSHIELD CLIENT-side package. Client-side
+    functions typically construct and dispatch a call to a DataSHIELD server
+    (e.g. via DSI::datashield.aggregate() or .assign()) rather than performing
+    computation locally. When documenting:
+  documentation:
+    param: >-
+      note where a parameter names an object that exists on the
+      server (e.g. a table or variable name), rather than a local R value,
+      if that is the case.
+    return: >-
+      describe what is actually returned to the caller in R
+      (which may be a status, a message, or a lightweight object), not
+      results that are computed server-side and never returned by this
+      function.
+    details: >-
+      focus on what server-side call this function constructs. If
+      the function's code identifies a specific server-side function it
+      invokes (e.g. a function name passed as a string or symbol to a call
+      construction), name it explicitly using the established convention:
+      'Server function called: the name in code font'. Only include this
+      if a specific name is actually identifiable from the code; never
+      guess or fabricate one.
+  closing: >-
+    If a corresponding server-side function or package exists, you may note
+    the relationship briefly — but do not assume or invent one; some client
+    packages are standalone wrappers with no server-side counterpart.
+  demo_environment: >-
+    Canonical current demo environment for the examples field — use this
+    verbatim as the example code (do not add any comment markers, tag
+    labels, or wrapper syntax yourself — the script adds that structure).
+    This reflects DataSHIELD's typical multi-centric usage (multiple
+    studies connected at once). Treat any existing example content that
+    connects to only one server, or references a different server or VM
+    setup, as outdated and replace it with this:
+
+utility:
+  intro: >-
+    This function is part of a DataSHIELD UTILITY package: it runs on the
+    analyst's side but is neither a client wrapper for a server function
+    nor server code. Such packages help the analyst, e.g. set up an
+    analysis project, create mock data or manage packages. Some of their
+    functions work on DataSHIELD connections (a `datasources` argument or
+    DSI::datashield.* calls), others only on local files. When documenting:
+  documentation:
+    param: >-
+      for a `datasources` argument or a server-side object name,
+      say that it refers to DataSHIELD connections or an object on the
+      server; paths and other arguments are plain local R values.
+    return: >-
+      describe what is returned in R, and name the files or
+      folders the function creates or changes, if any.
+    details: >-
+      describe side effects on the analyst's machine (files
+      written, packages installed, projects opened). Never write
+      'Server function called' — utility functions are not client
+      wrappers for one server function.
+    examples: >-
+      examples must not write into the user's home or working
+      directory: use tempdir() for paths, and pass arguments that keep
+      the function from opening a new RStudio project or session.
+  demo_environment: >-
+    This function works on DataSHIELD connections. Canonical current demo
+    environment for the examples field — use this verbatim as the login
+    part of the example code (do not add any comment markers, tag labels,
+    or wrapper syntax yourself — the script adds that structure). It
+    reflects DataSHIELD's typical multi-centric usage (multiple studies
+    connected at once). Treat any existing example content that connects
+    to only one server, or references a different server or VM setup, as
+    outdated and replace it with this:
+
+server:
+  intro: >-
+    This function is part of a DataSHIELD SERVER-side package. Server-side
+    functions typically perform the actual computation (often using base R,
+    stats, or tidyverse functions directly) on data not directly visible to
+    the client. When documenting:
+  documentation:
+    param: >-
+      parameters are typically real, resolved R objects at
+      this point.
+    return: >-
+      describe the actual computed result, including type and
+      shape.
+    details: >-
+      reference the base/stats/tidyverse functions this builds on
+      where it aids understanding.

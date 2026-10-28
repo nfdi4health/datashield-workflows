@@ -13,14 +13,20 @@ approved_renames <- function(entries, pkg) {
   for (e in sel) {
     args <- formals[[e$`function`]]
     if (is.null(args)) { missing <- c(missing, e$id); next }
-    if (!e$current %in% args) { if (e$proposed %in% args) done <- c(done, e$id) else missing <- c(missing, e$id); next }
+    if (!e$current %in% args) { if (e$proposed %in% args) {
+      done <- c(done, e$id)
+    } else {
+      missing <- c(missing, e$id)
+    }; next }
     renames <- rbind(renames, data.frame(id = e$id, fn = e$`function`, old = e$current, new = e$proposed))
   }
   for (i in seq_len(nrow(renames))) {
     args <- formals[[renames$fn[i]]]
     staying <- setdiff(args, renames$old[renames$fn == renames$fn[i]])
     final <- c(staying, renames$new[renames$fn == renames$fn[i]])
-    if (renames$new[i] %in% staying || sum(final == renames$new[i]) > 1) conflicts <- c(conflicts, renames$id[i])
+    if (renames$new[i] %in% staying || sum(final == renames$new[i]) > 1) {
+      conflicts <- c(conflicts, renames$id[i])
+    }
   }
   list(renames = renames[!renames$id %in% conflicts, ], done = done, conflicts = conflicts, missing = missing)
 }

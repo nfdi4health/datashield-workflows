@@ -10,15 +10,21 @@ read_package_catalogue <- function(url) {
     message(sprintf("Package catalogue %s could not be read: %s", url, conditionMessage(e)))
     NULL
   })
-  if (is.null(raw)) return(list())
+  if (is.null(raw)) {
+    return(list())
+  }
 
   lapply(raw, function(p) {
     input <- p$input
+    status <- tolower(trimws(input$status %||% ""))
+    if (!nzchar(status)) {
+      status <- "unknown"
+    }
     list(
-      description = if (is.null(input$description)) "" else input$description,
-      status = if (is.null(input$status) || !nzchar(trimws(input$status))) "unknown" else tolower(trimws(input$status)),
-      github = if (is.null(input$github_link)) "" else sub("/+$", "", input$github_link),
-      cran = if (is.null(input$cran_link)) "" else input$cran_link
+      description = input$description %||% "",
+      status = status,
+      github = sub("/+$", "", input$github_link %||% ""),
+      cran = input$cran_link %||% ""
     )
   })
 }

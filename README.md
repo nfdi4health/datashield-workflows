@@ -1,9 +1,9 @@
-# package-workflows
+# datashield-workflows
 
 Reusable GitHub Actions workflows for R packages: checks, releases, and bot
 suggestions for documentation, tests and contributor credits.
 
-**Documentation: <https://florianschw.github.io/package-workflows/>** —
+**Documentation: <https://nfdi4health.github.io/datashield-workflows/>** —
 what each workflow does, copyable caller files, and the setup they need.
 
 ## Layout

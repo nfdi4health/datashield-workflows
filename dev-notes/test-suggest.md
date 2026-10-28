@@ -76,7 +76,12 @@ Entry script: `R/suggest_tests.R`. Per function file in `files_to_check.txt`:
 8. The file is rewritten from the *original* with only what passed: failed
    new tests are left out, a failed update keeps the original test and is
    reported. A generated DSLite setup is kept only if a new test passed.
-9. Each failing **new** test goes to `ask_claude_to_classify_failure()`
+9. The failing **new** tests of a function (repeats of earlier failures
+   left out, `repeated_failure()`) are classified together
+   (`classify_failures()`, since 2026-10-16): R decides where the message
+   alone does (`obvious_failure_classification()`: parse error, unknown
+   function → `bad_test`; missing package → `env_misconfiguration`), the
+   rest in **one** call `ask_claude_to_classify_failures()`
    (profile `test-failure-classification`):
    `real_bug` → GitHub issue; `bad_test` / `env_misconfiguration` → PR
    comment, or in a sweep into the report.

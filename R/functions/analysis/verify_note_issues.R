@@ -6,7 +6,11 @@
 verify_note_issues <- function(steps, gap_issues) {
   lapply(steps, function(s) {
     s$notes <- lapply(s$notes, function(n) {
-      issue <- if (is.null(n$existing_issue)) "" else as.character(n$existing_issue)
+      issue <- if (is.null(n$existing_issue)) {
+        ""
+      } else {
+        as.character(n$existing_issue)
+      }
       if (nzchar(issue) && !identical(n$kind, "missing_function")) {
         message(sprintf("A %s note points to issue #%s; only missing_function notes may. Cleared.", n$kind, issue))
         n$existing_issue <- ""

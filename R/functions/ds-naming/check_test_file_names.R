@@ -17,7 +17,11 @@ check_test_file_names <- function(pkg, rules) {
     }
     group <- function(g) {
       start <- attr(m, "capture.start")[1, g]
-      if (start < 0) "" else substr(f, start, start + attr(m, "capture.length")[1, g] - 1)
+      if (start < 0) {
+        ""
+      } else {
+        substr(f, start, start + attr(m, "capture.length")[1, g] - 1)
+      }
     }
     target <- group("target")
     is_dataset <- grepl("datachk", group("category"))
@@ -25,5 +29,9 @@ check_test_file_names <- function(pkg, rules) {
       problems[[length(problems) + 1]] <- data.frame(file = f, problem = sprintf("`%s` is no function of the package or listed topic", target))
     }
   }
-  if (length(problems) == 0) data.frame(file = character(0), problem = character(0)) else do.call(rbind, problems)
+  if (length(problems) == 0) {
+    data.frame(file = character(0), problem = character(0))
+  } else {
+    do.call(rbind, problems)
+  }
 }

@@ -7,7 +7,9 @@ rename_in_chunks <- function(lines, renames) {
   opens <- grep("^\\s*```+\\s*\\{r[ ,}]", lines)
   for (o in opens) {
     close <- o + which(grepl("^\\s*```+\\s*$", lines[-(1:o)]))[1]
-    if (is.na(close) || close <= o + 1) next
+    if (is.na(close) || close <= o + 1) {
+      next
+    }
     span <- (o + 1):(close - 1)
     for (r in seq_len(nrow(renames))) {
       res <- rename_call_args_text(lines[span], renames$fn[r], renames$old[r], renames$new[r])

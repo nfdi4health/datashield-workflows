@@ -7,10 +7,14 @@
 merge_naming_entries <- function(new, previous) {
   for (id in intersect(names(new), names(previous))) {
     prev <- previous[[id]]
-    if (!prev$status %in% c("approved", "skip")) next
+    if (!prev$status %in% c("approved", "skip")) {
+      next
+    }
     new[[id]]$status <- prev$status
     if (prev$status == "approved" && !identical(prev$proposed, new[[id]]$proposed) && nzchar(prev$proposed %||% "")) {
-      if (nzchar(new[[id]]$proposed %||% "")) new[[id]]$note <- sprintf("rules now propose `%s`; kept the approved `%s`", new[[id]]$proposed, prev$proposed)
+      if (nzchar(new[[id]]$proposed %||% "")) {
+        new[[id]]$note <- sprintf("rules now propose `%s`; kept the approved `%s`", new[[id]]$proposed, prev$proposed)
+      }
       new[[id]]$proposed <- prev$proposed
     }
   }

@@ -7,7 +7,9 @@ fn_source <- function(parsed) {
   for (i in start:length(lines)) {
     opens  <- lengths(regmatches(lines[i], gregexpr("\\{", lines[i])))
     closes <- lengths(regmatches(lines[i], gregexpr("\\}", lines[i])))
-    if (opens > 0) started <- TRUE
+    if (opens > 0) {
+      started <- TRUE
+    }
     depth <- depth + opens - closes
     if (started && depth <= 0) { end <- i; break }
     end <- i

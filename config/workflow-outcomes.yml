@@ -27,17 +27,17 @@ outcomes:
   keepalive: Scheduled workflows kept enabled
 
 workflows:
-  FlorianSchw/package-workflows/.github/workflows/r-cmd-check.yml: ["Check: R CMD check passes"]
-  FlorianSchw/package-workflows/.github/workflows/commitlint.yml: ["Check: commit messages follow Conventional Commits"]
-  FlorianSchw/package-workflows/.github/workflows/require-head-branch.yml: ["Check: PR comes from {allowed-head}"]
-  FlorianSchw/package-workflows/.github/workflows/authors-suggest.yml: [suggestion-pr, {outcome: pr-comment, only-on: pull_request}]
-  FlorianSchw/package-workflows/.github/workflows/roxygen-suggest.yml: [suggestion-pr, {outcome: pr-comment, only-on: pull_request}]
-  FlorianSchw/package-workflows/.github/workflows/test-suggest.yml: [suggestion-pr, {outcome: pr-comment, only-on: pull_request}, "Issue for a likely bug in the code"]
-  FlorianSchw/package-workflows/.github/workflows/cleanup-suggestion-branch.yml: [branch-deleted]
-  FlorianSchw/package-workflows/.github/workflows/merge-pull-request.yml: [merge]
-  FlorianSchw/package-workflows/.github/workflows/create-issue.yml: ["Issue for the PR author"]
-  FlorianSchw/package-workflows/.github/workflows/package-release.yml: [release]
-  FlorianSchw/package-workflows/.github/workflows/workflow-keepalive.yml: [keepalive]
-  FlorianSchw/package-workflows/.github/workflows/workflow-graphs.yml:
+  nfdi4health/datashield-workflows/.github/workflows/r-cmd-check.yml: ["Check: R CMD check passes"]
+  nfdi4health/datashield-workflows/.github/workflows/commitlint.yml: ["Check: commit messages follow Conventional Commits"]
+  nfdi4health/datashield-workflows/.github/workflows/require-head-branch.yml: ["Check: PR comes from {allowed-head}"]
+  nfdi4health/datashield-workflows/.github/workflows/authors-suggest.yml: [suggestion-pr, {outcome: pr-comment, only-on: pull_request}]
+  nfdi4health/datashield-workflows/.github/workflows/roxygen-suggest.yml: [suggestion-pr, {outcome: pr-comment, only-on: pull_request}]
+  nfdi4health/datashield-workflows/.github/workflows/test-suggest.yml: [suggestion-pr, {outcome: pr-comment, only-on: pull_request}, "Issue for a likely bug in the code"]
+  nfdi4health/datashield-workflows/.github/workflows/cleanup-suggestion-branch.yml: [branch-deleted]
+  nfdi4health/datashield-workflows/.github/workflows/merge-pull-request.yml: [merge]
+  nfdi4health/datashield-workflows/.github/workflows/create-issue.yml: ["Issue for the PR author"]
+  nfdi4health/datashield-workflows/.github/workflows/package-release.yml: [release]
+  nfdi4health/datashield-workflows/.github/workflows/workflow-keepalive.yml: [keepalive]
+  nfdi4health/datashield-workflows/.github/workflows/workflow-graphs.yml:
     - {outcome: commit, only-on: push}
     - {outcome: "Note on the PR: runs on push only", only-on: pull_request}

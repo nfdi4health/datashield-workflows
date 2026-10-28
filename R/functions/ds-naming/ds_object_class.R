@@ -18,12 +18,26 @@ ds_object_class <- function(doc) {
   )
   pos <- vapply(patterns, function(p) {
     m <- regexpr(p, doc, perl = TRUE, ignore.case = TRUE)
-    if (m > 0) as.integer(m) else NA_integer_
+    if (m > 0) {
+      as.integer(m)
+    } else {
+      NA_integer_
+    }
   }, integer(1))
   hits <- pos[!is.na(pos)]
-  if (length(hits) == 0) return(list(class = "", confidence = ""))
+  if (length(hits) == 0) {
+    return(list(class = "", confidence = ""))
+  }
   first <- names(hits)[which.min(hits)]
   others <- setdiff(names(hits), c("vector", "factor"))
-  confidence <- if (length(others) <= 1 && length(hits) <= 2) "high" else "medium"
-  list(class = if (first == "factor") "vector" else first, confidence = confidence)
+  confidence <- if (length(others) <= 1 && length(hits) <= 2) {
+    "high"
+  } else {
+    "medium"
+  }
+  # A factor counts as a vector.
+  if (first == "factor") {
+    first <- "vector"
+  }
+  list(class = first, confidence = confidence)
 }

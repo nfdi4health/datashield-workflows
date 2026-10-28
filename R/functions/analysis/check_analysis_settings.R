@@ -6,7 +6,11 @@
 # so they name the setting's path in the file.
 check_analysis_settings <- function(settings) {
   problems <- character(0)
-  need <- function(ok, what) if (!isTRUE(ok)) problems <<- c(problems, what)
+  need <- function(ok, what) {
+    if (!isTRUE(ok)) {
+      problems <<- c(problems, what)
+    }
+  }
   number <- function(x) is.numeric(x) && length(x) == 1 && !is.na(x)
   text <- function(x) is.character(x) && length(x) == 1 && nzchar(x)
 
@@ -41,7 +45,8 @@ check_analysis_settings <- function(settings) {
   need(length(statuses) > 0 && all(statuses %in% package_statuses()),
     sprintf("package_status must list some of: %s", paste(package_statuses(), collapse = ", ")))
   need(text(settings$client_suffix), "client_suffix must be text, e.g. Client")
-  need(is.null(settings$excluded_functions) || is.character(unlist(settings$excluded_functions)), "excluded_functions must be a list of function names")
+  need(is.null(settings$excluded_functions) || (is.list(settings$excluded_functions) && !is.null(names(settings$excluded_functions)) && all(vapply(settings$excluded_functions, function(r) is.null(r) || (is.character(r) && length(r) == 1), logical(1)))),
+    "excluded_functions must map each function name to the reason Claude is told, e.g. ds.glmSLMA: not available in the test environment")
   need(text(settings$credential_pattern) && !inherits(tryCatch(suppressWarnings(grepl(settings$credential_pattern, "")), error = identity), "error"),
     "credential_pattern must be a valid regular expression")
   need(text(settings$gap_issue_repo) && grepl("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", settings$gap_issue_repo), "gap_issue_repo must be owner/repo")

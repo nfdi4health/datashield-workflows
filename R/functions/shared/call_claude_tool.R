@@ -1,7 +1,8 @@
 # Shared low-level Claude tool-call mechanics: builds the request, has
 # Claude answer through the given tool, and returns its parsed input. Every
-# Claude-calling function shares this; only the config profile, tool
-# schema, and prompt differ per caller. The tool's name is set here from
+# Claude-calling function shares this; only the client (claude_client():
+# profile settings and access token), tool schema, and prompt differ per
+# caller. The tool's name is set here from
 # config$tool_name — the same value tool_choice names — so the two can
 # never disagree; tool schema builders deliberately leave `name` out.
 #
@@ -10,24 +11,27 @@
 # another model when the request is refused), and `cache_ttl` ("5m" or
 # "1h", for prompts split by split_cached_prompt()).
 #
+# Every tool is sent with `strict: true` (strict_tool_schema(): the
+# arguments always match the schema; unsupported limits such as maxItems
+# are checked in R instead), unless a profile sets `strict: false`.
 # `tool_choice_type`: "tool" forces the call (Claude Opus 5, Sonnet 5).
 # Newer models (Claude Opus 5.5, Sonnet 5.5, Fable 5.1) reject forced
-# calls with a 400; for them set "auto": the tool is then sent with
-# `strict: true` (strict_tool_schema(): arguments always match the
-# schema), the prompt ends with an instruction to answer through the tool,
-# and if Claude still answers in text it is asked once more in the same
-# conversation (appended, never edited). Those models also can't run with
-# thinking disabled — their profiles need `thinking: {type: adaptive}`.
+# calls with a 400; for them set "auto": the prompt then ends with an
+# instruction to answer through the tool, and if Claude still answers in
+# text it is asked once more in the same conversation (appended, never
+# edited). Those models also can't run with thinking disabled — their
+# profiles need `thinking: {type: adaptive}`.
 #
 # `prompt` is a string, or list(cached, rest): the shared part then goes
 # first with a cache marker, so the next call of the run with the same
 # shared part (and the same tool definition, which comes before it) reads
 # it from the prompt cache. Every call logs its token usage — the
 # measurement channel for what a run costs (dev-notes/claude-costs.md).
-call_claude_tool <- function(config, tool, prompt) {
+call_claude_tool <- function(claude, tool, prompt) {
+  config <- claude$config
   tool$name <- config$tool_name
   forced <- !identical(config$tool_choice_type, "auto")
-  if (!forced) {
+  if (!isFALSE(config$strict)) {
     strict <- strict_tool_schema(tool$input_schema)
     if (strict$ok) {
       tool$input_schema <- strict$schema
@@ -39,7 +43,9 @@ call_claude_tool <- function(config, tool, prompt) {
 
   content <- if (is.list(prompt)) {
     marker <- list(type = "ephemeral")
-    if (identical(config$cache_ttl, "1h")) marker$ttl <- "1h"
+    if (identical(config$cache_ttl, "1h")) {
+      marker$ttl <- "1h"
+    }
     list(
       list(type = "text", text = prompt$cached, cache_control = marker),
       list(type = "text", text = prompt$rest)
@@ -53,7 +59,7 @@ call_claude_tool <- function(config, tool, prompt) {
   }
   messages <- list(list(role = "user", content = content))
 
-  body <- send_claude_request(config, tool, messages, forced)
+  body <- send_claude_request(claude, tool, messages, forced)
   tool_block <- Filter(function(block) identical(block$type, "tool_use"), body$content)
 
   # Without a forced call Claude may answer in text: ask once more, in the
@@ -65,7 +71,7 @@ call_claude_tool <- function(config, tool, prompt) {
       list(role = "user", content = list(list(type = "text", text = sprintf(
         "Call the %s tool now with your answer.", config$tool_name))))
     ))
-    body <- send_claude_request(config, tool, messages, forced)
+    body <- send_claude_request(claude, tool, messages, forced)
     tool_block <- Filter(function(block) identical(block$type, "tool_use"), body$content)
   }
 

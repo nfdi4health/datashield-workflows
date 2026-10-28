@@ -5,7 +5,9 @@
 read_description_methods <- function(pkg_dir) {
   entries <- character(0)
   for (f in file.path(pkg_dir, c("DESCRIPTION", "inst/DATASHIELD"))) {
-    if (!file.exists(f)) next
+    if (!file.exists(f)) {
+      next
+    }
     dcf <- read.dcf(f)
     fields <- intersect(c("AggregateMethods", "AssignMethods"), colnames(dcf))
     entries <- c(entries, trimws(unlist(strsplit(paste(dcf[1, fields], collapse = ","), ","))))

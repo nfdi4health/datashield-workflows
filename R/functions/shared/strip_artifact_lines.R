@@ -5,7 +5,9 @@
 # instead of following the field's instructions. Callers hard-fail on
 # required fields that end up empty.
 strip_artifact_lines <- function(text, pattern, what, field_name, context) {
-  if (is.null(text)) return("")
+  if (is.null(text)) {
+    return("")
+  }
   lines <- strsplit(text, "\n")[[1]]
   is_artifact <- grepl(pattern, lines)
   if (any(is_artifact)) {

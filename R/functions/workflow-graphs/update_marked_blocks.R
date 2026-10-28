@@ -10,7 +10,9 @@
 # file once). Returns the new lines.
 update_marked_blocks <- function(lines, blocks, starter) {
   wrap <- function(id) c(sprintf("<!-- workflow-graphs:%s:start -->", id), blocks[[id]], sprintf("<!-- workflow-graphs:%s:end -->", id))
-  if (is.null(lines)) return(starter(lapply(stats::setNames(names(blocks), names(blocks)), wrap)))
+  if (is.null(lines)) {
+    return(starter(lapply(stats::setNames(names(blocks), names(blocks)), wrap)))
+  }
 
   out <- character(0)
   seen <- character(0)
@@ -21,7 +23,9 @@ update_marked_blocks <- function(lines, blocks, starter) {
       id <- m[2]
       end <- which(lines == sprintf("<!-- workflow-graphs:%s:end -->", id))
       end <- end[end > i]
-      if (length(end) == 0) stop(sprintf("README block '%s' has no end marker.", id))
+      if (length(end) == 0) {
+        stop(sprintf("README block '%s' has no end marker.", id))
+      }
       if (!is.null(blocks[[id]])) {
         out <- c(out, wrap(id))
         seen <- c(seen, id)
@@ -35,6 +39,8 @@ update_marked_blocks <- function(lines, blocks, starter) {
     }
   }
 
-  for (id in setdiff(names(blocks), seen)) out <- c(out, "", wrap(id))
+  for (id in setdiff(names(blocks), seen)) {
+    out <- c(out, "", wrap(id))
+  }
   out
 }

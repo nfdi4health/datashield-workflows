@@ -5,7 +5,9 @@
 dispatch_targets <- function(dispatch, workflows) {
   hits <- Filter(function(wf) {
     if (identical(dispatch$kind, "repository_dispatch")) {
-      if (!"repository_dispatch" %in% names(wf$triggers)) return(FALSE)
+      if (!"repository_dispatch" %in% names(wf$triggers)) {
+        return(FALSE)
+      }
       types <- unlist(wf$triggers$repository_dispatch$types)
       is.null(types) || dispatch$target %in% types
     } else {

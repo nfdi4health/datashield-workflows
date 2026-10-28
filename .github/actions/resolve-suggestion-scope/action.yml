@@ -3,20 +3,20 @@ description: >-
   Decides, from the event alone and before any checkout, whether a
   suggestion run should do anything, in which mode, and on which branch.
   Skips (with a notice) deleted branches, tags, PRs from forks, Dependabot
-  and the bot's own bot-suggest/* branches. scan-mode "auto" (= "changed"):
+  and the bot's own bot-suggest/* branches. review-scope "changed":
   what changed since the last review; "all": every file. The logic is in
   resolve-suggestion-scope.sh next to this file; design in
   dev-notes/suggestions-trigger-model.md.
 inputs:
-  scan-mode:
-    description: '"auto", "changed" or "all".'
+  review-scope:
+    description: '"changed" or "all".'
     required: false
-    default: 'auto'
-  sweep-base:
+    default: 'changed'
+  review-branch:
     description: 'Branch of scheduled and manual runs; empty: the chosen branch on manual runs, dev on schedules.'
     required: false
     default: ''
-  allow-sweep:
+  allow-scheduled:
     description: '"false" for workflows that run on pull requests and pushes only (authors): schedule and manual runs are skipped.'
     required: false
     default: 'true'
@@ -40,9 +40,9 @@ runs:
       id: scope
       shell: bash
       env:
-        SCAN_MODE: ${{ inputs.scan-mode }}
-        SWEEP_BASE: ${{ inputs.sweep-base }}
-        ALLOW_SWEEP: ${{ inputs.allow-sweep }}
+        REVIEW_SCOPE: ${{ inputs.review-scope }}
+        REVIEW_BRANCH: ${{ inputs.review-branch }}
+        ALLOW_SCHEDULED: ${{ inputs.allow-scheduled }}
         HEAD_REF: ${{ github.head_ref }}
         REF_NAME: ${{ github.ref_name }}
         ACTOR: ${{ github.actor }}

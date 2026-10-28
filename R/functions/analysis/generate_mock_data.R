@@ -21,7 +21,11 @@ generate_mock_data <- function(plan, settings) {
           sample(seq(r[1], r[2]), n, replace = TRUE)
         },
         categorical = {
-          levels <- if (!is.null(names(v$categories))) names(v$categories) else as.character(unlist(v$categories))
+          levels <- if (!is.null(names(v$categories))) {
+            names(v$categories)
+          } else {
+            as.character(unlist(v$categories))
+          }
           factor(sample(levels, n, replace = TRUE), levels = levels)
         }
       )

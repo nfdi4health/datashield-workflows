@@ -1,0 +1,10 @@
+---
+title: intro
+---
+
+Use `ds.mean` with the vector name in `x`.
+
+```{r, eval=FALSE}
+ds.mean(x = "D$age", type = "split")
+ds.merge(x.name = "D", y.name = "E", by.x.names = "id", newobj.name = "m")
+```

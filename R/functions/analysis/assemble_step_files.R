@@ -40,13 +40,21 @@ assemble_step_files <- function(step, sections, number, plan_hash, header_values
     }
     current <- c(current, b)
   }
-  if (length(current) > 0) parts[[length(parts) + 1]] <- current
+  if (length(current) > 0) {
+    parts[[length(parts) + 1]] <- current
+  }
 
-  letters_used <- if (length(parts) > 1) letters[seq_along(parts)] else ""
+  letters_used <- if (length(parts) > 1) {
+    letters[seq_along(parts)]
+  } else {
+    ""
+  }
   title <- script_file_title(step$title, settings$max_file_title_chars)
   files <- lapply(seq_along(parts), function(i) {
     body <- c(header, parts[[i]])
-    while (length(body) > 0 && body[length(body)] == "") body <- body[-length(body)]
+    while (length(body) > 0 && body[length(body)] == "") {
+      body <- body[-length(body)]
+    }
     marker <- sprintf("#### bot-suggest: step=%s plan=%s content=%s", step$id, plan_hash, text_hash(body))
     list(path = file.path(settings$paths$scripts, sprintf("%s%s_%s.R", number, letters_used[i], title)), lines = c(marker, body))
   })

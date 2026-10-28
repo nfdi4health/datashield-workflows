@@ -17,23 +17,32 @@ classify_ds_argument <- function(arg, default, doc) {
   num_doc <- "hyper-?parameter|\\blambda\\b|threshold|\\bnumber of\\b|percentage|proportion|tolerance|iterations?|maximum|minimum|\\bsize\\b|degrees of freedom|confidence level|\\balpha\\b"
   doc_class <- ds_object_class(doc)
 
-  if (arg == "...") return(out("dots", evidence = "dots"))
+  if (arg == "...") {
+    return(out("dots", evidence = "dots"))
+  }
   if (rx("^(datasources?\\w*|conns?|connections?|ds\\.?conns?|opals?)$", arg) || rx("DSConnection|opal connection|login object", doc, FALSE)) {
     return(out("connection", evidence = "name/doc"))
   }
   if ((arg == "type" && rx("split|combin", paste(low, tolower(default)))) || (rx("\\bsplit\\b", low) && rx("combine", low))) {
     return(out("output_type", evidence = "split/combine"))
   }
-  if (rx("check", arg)) return(out("checks", evidence = "name"))
+  if (rx("check", arg)) {
+    return(out("checks", evidence = "name"))
+  }
   # by documentation only when it is about a name (not "a logical ... output object")
   if (rx(newobj_name, arg) || (rx(newobj_doc, doc) && !rx("^logical", low) && rx("\\bname\\b", low) && !default %in% c("TRUE", "FALSE"))) {
-    by_name <- rx(newobj_name, arg)
-    return(out("new_object", doc_class$class, if (by_name) "high" else "medium", if (by_name) "name" else "doc"))
+    # Recognised by its name: high confidence; only by its documentation: medium.
+    if (rx(newobj_name, arg)) {
+      return(out("new_object", doc_class$class, "high", "name"))
+    }
+    return(out("new_object", doc_class$class, "medium", "doc"))
   }
   if (rx("session|handle|cursor|manifest|_json$|operation_id|request_|chunk|symbol|token|nonce|sha256|batch_", arg)) {
     return(out("plumbing", confidence = "medium", evidence = "name"))
   }
-  if (rx(choice_doc, doc) && (!nzchar(doc_class$class) || !rx("names? of", low))) return(out("method", confidence = "medium", evidence = "doc lists options"))
+  if (rx(choice_doc, doc) && (!nzchar(doc_class$class) || !rx("names? of", low))) {
+    return(out("method", confidence = "medium", evidence = "doc lists options"))
+  }
   if (tolower(arg) %in% c("method", "methods", "algorithm", "option", "options", "approach", "test", "test.type", "method.type",
                           "alternative", "family", "link", "distribution", "metric", "mode", "how") ||
       rx("^c\\(\"[^\"]+\"\\s*,", default, FALSE)) {
@@ -42,7 +51,9 @@ classify_ds_argument <- function(arg, default, doc) {
   if (default %in% c("TRUE", "FALSE", "T", "F") || rx("^(a |an )?(boolean|logical|if true|if false)", low)) {
     return(out("value", "logical", evidence = "default/doc"))
   }
-  if (rx("seed", arg)) return(out("seed", evidence = "name"))
+  if (rx("seed", arg)) {
+    return(out("seed", evidence = "name"))
+  }
   if (rx("^(a |an |the )?(single |scalar |positive |non-negative )?(numeric value|integer|number of|length of|real number|numeric scalar|numerical value)", low)) {
     return(out("value", "numeric", evidence = "doc"))
   }
@@ -52,10 +63,14 @@ classify_ds_argument <- function(arg, default, doc) {
                 "columns? (to|by) (be )?(select|sort|group|use)|column(\\(s\\)|s)? in (the )?(input )?data ?frame"), low)) {
     return(out("column", confidence = "medium", evidence = "doc"))
   }
-  if (rx("^(a |an )?numeric\\b(?! (or factor )?(vector|variable))", low)) return(out("value", "numeric", "medium", "doc"))
+  if (rx("^(a |an )?numeric\\b(?! (or factor )?(vector|variable))", low)) {
+    return(out("value", "numeric", "medium", "doc"))
+  }
   # values sent along rather than server objects (seen in dsBaseClient
   # 7.0: incomparables, force.nfilter, exclude)
-  if (rx("^(the |a |an )?values?\\b", low)) return(out("value", confidence = "medium", evidence = "doc"))
+  if (rx("^(the |a |an )?values?\\b", low)) {
+    return(out("value", confidence = "medium", evidence = "doc"))
+  }
   if (rx("must be (specified as )?(a |an )?(positive |non-negative )?(integer|number)|\\bpositive integer\\b", low)) {
     return(out("value", "numeric", "medium", "doc"))
   }
@@ -70,23 +85,52 @@ classify_ds_argument <- function(arg, default, doc) {
     }
     return(out("object", doc_class$class, doc_class$confidence, "doc"))
   }
-  if (rx("name of (the |a |an )?(input |server-side )?object", low)) return(out("object", "", "medium", "doc"))
-  if (rx(num_doc, doc)) return(out("value", "numeric", "medium", "doc"))
+  if (rx("name of (the |a |an )?(input |server-side )?object", low)) {
+    return(out("object", "", "medium", "doc"))
+  }
+  if (rx(num_doc, doc)) {
+    return(out("value", "numeric", "medium", "doc"))
+  }
   if (rx("^-?[0-9.eE]+L?$", default, FALSE) || rx("^(a |an )?(numeric|integer|number|positive|non-negative|single number)", low)) {
-    return(out("value", "numeric", if (nzchar(doc)) "high" else "medium", "default/doc"))
+    if (nzchar(doc)) {
+      return(out("value", "numeric", "high", "default/doc"))
+    }
+    return(out("value", "numeric", "medium", "default/doc"))
   }
   # name only, no documentation to go by
   nm <- tolower(arg)
-  guess <- if (rx("^(x|y|z|var|variable|vec|vector|x\\d|y\\d|var\\d|v\\d|input\\.var|input)$", nm)) "vector"
-    else if (rx("^(df|data|dataframe|data\\.frame|df\\.name|dataset|table|data\\.name|df\\d|.*\\.df)$", nm)) "data.frame"
-    else if (rx("^tbl", nm)) "tibble"
-    else if (rx("^(mat|matrix|m)$", nm)) "matrix"
-    else if (rx("^(formula|form|fml)$", nm)) "formula"
-    else if (rx("^(model|mod|fit|glm\\.?obj)$", nm)) "model"
-    else if (rx("^(resource|res)$", nm)) "resource"
-    else ""
-  if (nzchar(guess)) return(out("object", guess, "low", "name only"))
-  if (startsWith(default, "\"") || startsWith(default, "'")) return(out("value", "string", "low", "default"))
-  if (default %in% c("NULL", "")) return(out("unknown", confidence = "low", evidence = "no doc"))
+  guess <- if (rx("^(x|y|z|var|variable|vec|vector|x\\d|y\\d|var\\d|v\\d|input\\.var|input)$", nm)) {
+    "vector"
+  }
+    else if (rx("^(df|data|dataframe|data\\.frame|df\\.name|dataset|table|data\\.name|df\\d|.*\\.df)$", nm)) {
+      "data.frame"
+    }
+    else if (rx("^tbl", nm)) {
+      "tibble"
+    }
+    else if (rx("^(mat|matrix|m)$", nm)) {
+      "matrix"
+    }
+    else if (rx("^(formula|form|fml)$", nm)) {
+      "formula"
+    }
+    else if (rx("^(model|mod|fit|glm\\.?obj)$", nm)) {
+      "model"
+    }
+    else if (rx("^(resource|res)$", nm)) {
+      "resource"
+    }
+    else {
+      ""
+    }
+  if (nzchar(guess)) {
+    return(out("object", guess, "low", "name only"))
+  }
+  if (startsWith(default, "\"") || startsWith(default, "'")) {
+    return(out("value", "string", "low", "default"))
+  }
+  if (default %in% c("NULL", "")) {
+    return(out("unknown", confidence = "low", evidence = "no doc"))
+  }
   out("value", confidence = "low", evidence = "default")
 }

@@ -15,11 +15,21 @@ classify_plan_steps <- function(plan, existing, texts, names) {
   for (s in plan$steps) {
     own <- existing[existing$step == s$id, ]
     hash <- step_plan_hash(plan, s)
-    status <- if (nrow(own) == 0) "new"
-      else if (any(own$edited)) "edited"
-      else if (all(own$plan_hash == hash)) "unchanged"
-      else "changed"
-    error <- if (status == "edited" && !all(own$plan_hash == hash)) texts$step$edited_plan_changed
+    status <- if (nrow(own) == 0) {
+      "new"
+    }
+      else if (any(own$edited)) {
+        "edited"
+      }
+      else if (all(own$plan_hash == hash)) {
+        "unchanged"
+      }
+      else {
+        "changed"
+      }
+    error <- if (status == "edited" && !all(own$plan_hash == hash)) {
+      texts$step$edited_plan_changed
+    }
     steps[[s$id]] <- list(title = s$title, status = status, files = own$path, notes = list(), error = error, hash = hash)
   }
   ids <- vapply(plan$steps, function(s) s$id, character(1))

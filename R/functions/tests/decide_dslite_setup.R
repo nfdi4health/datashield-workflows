@@ -14,5 +14,11 @@ decide_dslite_setup <- function(mode, approaches) {
     create = !"DSLite" %in% approaches,
     never = FALSE
   )
-  if (create) "create" else if (length(approaches) > 0) "reuse" else "none"
+  if (create) {
+    "create"
+  } else if (length(approaches) > 0) {
+    "reuse"
+  } else {
+    "none"
+  }
 }

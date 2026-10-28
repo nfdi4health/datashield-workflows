@@ -10,11 +10,15 @@ read_function_catalogue <- function(url) {
     message(sprintf("Function catalogue %s could not be read: %s", url, conditionMessage(e)))
     NULL
   })
-  if (!is.data.frame(raw) || !all(c("package", "function_name", "architecture_type") %in% names(raw))) return(empty)
+  if (!is.data.frame(raw) || !all(c("package", "function_name", "architecture_type") %in% names(raw))) {
+    return(empty)
+  }
 
   fns <- raw[raw$architecture_type %in% "client", intersect(c("package", "function_name", "title", "description"), names(raw))]
   for (col in c("title", "description")) {
-    if (is.null(fns[[col]])) fns[[col]] <- ""
+    if (is.null(fns[[col]])) {
+      fns[[col]] <- ""
+    }
     fns[[col]][is.na(fns[[col]]) | grepl("^X{3,}$", trimws(fns[[col]]))] <- ""
   }
   rownames(fns) <- NULL

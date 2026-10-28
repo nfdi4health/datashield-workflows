@@ -10,7 +10,9 @@
 build_roxygen_block <- function(result, parsed, path, accepted) {
   managed <- c("title", "description", "details", "param", "return", "examples")
   order <- unlist(style$tag_order)
-  if (!"*" %in% order) order <- c(order, "*")
+  if (!"*" %in% order) {
+    order <- c(order, "*")
+  }
   carried <- Filter(function(ch) !ch$tag %in% managed, parsed$tag_chunks)
   carried_lines <- function(keep) unlist(lapply(Filter(keep, carried), `[[`, "lines"), use.names = FALSE)
   sections <- list()
@@ -41,7 +43,9 @@ build_roxygen_block <- function(result, parsed, path, accepted) {
   }
   # Optional fields: never added unless accepted.
   optional_field <- function(key, new_lines) {
-    if (key %in% accepted) return(new_lines)
+    if (key %in% accepted) {
+      return(new_lines)
+    }
     original_roxygen_field(parsed, key)$lines
   }
 
@@ -56,7 +60,11 @@ build_roxygen_block <- function(result, parsed, path, accepted) {
       sections[["description"]] <- required_field("description", "description", "description")
     } else if (tag == "details") {
       details <- clean(result$details, "details")
-      sections[["details"]] <- optional_field("details", if (nzchar(trimws(details))) wrap(paste0("@details ", details)))
+      details_lines <- NULL
+      if (nzchar(trimws(details))) {
+        details_lines <- wrap(paste0("@details ", details))
+      }
+      sections[["details"]] <- optional_field("details", details_lines)
     } else if (tag == "param") {
       param_lines <- character(0)
       for (p in parsed$params) {
@@ -70,12 +78,16 @@ build_roxygen_block <- function(result, parsed, path, accepted) {
       sections[["return"]] <- required_field("return", "return", "return_doc")
     } else if (tag == "examples") {
       examples_body <- clean(result$examples_body, "examples_body")
-      sections[["examples"]] <- optional_field("examples", if (nzchar(trimws(examples_body))) c(
-        "#' @examples",
-        "#' \\dontrun{",
-        paste0("#' ", strsplit(examples_body, "\n")[[1]]),
-        "#' }"
-      ))
+      examples_lines <- NULL
+      if (nzchar(trimws(examples_body))) {
+        examples_lines <- c(
+          "#' @examples",
+          "#' \\dontrun{",
+          paste0("#' ", strsplit(examples_body, "\n")[[1]]),
+          "#' }"
+        )
+      }
+      sections[["examples"]] <- optional_field("examples", examples_lines)
     }
   }
 

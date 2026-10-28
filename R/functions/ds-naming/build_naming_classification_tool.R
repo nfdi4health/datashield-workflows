@@ -13,6 +13,7 @@ build_naming_classification_tool <- function(rules) {
       properties = list(
         arguments = list(
           type = "array",
+          description = "One entry per listed argument.",
           items = list(
             type = "object",
             properties = list(

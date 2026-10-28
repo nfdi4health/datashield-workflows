@@ -49,24 +49,33 @@ jobs:
       R_KEEP_PKG_SOURCE: yes
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-pandoc@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
 
-      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
           r-version: ${{ matrix.r-version }}
           use-public-rspm: true
 
       - name: Install extra apt packages
         if: ${{ inputs.extra-apt-packages != '' }}
-        run: sudo apt-get update && sudo apt-get install -y ${{ inputs.extra-apt-packages }}
+        env:
+          EXTRA_APT_PACKAGES: ${{ inputs.extra-apt-packages }}
+        # Word splitting is intended: a space-separated package list.
+        run: |
+          # shellcheck disable=SC2086
+          sudo apt-get update && sudo apt-get install -y $EXTRA_APT_PACKAGES
 
       - name: Format extra R package list
         id: extra_r_packages
         if: ${{ inputs.extra-r-packages != '' }}
+        env:
+          EXTRA_R_PACKAGES: ${{ inputs.extra-r-packages }}
         run: |
-          formatted=$(echo "${{ inputs.extra-r-packages }}" \
+          formatted=$(echo "$EXTRA_R_PACKAGES" \
             | tr ',' '\n' \
             | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
             | sed '/^$/d' \
@@ -74,7 +83,7 @@ jobs:
             | paste -sd, -)
           echo "list=$formatted" >> "$GITHUB_OUTPUT"
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
           extra-packages: |
             any::rcmdcheck
@@ -82,7 +91,7 @@ jobs:
             ${{ steps.extra_r_packages.outputs.list }}
           needs: check
 
-      - uses: r-lib/actions/check-r-package@v2
+      - uses: r-lib/actions/check-r-package@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
           upload-snapshots: true
 

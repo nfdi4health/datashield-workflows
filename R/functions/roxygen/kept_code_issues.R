@@ -1,10 +1,13 @@
 # Keeps only the possible code bugs Claude concluded are real defects
 # (verdict "defect") with a confidence in `confidences`
-# (code_issue_confidence in config/claude.yml; default high and medium).
+# (possible_bugs.report in config/suggestion-policy.yml; default high and medium).
 # Everything dropped is logged with its reason, so a wrongly dropped bug
 # can still be found in the job log.
 kept_code_issues <- function(issues, confidences, path) {
-  if (length(confidences) == 0) return(list())  # "none": not asked for
+  # "none": not asked for
+  if (length(confidences) == 0) {
+    return(list())
+  }
   Filter(function(i) {
     if (!identical(i$verdict, "defect")) {
       message(sprintf("%s: dropping possible bug '%s' — verdict '%s'.", path, i$summary, i$verdict))

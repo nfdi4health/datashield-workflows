@@ -14,9 +14,13 @@ rename_in_rd <- function(lines, renames) {
       items <- grep("^\\s*\\\\item\\{", lines)
       for (j in items) {
         m <- regmatches(lines[j], regexec("^(\\s*\\\\item\\{)([^}]*)(\\}.*)$", lines[j]))[[1]]
-        if (length(m) == 0) next
+        if (length(m) == 0) {
+          next
+        }
         arg_names <- trimws(strsplit(m[3], ",")[[1]])
-        if (!old %in% arg_names) next
+        if (!old %in% arg_names) {
+          next
+        }
         arg_names[arg_names == old] <- new
         lines[j] <- paste0(m[2], paste(arg_names, collapse = ","), m[4])
       }

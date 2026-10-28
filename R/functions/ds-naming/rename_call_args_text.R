@@ -7,7 +7,9 @@ rename_call_args_text <- function(lines, fn, old, new, formals = FALSE) {
   text <- paste(lines, collapse = "\n")
   id_char <- "[A-Za-z0-9._]"
   starts <- gregexpr(paste0("(?<![A-Za-z0-9._])", gsub("([.])", "\\\\\\1", fn), "\\s*\\("), text, perl = TRUE)[[1]]
-  if (starts[1] < 0) return(list(lines = lines, done = 0))
+  if (starts[1] < 0) {
+    return(list(lines = lines, done = 0))
+  }
   chars <- strsplit(text, "")[[1]]
   n <- length(chars)
   hits <- integer(0)
@@ -18,23 +20,37 @@ rename_call_args_text <- function(lines, fn, old, new, formals = FALSE) {
     while (i <= n) {
       ch <- chars[i]
       if (nzchar(quote)) {
-        if (ch == "\\") i <- i + 1 else if (ch == quote) quote <- ""
+        if (ch == "\\") {
+          i <- i + 1
+        } else if (ch == quote) {
+          quote <- ""
+        }
       } else if (ch %in% c("\"", "'", "`")) {
         quote <- ch
       } else if (ch %in% c("(", "[", "{")) {
         depth <- depth + 1
       } else if (ch %in% c(")", "]", "}")) {
         depth <- depth - 1
-        if (depth == 0) break
+        if (depth == 0) {
+          break
+        }
       } else if (depth == 1 && (i == 1 || !grepl(id_char, chars[i - 1])) && substr(text, i, i + nchar(old) - 1) == old) {
         rest <- substr(text, i + nchar(old), min(n, i + nchar(old) + 200))
-        follows <- if (formals) "^\\s*(=(?!=)|,|\\))" else "^\\s*=(?!=)"
-        if (!grepl(paste0("^", id_char), rest) && grepl(follows, rest, perl = TRUE)) hits <- c(hits, i)
+        follows <- if (formals) {
+          "^\\s*(=(?!=)|,|\\))"
+        } else {
+          "^\\s*=(?!=)"
+        }
+        if (!grepl(paste0("^", id_char), rest) && grepl(follows, rest, perl = TRUE)) {
+          hits <- c(hits, i)
+        }
       }
       i <- i + 1
     }
   }
-  if (length(hits) == 0) return(list(lines = lines, done = 0))
+  if (length(hits) == 0) {
+    return(list(lines = lines, done = 0))
+  }
   for (h in sort(unique(hits), decreasing = TRUE)) {
     text <- paste0(substr(text, 1, h - 1), new, substr(text, h + nchar(old), nchar(text)))
   }

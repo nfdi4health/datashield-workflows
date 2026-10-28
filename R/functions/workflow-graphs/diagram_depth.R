@@ -11,7 +11,9 @@ diagram_depth <- function(arrows, start = "ev") {
         changed <- TRUE
       }
     }
-    if (!changed) break
+    if (!changed) {
+      break
+    }
   }
   max(depth)
 }

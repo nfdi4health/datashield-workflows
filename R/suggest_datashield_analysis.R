@@ -24,16 +24,20 @@ library(httr2)
 library(jsonlite)
 library(purrr)
 
-functions_dir <- if (dir.exists("R/functions/analysis")) "R/functions" else ".shared-workflows/R/functions"
+functions_dir <- if (dir.exists("R/functions/analysis")) {
+  "R/functions"
+} else {
+  ".shared-workflows/R/functions"
+}
 walk(list.files(file.path(functions_dir, c("shared", "analysis")), pattern = "\\.R$", full.names = TRUE), source)
 
-# R_CONFIG_ACTIVE ("datashield-analysis") picks the profile in config/claude.yml.
-anthropic_config <- config::get(file = resolve_shared_path("config/claude.yml"))$anthropic
+# The Claude client (profile "datashield-analysis" of config/claude.yml);
+# the prompt templates are in the context below.
+analysis_claude <- claude_client("datashield-analysis")
 # Project files at the same paths are merged over the shared defaults.
 settings <- check_analysis_settings(read_config_yaml("config/analysis-suggest.yml"))
 texts <- read_config_yaml("config/analysis-texts.yml")
 
-api_key        <- Sys.getenv("ANTHROPIC_API_KEY")
 gh_token       <- Sys.getenv("GH_TOKEN")  # read-only here: open gap issues of the collection repo
 plan_file      <- Sys.getenv("PLAN_FILE", "config/analysis-plan.yml")
 dsanalysis_dir <- Sys.getenv("DSANALYSIS_DIR", ".dsanalysis")
@@ -47,7 +51,9 @@ write_outputs <- function(report, updated) {
   writeLines(updated, "updated_files.txt")
   if (length(report) > 0) {
     writeLines(report, "suggestion_report.md")
-    if (nzchar(summary_file)) write(report, summary_file, append = TRUE)
+    if (nzchar(summary_file)) {
+      write(report, summary_file, append = TRUE)
+    }
     message(paste(report, collapse = "\n"))
   }
 }
@@ -56,7 +62,9 @@ write_outputs <- function(report, updated) {
 
 plan <- tryCatch(read_analysis_plan(plan_file, settings$variable_types, texts), error = function(e) {
   msg <- conditionMessage(e)
-  if (nzchar(summary_file)) write(c(texts$report$plan_errors_heading, "", "```", msg, "```"), summary_file, append = TRUE)
+  if (nzchar(summary_file)) {
+    write(c(texts$report$plan_errors_heading, "", "```", msg, "```"), summary_file, append = TRUE)
+  }
   stop(msg, call. = FALSE)
 })
 plan_text <- paste(readLines(plan_file, warn = FALSE), collapse = "\n")
@@ -71,17 +79,19 @@ if (length(to_write) == 0) {
   write_outputs(texts$report$nothing_to_do, character(0))
   quit(save = "no")
 }
-message(sprintf("Steps to write: %s", paste(to_write, collapse = ", ")))
 
 # --- 3. Packages -------------------------------------------------------------------
 
 usable <- usable_server_packages(plan, texts)
-catalogue <- read_package_catalogue(if (is.null(plan$`package-catalogue`)) settings$package_catalogue else plan$`package-catalogue`)
+catalogue <- read_package_catalogue(plan$`package-catalogue` %||% settings$package_catalogue)
 functions <- read_function_catalogue(settings$function_catalogue)
 # Which catalogue packages may be suggested: the plan's package-status, else the settings'.
-statuses <- unlist(if (is.null(plan$`package-status`)) settings$package_status else plan$`package-status`)
+statuses <- unlist(plan$`package-status` %||% settings$package_status)
 installed <- install_study_packages(usable$packages, catalogue, settings$client_suffix, texts)
-notes <- c(usable$notes, installed$notes, if ("retired" %in% statuses) texts$notes$retired_included)
+notes <- c(usable$notes, installed$notes)
+if ("retired" %in% statuses) {
+  notes <- c(notes, texts$notes$retired_included)
+}
 if (length(installed$clients) == 0) {
   stop("No client package could be installed for the studies' server packages; see the messages above.", call. = FALSE)
 }
@@ -95,18 +105,22 @@ login <- check_login_file(login_files$production, plan, settings$credential_patt
 notes <- c(notes, login$notes)
 setup_file <- update_dslite_setup(login_files$testing, dsanalysis_dir, settings$mock_data$folder, names(mock),
   installed$servers, settings$markers$dslite_mock_data, plan$symbol, login$connections)
-if (is.null(setup_file)) stop(sprintf("The project needs the dsAnalysis DSLite setup (%s) for the test run.", login_files$testing), call. = FALSE)
+if (is.null(setup_file)) {
+  stop(sprintf("The project needs the dsAnalysis DSLite setup (%s) for the test run.", login_files$testing), call. = FALSE)
+}
 
 
 # --- 5. Claude, checks and test run ---------------------------------------------------
 
-reference <- client_function_reference(installed$clients, unlist(settings$excluded_functions))
+excluded <- Filter(Negate(is.null), settings$excluded_functions)
+reference <- client_function_reference(installed$clients, names(excluded))
 catalogue_prompt <- format_catalogue_for_prompt(catalogue, functions, c(installed$servers, installed$clients), settings$client_suffix, statuses)
 context <- list(
   connections = login$connections,
   symbol = plan$symbol,
   servers = vapply(plan$studies, function(s) s$server, character(1)),
   function_reference = reference$text,
+  excluded_functions = format_excluded_functions(excluded),
   catalogue_text = catalogue_prompt$text,
   catalogue_names = catalogue_prompt$names,
   catalogue_functions = catalogue_prompt$functions,
@@ -117,6 +131,7 @@ context <- list(
   max_lines = settings$max_script_lines,
   numbers = assign_step_numbers(to_write, existing, paths$scripts, settings$numbering),
   header_values = list(PLAN_FILE = plan_file, TESTED_WITH = installed$tested_with),
+  claude = analysis_claude,
   prompt_template = read_text_file("prompts/analysis-script-prompt.md"),
   repair_template = read_text_file("prompts/analysis-repair-prompt.md")
 )

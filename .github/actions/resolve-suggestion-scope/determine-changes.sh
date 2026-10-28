@@ -9,7 +9,7 @@
 #   3. the event's "before" (push, PR synchronize);
 #   4. a scheduled or manual run: the last review of this branch, from the
 #      run history (review-history.sh); none yet: nothing to review, this
-#      run becomes the starting point (a full review is scan-mode "all");
+#      run becomes the starting point (a full review is review-scope "all");
 #   5. none (a new branch): commits that exist on no other branch.
 # Files named in "<!-- bot-suggest: retry <file> -->" lines of the open bot
 # PR, or (4.) in that last review's "Suggestion not made" warnings — their
@@ -19,13 +19,13 @@
 # commits a pull request run of this workflow already reviewed (from the
 # run history, so this also holds once the PR's branch is deleted). Merge
 # commits and the bot's own commits (author or subject, from
-# bot-authors.json) are left out. If the history was rewritten (the
+# bot-authors.yml) are left out. If the history was rewritten (the
 # starting point is no ancestor of HEAD), rebuild=true: the bot branch
 # can't be built on.
 #
 # Env: BRANCH, SUB_BRANCH (the bot branch for BRANCH), FILE_PATTERN
-# (pathspec like 'R/*.R'; empty: commits only), BOT_CONFIG (path to
-# bot-authors.json), GH_TOKEN, plus GITHUB_EVENT_NAME, GITHUB_EVENT_PATH.
+# (pathspec like 'R/*.R'; empty: commits only), BOT_CONFIG (path to the shared
+# bot-authors.yml), GH_TOKEN, plus GITHUB_EVENT_NAME, GITHUB_EVENT_PATH.
 # Writes commits.txt (one sha per line), files_to_check.txt (FILE_PATTERN
 # matches still present at HEAD), and count, base_rev, rebuild,
 # reviewed_sha to GITHUB_OUTPUT.
@@ -62,11 +62,13 @@ fi
 
 # Earlier reviews of this workflow (run history): every run but a pull
 # request's, for 4. and for leaving out what PR runs already reviewed.
+history_start=""   # set by review-history.sh
+history_run=""
 : > history_failed.txt
 : > history_pr.txt
 if [ "$event" != "pull_request" ]; then
   KIND="${SUB_BRANCH#bot-suggest/}"; KIND="${KIND%%/*}"
-  # shellcheck source=review-history.sh
+  # shellcheck source=.github/actions/resolve-suggestion-scope/review-history.sh
   source "$(dirname "$0")/review-history.sh"
 fi
 
@@ -79,7 +81,7 @@ if [ -z "$start" ] && [ "$event" != "pull_request" ] && [ "$event" != "push" ]; 
     echo "Changes since the last review of $BRANCH (run $history_run, ${start:0:7})."
   else
     start="$head"
-    echo "::notice::No earlier review of $BRANCH found in this workflow's runs: nothing to review now, this run is the starting point. For a full review, run it with scan-mode \"all\"."
+    echo "::notice::No earlier review of $BRANCH found in this workflow's runs: nothing to review now, this run is the starting point. For a full review, run it with review-scope \"all\"."
   fi
 elif [ -z "$start" ]; then
   if [ "$event" = "pull_request" ] && { [ "$action" = "opened" ] || [ "$action" = "reopened" ] || [ -z "$(field '.before')" ]; }; then
@@ -114,8 +116,14 @@ fi
 if [ -n "$start" ]; then range=("$start..HEAD"); else range=("HEAD"); fi
 git rev-list --no-merges "${range[@]}" ${others[@]:+--not "${others[@]}"} > all_commits.txt
 
-bot_names="$(jq -r '.bot_names[]? // empty' "$BOT_CONFIG")"
-bot_subjects="$(jq -r '.bot_commit_subjects[]? // empty' "$BOT_CONFIG")"
+# The bots' own commits (bot-authors.yml: the shared file with the
+# project's own config/bot-authors.yml merged over it, as
+# read_config_yaml() does in R; yq is on GitHub's Ubuntu runners).
+bot_files=("$BOT_CONFIG")
+if [ -f config/bot-authors.yml ] && [ "$BOT_CONFIG" != config/bot-authors.yml ]; then bot_files+=(config/bot-authors.yml); fi
+bot_list() { yq eval-all -r ". as \$f ireduce ({}; . * \$f) | (.$1 // [])[]" "${bot_files[@]}"; }
+bot_names="$(bot_list bot_names)"
+bot_subjects="$(bot_list bot_commit_subjects)"
 : > commits.txt
 while IFS= read -r c; do
   [ -z "$c" ] && continue

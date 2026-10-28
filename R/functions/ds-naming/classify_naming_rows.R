@@ -5,7 +5,9 @@
 # functions are rarely documented, their client counterparts are.
 classify_naming_rows <- function(pkgs, links) {
   rows <- do.call(rbind, lapply(pkgs, function(p) p$args))
-  if (is.null(rows) || nrow(rows) == 0) stop("No user-facing functions found to check.", call. = FALSE)
+  if (is.null(rows) || nrow(rows) == 0) {
+    stop("No user-facing functions found to check.", call. = FALSE)
+  }
   cls <- lapply(seq_len(nrow(rows)), function(i) classify_ds_argument(rows$arg[i], rows$default[i], rows$doc[i]))
   rows$role <- vapply(cls, function(x) x$role, character(1))
   rows$class <- vapply(cls, function(x) x$class, character(1))

@@ -7,15 +7,21 @@
 # doesn't parse.
 parse_test_file <- function(content) {
   exprs <- tryCatch(parse(text = content, keep.source = TRUE), error = function(e) NULL)
-  if (is.null(exprs) || length(exprs) == 0) return(list())
+  if (is.null(exprs) || length(exprs) == 0) {
+    return(list())
+  }
   refs <- attr(exprs, "srcref")
 
   blocks <- list()
   for (i in seq_along(exprs)) {
     e <- exprs[[i]]
-    if (!is.call(e)) next
+    if (!is.call(e)) {
+      next
+    }
     fn <- paste(deparse(e[[1]]), collapse = "")
-    if (!fn %in% c("test_that", "testthat::test_that") || length(e) < 2 || !is.character(e[[2]])) next
+    if (!fn %in% c("test_that", "testthat::test_that") || length(e) < 2 || !is.character(e[[2]])) {
+      next
+    }
 
     shares_lines <- any(vapply(seq_along(refs)[-i], function(j) {
       refs[[j]][1] <= refs[[i]][3] && refs[[j]][3] >= refs[[i]][1]

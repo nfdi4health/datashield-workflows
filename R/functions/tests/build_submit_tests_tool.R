@@ -2,8 +2,9 @@
 # deterministic-assembly principle as roxygen-suggest's
 # build_submit_review_tool(): Claude returns discrete fields (never
 # assembled test_that() syntax), the R script does the actual stitching.
-# The cap on new tests is enforced structurally via maxItems
-# (max_new_tests in config/claude.yml), not just prompt wording.
+# The cap on new tests (tests.max_new_tests in config/suggestion-policy.yml) is maxItems
+# here and enforced in R too (ask_claude_for_tests()), since strict tool
+# use doesn't send maxItems — not just prompt wording.
 #
 # Each new test carries a `reason` from a fixed list; filter_generated_tests()
 # keeps only the accepted reasons. "other" is the honest way out for a test
@@ -20,7 +21,7 @@
 # checks every value Claude returns — an unknown file or id is ignored
 # (sort_test_decisions(), merge_test_findings(),
 # handle_failed_new_test()). What may vary is per run only:
-# - `dslite_datasets`: config/dslite-canned-datasets.json$datasets when the
+# - `dslite_datasets`: config/dslite-canned-datasets.yml$datasets when the
 #   run may create a DSLite setup, else NULL. The enum covers all of them;
 #   the prompt offers them only for a function that gets a fresh setup, and
 #   the entry script uses the choice only then;
@@ -43,12 +44,7 @@ build_submit_tests_tool <- function(dslite_datasets, max_new_tests, categories =
       reason = list(
         type = "string",
         enum = as.list(suggestion_reasons("tests")),
-        description = paste(
-          "Why this test adds value. uncovered_branch: a code path no existing test reaches.",
-          "error_handling: an error or warning the function raises. edge_case: unusual but valid input",
-          "(NA, empty, boundary values). regression: pins down behavior likely to break on change.",
-          "other: none of these."
-        )
+        description = paste("Why this test adds value.", format_reason_meanings("tests"))   # config/suggestion-policy.yml
       )
     ), code_fields, list(repeats_earlier = repeats_earlier)),
     required = list("description", "reason", "setup_code", "assertions_code", "repeats_earlier")
@@ -56,7 +52,7 @@ build_submit_tests_tool <- function(dslite_datasets, max_new_tests, categories =
   if (length(categories) > 0) {
     test_item_schema$properties$category <- list(
       type = "string", enum = as.list(unname(categories)),
-      description = "The test file category this test belongs to (see the categories in the prompt); the script writes the test into test-<category>-<function>.R."
+      description = "The test file category this test belongs to (see the categories in the prompt); the script writes the test into test-<category>-<R file>.R, <R file> being the function's file name without .R."
     )
     test_item_schema$required <- c(test_item_schema$required, list("category"))
   }

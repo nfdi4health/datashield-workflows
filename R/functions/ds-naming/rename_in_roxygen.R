@@ -6,7 +6,9 @@
 rename_in_roxygen <- function(lines, renames) {
   done <- 0
   rox <- grepl("^\\s*#'", lines)
-  if (!any(rox)) return(list(lines = lines, done = 0))
+  if (!any(rox)) {
+    return(list(lines = lines, done = 0))
+  }
   esc <- function(x) gsub("([.])", "\\\\\\1", x)
 
   for (r in seq_len(nrow(renames))) {
@@ -15,7 +17,9 @@ rename_in_roxygen <- function(lines, renames) {
     for (d in def) {
       # the block: all #' lines above, blank lines in between allowed (as roxygen2 reads it)
       i <- d - 1
-      while (i >= 1 && (rox[i] || !nzchar(trimws(lines[i])))) i <- i - 1
+      while (i >= 1 && (rox[i] || !nzchar(trimws(lines[i])))) {
+        i <- i - 1
+      }
       block <- which(rox[seq_len(d - 1)] & seq_len(d - 1) > i)
       for (j in block) {
         before <- lines[j]
@@ -27,7 +31,9 @@ rename_in_roxygen <- function(lines, renames) {
         }
         lines[j] <- gsub(paste0("\\\\code\\{", esc(old), "\\}"), paste0("\\\\code{", new, "}"), lines[j])
         lines[j] <- gsub(paste0("`", esc(old), "`"), paste0("`", new, "`"), lines[j])
-        if (!identical(before, lines[j])) done <- done + 1
+        if (!identical(before, lines[j])) {
+          done <- done + 1
+        }
       }
     }
     # examples anywhere in the file: strip the #' prefix so its quote

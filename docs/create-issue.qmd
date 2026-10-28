@@ -17,7 +17,7 @@ It is used as a job inside the release trigger:
   on-failure:
     needs: check
     if: needs.check.result == 'failure'
-    uses: FlorianSchw/package-workflows/.github/workflows/create-issue.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/create-issue.yml@main
     with:
       pr_author: ${{ github.event.pull_request.user.login }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

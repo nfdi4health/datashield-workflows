@@ -38,8 +38,13 @@ situation_diagram <- function(situation, workflows, chains, outcomes) {
   leads_on <- unique(vapply(edges, function(e) e$from, character(1)))
   shared_texts <- unique(unlist(outcome_text[setdiff(names(outcome_text), leads_on)]))
   node_of <- function(key) {
-    if (is.null(outcome_text[[key]])) return(key)  # a workflow box
-    if (key %in% leads_on) return(sprintf("out_%s", gsub("[^A-Za-z0-9]", "_", key)))
+    # a workflow box
+    if (is.null(outcome_text[[key]])) {
+      return(key)
+    }
+    if (key %in% leads_on) {
+      return(sprintf("out_%s", gsub("[^A-Za-z0-9]", "_", key)))
+    }
     sprintf("out_%d", match(outcome_text[[key]], shared_texts))
   }
 
@@ -54,26 +59,35 @@ situation_diagram <- function(situation, workflows, chains, outcomes) {
 
   for (f in included) {
     notes <- Filter(nzchar, c(situation$members[[f]], flows[[f]]$box_note))
-    lines <- c(lines, sprintf('  %s["<b>%s</b>%s"]', mermaid_id("wf", f), mermaid_label(by_file[[f]]$name),
-                              if (length(notes) > 0) paste0("<br/>", mermaid_label(notes)) else ""))
-    if (f %in% names(situation$members)) lines <- c(lines, sprintf("  ev --> %s", mermaid_id("wf", f)))
+    note_text <- ""
+    if (length(notes) > 0) {
+      note_text <- paste0("<br/>", mermaid_label(notes))
+    }
+    lines <- c(lines, sprintf('  %s["<b>%s</b>%s"]', mermaid_id("wf", f), mermaid_label(by_file[[f]]$name), note_text))
+    if (f %in% names(situation$members)) {
+      lines <- c(lines, sprintf("  ev --> %s", mermaid_id("wf", f)))
+    }
   }
   declared <- character(0)
   for (key in names(outcome_text)) {
     node <- node_of(key)
-    if (node %in% declared) next
+    if (node %in% declared) {
+      next
+    }
     declared <- c(declared, node)
     lines <- c(lines, sprintf('  %s(["%s"]):::outcome', node, mermaid_label(outcome_text[[key]])))
   }
   for (e in unique(edges)) {
-    from <- node_of(e$from); to <- node_of(e$to)
-    lines <- c(lines, if (e$dotted) {
-      sprintf('  %s -. "%s" .-> %s', from, mermaid_text(e$label), to)
+    from <- node_of(e$from)
+    to <- node_of(e$to)
+    if (e$dotted) {
+      edge <- sprintf('  %s -. "%s" .-> %s', from, mermaid_text(e$label), to)
     } else if (nzchar(e$label)) {
-      sprintf('  %s -- "%s" --> %s', from, mermaid_label(e$label, width = 20), to)
+      edge <- sprintf('  %s -- "%s" --> %s', from, mermaid_label(e$label, width = 20), to)
     } else {
-      sprintf("  %s --> %s", from, to)
-    })
+      edge <- sprintf("  %s --> %s", from, to)
+    }
+    lines <- c(lines, edge)
   }
   paste(unique(c(lines, "  classDef outcome stroke-dasharray: 4 3")), collapse = "\n")
 }

@@ -1,0 +1,20 @@
+# The public Opal demo server the roxygen bot uses for login examples in
+# @examples of DataSHIELD client and utility packages
+# (build_demo_login_snippet()). The credentials are the demo server's
+# published ones. A project's own config/datashield-example-env.yml is
+# merged over this file key by key (study_groups is replaced as a whole).
+
+server:
+  url: https://opal-demo.obiba.org/
+  user: dsuser
+  password: P@ssw0rd
+  driver: OpalDriver
+
+study_groups:
+  - name: CNSIM
+    description: Simulated cardiovascular dataset across 3 studies
+    compatible_packages: [dsBaseClient, dsSupportClient]
+    studies:
+      - { server_label: study1, table: CNSIM.CNSIM1 }
+      - { server_label: study2, table: CNSIM.CNSIM2 }
+      - { server_label: study3, table: CNSIM.CNSIM3 }

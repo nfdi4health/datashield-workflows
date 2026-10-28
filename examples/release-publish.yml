@@ -10,7 +10,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
-    uses: FlorianSchw/package-workflows/.github/workflows/package-release.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/package-release.yml@main
     with:
       dry-run: false   # true: report the next version only, release nothing
     secrets:

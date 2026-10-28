@@ -8,11 +8,21 @@ workflow_order <- function(workflows, chains) {
   files <- vapply(workflows, function(wf) wf$file, character(1))
   ordered <- character(0)
   add <- function(f) {
-    if (f %in% ordered) return(invisible())
+    if (f %in% ordered) {
+      return(invisible())
+    }
     ordered <<- c(ordered, f)
-    for (ch in Filter(function(ch) identical(ch$from, f), chains)) add(ch$to)
+    for (ch in Filter(function(ch) identical(ch$from, f), chains)) {
+      add(ch$to)
+    }
   }
-  for (s in workflow_situations(workflows, chains)) for (f in names(s$members)) add(f)
-  for (f in files) add(f)
+  for (s in workflow_situations(workflows, chains)) {
+    for (f in names(s$members)) {
+    add(f)
+  }
+  }
+  for (f in files) {
+    add(f)
+  }
   workflows[match(ordered, files)]
 }

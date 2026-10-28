@@ -9,12 +9,22 @@
 check_ds_calls <- function(code, reference, texts) {
   problems <- character(0)
   parse_error <- walk_code(code, function(x, arg) {
-    if (!is.call(x)) return()
+    if (!is.call(x)) {
+      return()
+    }
     head <- x[[1]]
-    name <- if (is.name(head)) as.character(head)
-      else if (is.call(head) && as.character(head[[1]]) %in% c("::", ":::")) as.character(head[[3]])
-      else NA_character_
-    if (is.na(name) || !grepl("^(ds|datashield)\\.", name)) return()
+    name <- if (is.name(head)) {
+      as.character(head)
+    }
+      else if (is.call(head) && as.character(head[[1]]) %in% c("::", ":::")) {
+        as.character(head[[3]])
+      }
+      else {
+        NA_character_
+      }
+    if (is.na(name) || !grepl("^(ds|datashield)\\.", name)) {
+      return()
+    }
     fn <- reference$functions[[name]]
     if (is.null(fn)) {
       problems <<- c(problems, fill_template(texts$checks$unknown_function, list(FUNCTION = name)))
@@ -28,6 +38,8 @@ check_ds_calls <- function(code, reference, texts) {
       }
     }
   })
-  if (!is.null(parse_error)) return(fill_template(texts$checks$does_not_parse, list(ERROR = conditionMessage(parse_error))))
+  if (!is.null(parse_error)) {
+    return(fill_template(texts$checks$does_not_parse, list(ERROR = conditionMessage(parse_error))))
+  }
   unique(problems)
 }

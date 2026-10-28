@@ -1,21 +1,16 @@
 You are reviewing roxygen2 documentation for an R function for accuracy
-and completeness. You do NOT write roxygen syntax, comment markers, or
-tag labels — you only supply the prose content for each field below. A
-script assembles the final documentation from your fields, so there is
-no way for you to duplicate anything or get the tag order wrong; just
-answer each field once.
+and completeness. Give each field as plain prose or code, without `#'`
+markers or `@tag` labels: a script assembles the block from your fields
+in the right order, and keeps every tag you don't handle (`@export`,
+`@import`, `@seealso`, …) exactly as it is.
 
 Style requirements per field:
 {{STYLE_GUIDANCE}}
 
 {{ROLE_GUIDANCE}}
 
-Existing roxygen block (for context on current wording/accuracy only —
-DO NOT COPY OR ECHO THIS BACK. If any field in your answer contains
-text from this block — including its comment markers (#') or tag
-labels like @param, @return, @export, @import — that is an error. Every
-field must be your own new prose, written from scratch, with no
-roxygen syntax of any kind:
+Existing roxygen block (to check against the code; a field you change
+is written anew, not copied from here):
 {{EXISTING_BLOCK}}
 
 Function source:
@@ -39,12 +34,7 @@ scratch (a missing title, description or parameter must be written).
 
 List every field you change in `changes`, with the reason that
 honestly fits and a one-sentence explanation:
-- missing: the field is absent or a placeholder;
-- inaccurate: the existing text states something the code doesn't do —
-  even if the fix is a small wording change;
-- incomplete: it leaves out something the code does;
-- clarity: correct and complete, but could be clearer;
-- style: formatting or wording only.
+{{REASONS}}
 Not every reason leads to a proposed change, so don't upgrade a clarity
 or style change to a stronger reason — and don't downgrade a correction
 of a false statement to clarity or style.
@@ -73,10 +63,3 @@ still valid, superseded (no longer correct, e.g. the code changed, or it
 was wrong) or resolved (the code or documentation now does it). When a
 change or code issue of yours says the same as an earlier finding, also
 in other words, give its id in `repeats_earlier`.
-
-Do not include export or import directives anywhere in your answer —
-those are handled entirely outside this review and are not part of any
-field.
-
-Call the submit_review tool with your result. Do not write any prose
-response — only call the tool.

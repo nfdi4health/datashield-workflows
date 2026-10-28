@@ -5,6 +5,8 @@
 check_function_names <- function(pkg, rules) {
   r <- rules$functions[[pkg$side]]
   ok <- grepl(r$pattern, pkg$user_facing, perl = TRUE)
-  for (p in c(unlist(r$allowed_prefixes), unlist(r$namespaced))) ok <- ok | startsWith(pkg$user_facing, p)
+  for (p in c(unlist(r$allowed_prefixes), unlist(r$namespaced))) {
+    ok <- ok | startsWith(pkg$user_facing, p)
+  }
   pkg$user_facing[!ok]
 }

@@ -11,10 +11,22 @@ propose_naming_rows <- function(rows, links, rules) {
   with_suffix <- nzchar(suffix) & rows$side == "server" & endsWith(rows$arg, suffix)
   stem <- ifelse(with_suffix, substr(rows$arg, 1, nchar(rows$arg) - nchar(suffix)), rows$arg)
   proposals <- lapply(seq_len(nrow(rows)), function(i) {
-    p <- propose_ds_name(stem[i], if (rows$role[i] == "unclear") "unknown" else rows$role[i], rows$class[i], rows$package[i], rules)
+    role <- rows$role[i]
+    if (role == "unclear") {
+      role <- "unknown"
+    }
+    p <- propose_ds_name(stem[i], role, rows$class[i], rows$package[i], rules)
     if (with_suffix[i]) {
-      if (!is.na(p$proposed)) p$proposed <- paste0(p$proposed, suffix)
-      if (identical(p$proposed, rows$arg[i])) p$match <- if (p$match == "exception") "exception" else "canonical"
+      if (!is.na(p$proposed)) {
+        p$proposed <- paste0(p$proposed, suffix)
+      }
+      if (identical(p$proposed, rows$arg[i])) {
+        p$match <- if (p$match == "exception") {
+        "exception"
+      } else {
+        "canonical"
+      }
+      }
     }
     p
   })
@@ -42,27 +54,44 @@ propose_naming_rows <- function(rows, links, rules) {
     si <- which(rows$side == "server" & rows$`function` == l$server_fn[1] & rows$arg == l$server_arg[1])
     ci <- vapply(seq_len(nrow(l)), function(k) {
       i <- which(rows$side == "client" & rows$`function` == l$client_fn[k] & rows$arg == l$client_arg[k])
-      if (length(i) == 1 && !is.na(rows$proposed[i]) && !rows$match[i] %in% c("exception", "conflict")) i else NA_integer_
+      if (length(i) == 1 && !is.na(rows$proposed[i]) && !rows$match[i] %in% c("exception", "conflict")) {
+        i
+      } else {
+        NA_integer_
+      }
     }, integer(1))
     keep <- !is.na(ci)
     l <- l[keep, ]; ci <- ci[keep]
-    if (length(si) != 1 || length(ci) == 0) next
+    if (length(si) != 1 || length(ci) == 0) {
+      next
+    }
     if (length(unique(rows$proposed[ci])) > 1) {
       own <- ci[base_name(l$client_fn) == base_name(l$server_fn[1])]
       if (length(unique(rows$proposed[own])) != 1) {
         rows$note[si] <- sprintf("client callers differ: %s", paste(sprintf("%s(%s -> %s)", l$client_fn, l$client_arg, rows$proposed[ci]), collapse = ", "))
         next
       }
-      l <- l[ci %in% own, ][1, ]; ci <- own[1]
+      l <- l[ci %in% own, ][1, ]
+      ci <- own[1]
     } else {
-      l <- l[1, ]; ci <- ci[1]
+      l <- l[1, ]
+      ci <- ci[1]
     }
-    wanted <- paste0(rows$proposed[ci], if (with_suffix[si]) suffix else "")
-    if (identical(rows$proposed[si], wanted)) next
+    wanted <- rows$proposed[ci]
+    if (with_suffix[si]) {
+      wanted <- paste0(wanted, suffix)
+    }
+    if (identical(rows$proposed[si], wanted)) {
+      next
+    }
     rows$proposed[si] <- wanted
     rows$rule[si] <- rows$rule[ci]
     rows$rule_open[si] <- rows$rule_open[ci]
-    rows$match[si] <- if (rows$arg[si] == wanted) "canonical" else "rule"
+    rows$match[si] <- if (rows$arg[si] == wanted) {
+      "canonical"
+    } else {
+      "rule"
+    }
     rows$note[si] <- sprintf("follows client %s(%s)", l$client_fn, l$client_arg)
   }
   # Following the client can make two server arguments collide.

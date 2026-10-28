@@ -117,20 +117,26 @@ repo (columns, same-day replace, next day).
   token, also from private analyst repos. Only `count-run`'s URL changes
   with the move.
 - **New dimension `datashield` / `other`**, from an explicit input
-  (analysis and naming always DataSHIELD); the user's non-DataSHIELD
+  (analysis and naming always DataSHIELD; roxygen, tests and — since
+  2026-10-19 on `v1/foundation` — authors have `datashield-type`, "none"
+  = other; `count-run` takes it as a new input at the counting switch); the user's non-DataSHIELD
   runs drop out of the KPIs on their own. Test runs in the workflow repo
   itself are not counted.
 - **Fresh counting at v1:** the new file names (with the dimension)
   start at 0; one last snapshot of the old 24 files goes into the KPI
   repo as pre-v1 history; then the old files are removed.
-- **Central private repo `datashield-kpi-reporting`** (nfdi4health):
-  the collector moves there (daily raw counts, ensures every counter file
-  exists; needs a token with write access to the workflow repo — App or
-  PAT — as a secret there). Data as CSV on its `main`, protected by a
-  ruleset (no force push, no deletion, changes via PR; the collector's
-  App bypasses), whatever the number of people with write access.
-  Supersedes options A/B above; the `usage-data` branch goes once the
-  history is copied.
+- **Central private repo `datashield-kpi-reporting`** (nfdi4health).
+  **Built 2026-10-26, split instead of moved (user's decision):** this
+  repository keeps creating the counter files (`collect-usage.yml`, now
+  "Usage counter files", own token, no longer writes `usage-data`); the
+  KPI repo only reads the public counts daily (`R/collect_counts.R`,
+  `.github/workflows/collect.yml`) into `usage.csv` on its `main` —
+  no App or secret there, so more people with access there can't write
+  here. The history of `usage-data` (2026-10-02 to 2026-10-25) was
+  copied. Open: a ruleset on its `main` (no force push, no deletion; the
+  collector pushes with `GITHUB_TOKEN`, so no PR requirement); delete
+  `usage-data` once `v1/foundation` is merged (`main`'s old collector
+  writes it until then).
 - **Not losing raw counts:** a missed collector day loses nothing
   (download counts are cumulative); the risk is a deleted or re-created
   counter file (count back to 0) — ruleset on the `usage-counter` tag,
@@ -138,7 +144,7 @@ repo (columns, same-day replace, next day).
   downloads; the daily snapshot in the KPI repo is the backup.
 - **Priority:** complete, safe raw counts first; monthly/quarterly
   reports later.
-- **Plugin KPI** (if a plugin comes, in its own repo): daily clones and
+- **Plugin KPI** (if a plugin comes, in its own repo `nfdi4health/datashield-skills`): daily clones and
   unique cloners from the traffic API (admin token), see
   [issue-agents.md](issue-agents.md).
 - **Idea for later, not built:** Claude costs per workspace from the

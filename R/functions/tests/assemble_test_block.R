@@ -23,10 +23,10 @@ assemble_test_block <- function(tests, function_name) {
       stop(sprintf("%s: a test's 'assertions_code' field was empty after sanitization.", function_name))
     }
 
-    body_lines <- c(
-      if (nzchar(trimws(setup_code))) strsplit(setup_code, "\n")[[1]] else character(0),
-      strsplit(assertions, "\n")[[1]]
-    )
+    body_lines <- strsplit(assertions, "\n")[[1]]
+    if (nzchar(trimws(setup_code))) {
+      body_lines <- c(strsplit(setup_code, "\n")[[1]], body_lines)
+    }
     body <- paste(paste0("  ", body_lines), collapse = "\n")
 
     sprintf('test_that("%s", {\n%s\n})', gsub('"', '\\"', description, fixed = TRUE), body)

@@ -119,6 +119,3 @@ History of the function and its tests:
 
 Earlier findings of this bot on this function:
 {{EARLIER_FINDINGS}}
-
-Call the submit_tests tool with your result. Do not write any prose
-response — only call the tool.

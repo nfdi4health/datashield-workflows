@@ -11,10 +11,9 @@
 accepted_roxygen_fields <- function(result, parsed, accept_reasons, path) {
   normalize <- function(x) trimws(gsub("[[:space:][:punct:]]+", " ", tolower(paste(x, collapse = " "))))
   record <- function(change, why = NULL) {
-    explanation <- if (is.null(change$explanation)) "" else change$explanation
-    list(field = change$field, reason = change$reason, explanation = explanation,
+    list(field = change$field, reason = change$reason, explanation = change$explanation %||% "",
          proposed = roxygen_field_text(result, change$field), why = why,
-         repeats_earlier = if (is.null(change$repeats_earlier)) "" else change$repeats_earlier)
+         repeats_earlier = change$repeats_earlier %||% "")
   }
   out <- list(accepted = character(0), applied = list(), dropped = list())
 

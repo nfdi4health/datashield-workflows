@@ -7,6 +7,12 @@ roxygen_field_lines <- function(key, text) {
   if (identical(key, "examples")) {
     return(c("#' @examples", "#' \\dontrun{", paste0("#' ", text_lines), "#' }"))
   }
-  tag <- if (startsWith(key, "param:")) paste("param", sub("^param:", "", key)) else if (identical(key, "return")) "return" else key
+  tag <- if (startsWith(key, "param:")) {
+    paste("param", sub("^param:", "", key))
+  } else if (identical(key, "return")) {
+    "return"
+  } else {
+    key
+  }
   paste0("#' ", c(paste0("@", tag, " ", text_lines[1]), text_lines[-1]))
 }

@@ -10,7 +10,12 @@ usable_server_packages <- function(plan, texts) {
   rows <- list()
 
   for (p in unique(unlist(lapply(per_study, names)))) {
-    versions <- vapply(per_study, function(x) if (p %in% names(x)) x[[p]] else NA_character_, character(1))
+    versions <- vapply(per_study, function(x) {
+      if (p %in% names(x)) {
+        return(x[[p]])
+      }
+      NA_character_
+    }, character(1))
     if (anyNA(versions)) {
       notes <- c(notes, fill_template(texts$notes$package_missing_on_studies, list(
         PACKAGE = p, STUDIES = paste(sprintf("`%s`", servers[is.na(versions)]), collapse = ", ")
@@ -22,7 +27,11 @@ usable_server_packages <- function(plan, texts) {
       # Versions that aren't plain numbers (e.g. "6.3.2-dev") can't be
       # compared; then the first study's version is used.
       parsed <- numeric_version(versions, strict = FALSE)
-      version <- if (anyNA(parsed)) versions[[1]] else as.character(min(parsed))
+      version <- if (anyNA(parsed)) {
+        versions[[1]]
+      } else {
+        as.character(min(parsed))
+      }
       notes <- c(notes, fill_template(texts$notes$package_versions_differ, list(
         PACKAGE = p, VERSIONS = paste(unique(versions), collapse = ", "), LOWEST = version
       )))
@@ -30,5 +39,9 @@ usable_server_packages <- function(plan, texts) {
     rows[[length(rows) + 1]] <- data.frame(package = p, version = version)
   }
 
-  list(packages = if (length(rows) > 0) do.call(rbind, rows) else data.frame(package = character(0), version = character(0)), notes = notes)
+  packages <- data.frame(package = character(0), version = character(0))
+  if (length(rows) > 0) {
+    packages <- do.call(rbind, rows)
+  }
+  list(packages = packages, notes = notes)
 }

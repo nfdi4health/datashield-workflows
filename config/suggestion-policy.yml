@@ -1,0 +1,74 @@
+# The tunable rules of the roxygen, test and authors bots. A project's own
+# config/suggestion-policy.yml is merged over this file key by key (maps
+# merge, lists and values replace), so it only writes what it changes.
+# The workflow inputs accept-reasons and code-issue-confidence override
+# the matching keys for one caller. Safety rules that are not
+# configurable are in dev-notes/suggestion-thresholds.md.
+#
+# Each reason's `meaning` is what Claude reads (in the tool schema, and
+# for roxygen also in the prompt): a reason is defined here only.
+
+roxygen:
+  reasons:
+    missing:
+      meaning: the field is absent or a placeholder
+      accept: true
+    inaccurate:
+      meaning: the existing text states something the code doesn't do (a default, a type, argument handling, the return shape) — even if the fix is a small wording change
+      accept: true
+    incomplete:
+      meaning: it leaves out something the code does
+      accept: true
+    clarity:
+      meaning: correct and complete, but could be clearer
+      accept: false
+    style:
+      meaning: formatting or wording only
+      accept: false
+
+tests:
+  reasons:
+    uncovered_branch:
+      meaning: a code path no existing test reaches
+      accept: true
+    error_handling:
+      meaning: an error or warning the function raises
+      accept: true
+    edge_case:
+      meaning: unusual but valid input (NA, empty, boundary values)
+      accept: true
+    regression:
+      meaning: pins down behavior likely to break on change
+      accept: true
+    other:
+      meaning: none of these
+      accept: false
+  max_new_tests: 10        # per function and run; changes to existing tests don't count
+
+possible_bugs:
+  # Claude's confidence levels of possible bugs in the code that are
+  # reported (empty list: not asked for, no such section), and those for
+  # which a failed generated test (real_bug) also opens an issue.
+  report: [high, medium]
+  open_issue: [high]
+
+authors:
+  roles:
+    changed_r_code: aut    # any commit of theirs changed R/*.R
+    otherwise: ctb         # upgraded to the first role later; nobody is downgraded
+  family_name_particles: [van, von, de, der, den, del, della, di, da, das, dos, du, la, le, ten, ter, zu]
+
+# Where findings go when no bot PR carries them (with a bot PR they are
+# always in its description). `on_pr`: the run belongs to a pull request;
+# `without_pr`: scheduled and manual runs, and pushes without a PR.
+# Destinations: comment (on that PR, once), issue (one per kind, comments
+# on it while open; needs `issues: write` on the caller job), log (job
+# log only).
+routing:
+  roxygen:
+    possible_bugs: { on_pr: comment, without_pr: issue }
+  tests:
+    report: { on_pr: comment, without_pr: issue }
+    failed_test_comments: true   # on a PR, also one comment per failed generated test
+  authors:
+    possible_matches: { on_pr: comment }   # without a PR: log (authors callers grant no issues: write)

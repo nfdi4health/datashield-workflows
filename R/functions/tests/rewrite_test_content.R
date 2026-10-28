@@ -6,7 +6,11 @@
 # it is NULL. All other lines stay exactly as they were. `blocks` comes
 # from parse_test_file().
 rewrite_test_content <- function(original, blocks, updates = character(0), deletes = character(0), appended = character(0), insert_after = NULL) {
-  lines <- if (nzchar(original)) strsplit(original, "\n", fixed = TRUE)[[1]] else character(0)
+  lines <- if (nzchar(original)) {
+    strsplit(original, "\n", fixed = TRUE)[[1]]
+  } else {
+    character(0)
+  }
   targets <- Filter(function(b) b$description %in% c(names(updates), deletes), blocks)
   starts <- vapply(targets, function(b) b$first_line, numeric(1))
   inserted <- c("", unlist(strsplit(paste(appended, collapse = "\n\n"), "\n", fixed = TRUE)))
@@ -17,7 +21,9 @@ rewrite_test_content <- function(original, blocks, updates = character(0), delet
     k <- match(i, starts)
     if (is.na(k)) {
       out <- c(out, lines[i])
-      if (length(appended) > 0 && identical(as.numeric(i), as.numeric(insert_after))) out <- c(out, inserted)
+      if (length(appended) > 0 && identical(as.numeric(i), as.numeric(insert_after))) {
+        out <- c(out, inserted)
+      }
       i <- i + 1
       next
     }
@@ -27,14 +33,22 @@ rewrite_test_content <- function(original, blocks, updates = character(0), delet
       out <- c(out, strsplit(updates[[b$description]], "\n", fixed = TRUE)[[1]])
     } else if (length(out) == 0 || !nzchar(trimws(out[length(out)]))) {
       # Deleted: also drop the blank line that separated it from the next block.
-      while (i <= length(lines) && !nzchar(trimws(lines[i]))) i <- i + 1
+      while (i <= length(lines) && !nzchar(trimws(lines[i]))) {
+        i <- i + 1
+      }
     }
-    if (length(appended) > 0 && identical(as.numeric(b$last_line), as.numeric(insert_after))) out <- c(out, inserted)
+    if (length(appended) > 0 && identical(as.numeric(b$last_line), as.numeric(insert_after))) {
+      out <- c(out, inserted)
+    }
   }
 
   content <- sub("\\s+$", "", paste(out, collapse = "\n"))
   if (length(appended) > 0 && is.null(insert_after)) {
-    content <- paste(c(if (nzchar(content)) content, appended), collapse = "\n\n")
+    parts <- appended
+    if (nzchar(content)) {
+      parts <- c(content, appended)
+    }
+    content <- paste(parts, collapse = "\n\n")
   }
   content
 }

@@ -1,0 +1,7 @@
+Package: dsFix
+Version: 0.1.0
+Title: Fixture server
+AggregateMethods:
+    meanDS
+AssignMethods:
+    mergeDS=dsFix::mergeDS

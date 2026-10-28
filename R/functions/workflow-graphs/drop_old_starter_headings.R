@@ -8,14 +8,18 @@
 drop_old_starter_headings <- function(lines) {
   nonblank <- function(from, by) {
     i <- from
-    while (i >= 1 && i <= length(lines) && !nzchar(trimws(lines[i]))) i <- i + by
+    while (i >= 1 && i <= length(lines) && !nzchar(trimws(lines[i]))) {
+      i <- i + by
+    }
     i
   }
 
   overview <- which(lines == "## Overview")
   for (i in rev(overview)) {
     nxt <- nonblank(i + 1, 1)
-    if (nxt <= length(lines) && lines[nxt] == "<!-- workflow-graphs:overview:start -->") lines <- lines[-seq(i, nxt - 1)]
+    if (nxt <= length(lines) && lines[nxt] == "<!-- workflow-graphs:overview:start -->") {
+      lines <- lines[-seq(i, nxt - 1)]
+    }
   }
 
   workflows <- which(lines == "## Workflows")

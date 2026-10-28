@@ -11,6 +11,12 @@ fetch_suggestion_pr_body <- function(branch) {
       list()
     }
   )
-  if (length(prs) == 0) return(NULL)
-  if (is.null(prs[[1]]$body)) "" else prs[[1]]$body
+  if (length(prs) == 0) {
+    return(NULL)
+  }
+  if (is.null(prs[[1]]$body)) {
+    ""
+  } else {
+    prs[[1]]$body
+  }
 }

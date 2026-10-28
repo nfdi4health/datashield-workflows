@@ -6,7 +6,9 @@
 apply_token_edits <- function(lines, edits) {
   done <- 0
   skipped <- character(0)
-  if (nrow(edits) == 0) return(list(lines = lines, done = 0, skipped = skipped))
+  if (nrow(edits) == 0) {
+    return(list(lines = lines, done = 0, skipped = skipped))
+  }
   edits$index <- mapply(function(l, c) col_to_index(lines[l], c), edits$line, edits$col)
   edits <- edits[order(edits$line, -edits$index), ]
   for (k in seq_len(nrow(edits))) {

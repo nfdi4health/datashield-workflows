@@ -4,5 +4,9 @@ step_id_from_title <- function(title) {
   id <- tolower(iconv(title, to = "ASCII//TRANSLIT", sub = ""))
   id <- gsub("[^a-z0-9]+", "_", id)
   id <- gsub("^_+|_+$", "", id)
-  if (!nzchar(id)) "step" else id
+  if (!nzchar(id)) {
+    "step"
+  } else {
+    id
+  }
 }

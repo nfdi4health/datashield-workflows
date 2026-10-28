@@ -32,7 +32,9 @@ update_dslite_setup <- function(setup_file, dsanalysis_dir, mock_folder, servers
     return(NULL)
   }
   env <- new.env()
-  for (f in list.files(file.path(dsanalysis_dir, "R"), pattern = "[.][Rr]$", full.names = TRUE)) sys.source(f, envir = env)
+  for (f in list.files(file.path(dsanalysis_dir, "R"), pattern = "[.][Rr]$", full.names = TRUE)) {
+    sys.source(f, envir = env)
+  }
 
   # update_MockData() pairs the files it lists with these names, in
   # list.files() order: byte order, as sort(method = "radix") gives.
@@ -40,16 +42,28 @@ update_dslite_setup <- function(setup_file, dsanalysis_dir, mock_folder, servers
 
   lines <- readLines(setup_file, warn = FALSE)
   marker_line <- which(lines == mock_data_marker)
-  block1 <- if (length(marker_line) > 0) lines[seq_len(marker_line[1] - 1)] else lines
+  block1 <- if (length(marker_line) > 0) {
+    lines[seq_len(marker_line[1] - 1)]
+  } else {
+    lines
+  }
   missing <- server_packages[!vapply(server_packages, function(p) any(grepl(p, block1, fixed = TRUE)), logical(1))]
-  if (length(missing) > 0) env$add_dsPackage(missing)
+  if (length(missing) > 0) {
+    env$add_dsPackage(missing)
+  }
 
   lines <- gsub("symbol\\s*=\\s*\"[^\"]*\"", sprintf("symbol = \"%s\"", symbol), readLines(setup_file, warn = FALSE))
   alias_marker <- "# bot-suggest: the connections' name in the real login file"
   lines <- lines[!endsWith(lines, alias_marker)]
   login_call <- regmatches(lines, regexpr("^\\s*[A-Za-z.][A-Za-z0-9._]*\\s*(<<-|<-|=)\\s*(DSI::)?datashield\\.login", lines))
-  own_name <- if (length(login_call) > 0) sub("^\\s*([A-Za-z.][A-Za-z0-9._]*).*$", "\\1", login_call[1]) else connections
-  if (!identical(own_name, connections)) lines <- c(lines, sprintf("%s <<- %s  %s", connections, own_name, alias_marker))
+  own_name <- if (length(login_call) > 0) {
+    sub("^\\s*([A-Za-z.][A-Za-z0-9._]*).*$", "\\1", login_call[1])
+  } else {
+    connections
+  }
+  if (!identical(own_name, connections)) {
+    lines <- c(lines, sprintf("%s <<- %s  %s", connections, own_name, alias_marker))
+  }
   writeLines(lines, setup_file)
   setup_file
 }

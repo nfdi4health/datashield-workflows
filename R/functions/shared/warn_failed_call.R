@@ -11,7 +11,9 @@ warn_failed_call <- function(label, file, error) {
   escape <- function(x) gsub("\n", "%0A", gsub("\r", "%0D", gsub("%", "%25", x, fixed = TRUE), fixed = TRUE), fixed = TRUE)
   escape_property <- function(x) gsub(",", "%2C", gsub(":", "%3A", escape(x), fixed = TRUE), fixed = TRUE)
   text <- sprintf("Claude call failed for %s: %s", label, conditionMessage(error))
-  if (nchar(text) > 500) text <- paste0(substr(text, 1, 500), " …")
+  if (nchar(text) > 500) {
+    text <- paste0(substr(text, 1, 500), " …")
+  }
   cat(sprintf("::warning file=%s,title=%s::%s\n",
               escape_property(file), escape_property("Suggestion not made"), escape(text)))
 }

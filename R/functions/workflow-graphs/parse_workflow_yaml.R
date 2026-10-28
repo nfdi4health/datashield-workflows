@@ -6,20 +6,20 @@
 # looked up. `name` falls back to the file name, as GitHub does.
 parse_workflow_yaml <- function(text, file) {
   spec <- yaml::yaml.load(text)
-  on <- if (!is.null(spec[["on"]])) spec[["on"]] else spec[["TRUE"]]
+  on <- spec[["on"]] %||% spec[["TRUE"]]
 
-  triggers <- if (is.character(on)) {
-    stats::setNames(vector("list", length(on)), on)
+  if (is.character(on)) {
+    triggers <- stats::setNames(vector("list", length(on)), on)
   } else if (is.list(on)) {
-    on
+    triggers <- on
   } else {
-    list()
+    triggers <- list()
   }
 
   list(
     file = file,
-    name = if (is.null(spec$name)) file else spec$name,
+    name = spec$name %||% file,
     triggers = triggers,
-    jobs = if (is.null(spec$jobs)) list() else spec$jobs
+    jobs = spec$jobs %||% list()
   )
 }

@@ -7,7 +7,9 @@ test_block_from_history <- function(path, description, except = NULL) {
   commits <- suppressWarnings(system2("git", shQuote(c("log", "--format=%H", "HEAD", "--", path)), stdout = TRUE, stderr = FALSE))
   for (sha in commits) {
     block <- test_block_text(git_file_at(sha, path), description)
-    if (!is.null(block) && !identical(block, except)) return(block)
+    if (!is.null(block) && !identical(block, except)) {
+      return(block)
+    }
   }
   NULL
 }

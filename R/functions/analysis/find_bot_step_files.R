@@ -8,7 +8,9 @@ find_bot_step_files <- function(dir = "R") {
   pattern <- "^#### bot-suggest: step=(\\S+) plan=([0-9a-f]+) content=([0-9a-f]+)$"
   rows <- lapply(files, function(f) {
     lines <- readLines(f, warn = FALSE)
-    if (length(lines) == 0 || !grepl(pattern, lines[1])) return(NULL)
+    if (length(lines) == 0 || !grepl(pattern, lines[1])) {
+      return(NULL)
+    }
     data.frame(
       path = f,
       number = substr(basename(f), 1, 2),

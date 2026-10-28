@@ -19,7 +19,11 @@ run_test_blocks <- function(path, package_name) {
         item$results
       )
       passed <- length(failure) == 0
-      message <- if (passed) NA_character_ else conditionMessage(failure[[1]])
+      message <- if (passed) {
+        NA_character_
+      } else {
+        conditionMessage(failure[[1]])
+      }
       list(description = item$test, passed = passed, message = message)
     })
   }

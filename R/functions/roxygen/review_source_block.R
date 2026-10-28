@@ -11,11 +11,15 @@
 # Returns list(parsed, from_bot, user_edited).
 review_source_block <- function(path, parsed, bot_ref, base_rev) {
   out <- list(parsed = parsed, from_bot = FALSE, user_edited = FALSE)
-  if (is.null(bot_ref)) return(out)
+  if (is.null(bot_ref)) {
+    return(out)
+  }
 
   parse_at <- function(rev) {
     lines <- suppressWarnings(system2("git", shQuote(c("show", sprintf("%s:%s", rev, path))), stdout = TRUE, stderr = FALSE))
-    if (!is.null(attr(lines, "status")) || length(lines) == 0) return(NULL)
+    if (!is.null(attr(lines, "status")) || length(lines) == 0) {
+      return(NULL)
+    }
     tmp <- tempfile(fileext = ".R")
     writeLines(lines, tmp)
     tryCatch(suppressWarnings(parse_r_file(tmp)), error = function(e) NULL)
@@ -35,7 +39,11 @@ review_source_block <- function(path, parsed, bot_ref, base_rev) {
     return(out)
   }
 
-  before <- if (parsed$pre_end >= 1) parsed$lines[seq_len(parsed$pre_end)] else character(0)
+  before <- if (parsed$pre_end >= 1) {
+    parsed$lines[seq_len(parsed$pre_end)]
+  } else {
+    character(0)
+  }
   after <- parsed$lines[seq(parsed$fn_start, length(parsed$lines))]
   tmp <- tempfile(fileext = ".R")
   writeLines(c(before, bot$roxygen_lines, parsed$gap_lines, after), tmp)

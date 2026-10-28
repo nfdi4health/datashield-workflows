@@ -1,0 +1,93 @@
+name: CI
+
+# This repository's own checks (not reusable): unit tests of the R
+# functions, tests of the shell scripts, and static checks of the
+# workflows and scripts. Runs on every push and pull request; none of it
+# calls Claude or costs anything but runner minutes.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  r-tests:
+    name: R unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          packages: >-
+            any::testthat, any::withr, any::httr2, any::jsonlite, any::yaml,
+            any::purrr, any::desc, any::callr
+      - name: Run the tests
+        run: Rscript tests/testthat.R
+
+  shell-tests:
+    name: Shell script tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run the tests
+        run: bash tests/shell/test-scope.sh
+
+  lint:
+    name: Static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Each check reports its findings as annotations (visible on the run
+      # page and in PRs without opening the log) and runs even if an
+      # earlier one failed.
+      # Workflow syntax, expressions, inputs/outputs; shellcheck on the
+      # run: scripts (the image includes shellcheck).
+      # (GitHub shows at most 10 annotations per step; the full output of
+      # each check also goes into the job summary.)
+      # actionlint 1.7.12 predates the self-repository syntax `uses: $/…`,
+      # so its message is ignored. Remove the -ignore option once a release
+      # knows it.
+      - name: actionlint
+        run: |
+          set +e   # collect the output even when the check fails
+          docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.12 -oneline \
+            -ignore 'specifying action "\$/' > actionlint.txt
+          status=$?
+          sed -E 's/^([^:]+):([0-9]+):([0-9]+): (.*)$/::error file=\1,line=\2,col=\3::\4/' actionlint.txt
+          { echo "### actionlint"; echo '```'; cat actionlint.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - name: shellcheck
+        if: always()
+        run: |
+          set +e
+          shellcheck --external-sources --format=gcc .github/actions/*/*.sh tests/shell/*.sh tests/self-test/*.sh > shellcheck.txt
+          status=$?
+          sed -E 's/^([^:]+):([0-9]+):([0-9]+): ([a-z]+): (.*)$/::\4 file=\1,line=\2,col=\3::\5/; s/^::note /::notice /' shellcheck.txt
+          { echo "### shellcheck"; echo '```'; cat shellcheck.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      # Security checks of workflows and actions (template injection,
+      # credentials, triggers).
+      - name: zizmor
+        if: always()
+        run: |
+          pip install --quiet 'zizmor>=1,<2'
+          set +e
+          zizmor --format=plain .github/workflows .github/actions > zizmor.txt
+          status=$?
+          zizmor --format=github .github/workflows .github/actions
+          { echo "### zizmor"; echo '```'; cat zizmor.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"

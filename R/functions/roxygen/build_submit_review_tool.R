@@ -28,7 +28,9 @@
 build_submit_review_tool <- function(parsed, profile, earlier = list(), with_code_issues = TRUE) {
   earlier_ids <- function(kinds) {
     ids <- vapply(Filter(function(e) e$kind %in% kinds, earlier), function(e) sprintf("E%d", e$id), character(1), USE.NAMES = FALSE)
-    if (length(ids) == 0) return(NULL)
+    if (length(ids) == 0) {
+      return(NULL)
+    }
     list(type = "string", enum = as.list(c("", ids)),
          description = "The id of an earlier finding (listed in the prompt) that this one says the same as, also in other words; empty string if it is new.")
   }
@@ -59,12 +61,7 @@ build_submit_review_tool <- function(parsed, profile, earlier = list(), with_cod
         reason = list(
           type = "string",
           enum = as.list(suggestion_reasons("roxygen")),
-          description = paste(
-            "missing: the field is absent or a placeholder. inaccurate: the existing text states something",
-            "the code doesn't do (a default, a type, argument handling, the return shape) — even if the fix is",
-            "a small wording change. incomplete: it leaves out something the code does. clarity: correct and",
-            "complete, but could be clearer. style: formatting or wording only."
-          )
+          description = format_reason_meanings("roxygen")   # config/suggestion-policy.yml
         ),
         explanation = list(type = "string", description = "One sentence: what was wrong or missing, citing the code where it matters.")
       ),
@@ -84,7 +81,9 @@ build_submit_review_tool <- function(parsed, profile, earlier = list(), with_cod
                       description = "How sure you are of the verdict."),
     summary = list(type = "string", description = "One sentence: what the code does wrong. Must agree with the explanation and verdict.")
   )
-  if (!is.null(repeats_issue)) issue_properties$repeats_earlier <- repeats_issue
+  if (!is.null(repeats_issue)) {
+    issue_properties$repeats_earlier <- repeats_issue
+  }
 
   top_level_properties <- list(
     needs_changes = list(type = "boolean", description = "Whether any field needs to change."),

@@ -27,7 +27,11 @@ check_login_file <- function(path, plan, credential_pattern, texts) {
     sub(pattern, "\\1", m, perl = TRUE)
   }
   connections <- pick("([A-Za-z.][A-Za-z0-9._]*)\\s*(?:<<-|<-|=)\\s*(?:DSI::)?datashield\\.login\\s*\\(")
-  connections <- if (length(connections) > 0) connections[1] else "conns"
+  connections <- if (length(connections) > 0) {
+    connections[1]
+  } else {
+    "conns"
+  }
 
   quoted <- function(x) paste(sprintf("`%s`", x), collapse = ", ")
   servers <- pick("server\\s*=\\s*[\"']([^\"']+)[\"']")

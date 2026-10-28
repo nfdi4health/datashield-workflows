@@ -6,7 +6,11 @@
 # both are empty for most packages. Sanitized like assemble_test_block().
 new_test_file_content <- function(test_blocks, result, function_name) {
   clean <- function(field) {
-    text <- if (is.null(result[[field]])) "" else result[[field]]
+    text <- if (is.null(result[[field]])) {
+      ""
+    } else {
+      result[[field]]
+    }
     trimws(strip_artifact_lines(text, "^\\s*```", "markdown code fences", field, function_name))
   }
   parts <- c(clean("file_setup_code"), test_blocks, clean("file_teardown_code"))

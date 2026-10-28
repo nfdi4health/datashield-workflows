@@ -15,7 +15,7 @@ It is used as a job inside the release trigger:
   on-success:
     needs: check
     if: needs.check.result == 'success'
-    uses: FlorianSchw/package-workflows/.github/workflows/merge-pull-request.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/merge-pull-request.yml@main
     with:
       pr_number: ${{ github.event.pull_request.number }}
 ```

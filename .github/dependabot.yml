@@ -1,6 +1,15 @@
 version: 2
 updates:
+  # External actions are pinned to a commit with the version as a comment;
+  # Dependabot updates both. "/" covers .github/workflows, the second entry
+  # the composite actions. One grouped PR per week.
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"

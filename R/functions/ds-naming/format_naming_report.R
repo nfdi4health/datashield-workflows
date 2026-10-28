@@ -10,7 +10,18 @@ format_naming_report <- function(rows, entries, checks, file_path, rules_version
   es <- unname(entries)
   field <- function(f) vapply(es, function(e) as.character(e[[f]] %||% ""), character(1))
   status <- field("status")
-  pct <- function(n, d) if (d == 0) "–" else sprintf("%d %%", round(100 * n / d))
+  pct <- function(n, d) {
+    if (d == 0) {
+      return("–")
+    }
+    sprintf("%d %%", round(100 * n / d))
+  }
+  code_list <- function(x) {
+    if (length(x) == 0) {
+      return("none")
+    }
+    paste(sprintf("`%s`", x), collapse = ", ")
+  }
   open <- vapply(es, function(e) isTRUE(e$rule_open), logical(1))
 
   counts <- vapply(split(rows, rows$package), function(r) {
@@ -39,13 +50,23 @@ format_naming_report <- function(rows, entries, checks, file_path, rules_version
   )
 
   table <- function(sel) {
-    if (!any(sel)) return("None.")
-    e <- es[sel]
+    if (!any(sel)) {
+      return("None.")
+    }
+    row <- function(x) {
+      proposed <- "–"
+      if (nzchar(x$proposed %||% "")) {
+        proposed <- sprintf("`%s`", x$proposed)
+      }
+      rule <- x$rule
+      if (isTRUE(x$rule_open)) {
+        rule <- paste(rule, "(open)")
+      }
+      reason <- gsub("\\|", "/", paste(c(x$reason, x$note), collapse = " "))
+      sprintf("| `%s` | `%s` | %s | %s | %s | %s |", x$`function`, x$current, proposed, rule, x$confidence %||% "", reason)
+    }
     c("| Function | Current | Proposed | Rule | Confidence | Reason |", "|---|---|---|---|---|---|",
-      vapply(e, function(x) sprintf("| `%s` | `%s` | %s | %s%s | %s | %s |", x$`function`, x$current,
-                                    if (nzchar(x$proposed %||% "")) sprintf("`%s`", x$proposed) else "–",
-                                    x$rule, if (isTRUE(x$rule_open)) " (open)" else "", x$confidence %||% "",
-                                    gsub("\\|", "/", paste(c(x$reason, x$note), collapse = " "))), character(1)))
+      vapply(es[sel], row, character(1)))
   }
   full <- c(summary[seq_len(which(summary == "### How to review") - 1)])
   for (pkg in unique(field("package"))) {
@@ -56,13 +77,15 @@ format_naming_report <- function(rows, entries, checks, file_path, rules_version
               "### Skipped", "", table(in_pkg & status == "skip"), "")
   }
   for (ch in checks) {
+    test_lines <- "None."
+    if (nrow(ch$tests) > 0) {
+      test_lines <- sprintf("- `%s`: %s", ch$tests$file, ch$tests$problem)
+    }
     full <- c(full, sprintf("## %s: other findings (report only)", ch$package), "",
-              paste0("**Function names not following the pattern:** ",
-                     if (length(ch$function_names) > 0) paste(sprintf("`%s`", ch$function_names), collapse = ", ") else "none"), "",
-              paste0("**`datasources` not last:** ",
-                     if (length(ch$order) > 0) paste(sprintf("`%s`", ch$order), collapse = ", ") else "none"), "",
+              paste0("**Function names not following the pattern:** ", code_list(ch$function_names)), "",
+              paste0("**`datasources` not last:** ", code_list(ch$order)), "",
               "**Test file names:**", "",
-              if (nrow(ch$tests) > 0) sprintf("- `%s`: %s", ch$tests$file, ch$tests$problem) else "None.", "")
+              test_lines, "")
   }
   list(full = paste(full, collapse = "\n"), summary = paste(summary, collapse = "\n"))
 }

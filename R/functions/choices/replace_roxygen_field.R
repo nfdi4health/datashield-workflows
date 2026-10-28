@@ -2,7 +2,7 @@
 # (empty: removed), all other lines unchanged. The field is found as
 # original_roxygen_field() finds it: its tag's lines (parse_r_file()'s
 # tag_chunks), or an untagged title/description paragraph. A field the
-# block doesn't have yet is inserted by `tag_order` (roxygen-style.json):
+# block doesn't have yet is inserted by `tag_order` (roxygen-style.yml):
 # a parameter after the last @param, anything else before the first tag
 # that comes later in the order, else at the end.
 replace_roxygen_field <- function(parsed, key, new_lines, tag_order) {
@@ -12,12 +12,20 @@ replace_roxygen_field <- function(parsed, key, new_lines, tag_order) {
   chunk_range <- function(i) starts[i] + seq_along(parsed$tag_chunks[[i]]$lines) - 1
 
   is_param <- startsWith(key, "param:")
-  tag <- if (is_param) "param" else key
+  tag <- if (is_param) {
+    "param"
+  } else {
+    key
+  }
   range <- integer(0)
   for (i in seq_along(parsed$tag_chunks)) {
     ch <- parsed$tag_chunks[[i]]
-    if (!identical(ch$tag, tag)) next
-    if (is_param && !identical(sub("^\\s*#'\\s*@param\\s+(\\S+).*$", "\\1", ch$lines[1]), sub("^param:", "", key))) next
+    if (!identical(ch$tag, tag)) {
+      next
+    }
+    if (is_param && !identical(sub("^\\s*#'\\s*@param\\s+(\\S+).*$", "\\1", ch$lines[1]), sub("^param:", "", key))) {
+      next
+    }
     range <- chunk_range(i)
     break
   }
@@ -26,7 +34,11 @@ replace_roxygen_field <- function(parsed, key, new_lines, tag_order) {
     implicit <- implicit_roxygen_field(parsed, key)
     if (!is.null(implicit)) {
       target <- strsplit(implicit$text, "\n", fixed = TRUE)[[1]]
-      intro_end <- if (length(starts) > 0) starts[1] - 1 else length(lines)
+      intro_end <- if (length(starts) > 0) {
+        starts[1] - 1
+      } else {
+        length(lines)
+      }
       for (s in seq_len(max(0, intro_end - length(target) + 1))) {
         if (identical(body[s:(s + length(target) - 1)], target)) {
           range <- s:(s + length(target) - 1)
@@ -48,9 +60,13 @@ replace_roxygen_field <- function(parsed, key, new_lines, tag_order) {
       position <- max(chunk_range(max(which(chunk_tags == "param"))))
     } else {
       later <- which(vapply(chunk_tags, function(t) isTRUE(match(t, order) > match(tag, order)), logical(1)))
-      if (length(later) > 0) position <- starts[later[1]] - 1
+      if (length(later) > 0) {
+        position <- starts[later[1]] - 1
+      }
     }
-    if (is.null(position)) position <- length(lines)
+    if (is.null(position)) {
+      position <- length(lines)
+    }
     out <- append(lines, new_lines, after = position)
   }
   # No doubled empty #' lines where a field was removed.

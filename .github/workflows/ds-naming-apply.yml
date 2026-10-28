@@ -13,7 +13,7 @@ on:
         required: false
         type: string
         default: ''
-      server-target-branch:
+      server-base-branch:
         description: 'Branch the server PR goes into; empty: server-ref, else the server''s default branch.'
         required: false
         type: string
@@ -23,7 +23,7 @@ on:
         required: false
         type: string
         default: 'client'
-      target-branch:
+      base-branch:
         description: 'Branch the PR in this repository goes into (e.g. a shared integration branch such as "next"); empty: the branch the run started on.'
         required: false
         type: string
@@ -54,7 +54,7 @@ jobs:
       contents: write
       pull-requests: write
     env:
-      TARGET_BRANCH: ${{ inputs.target-branch || github.ref_name }}
+      BASE_BRANCH: ${{ inputs.base-branch || github.ref_name }}
       WITH_SERVER: ${{ inputs.server-repository != '' && inputs.package-side == 'client' }}
 
     steps:
@@ -64,29 +64,31 @@ jobs:
           SERVER_REPOSITORY: ${{ inputs.server-repository }}
         run: echo "name=${SERVER_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
 
+      # The calling repository first — actions/checkout empties the folder
+      # it checks out into, so the shared scripts can only come after it.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ env.BASE_BRANCH }}
+
+      # Actions and scripts at the commit of this workflow, so a caller
+      # pinned to a version (or testing a branch) gets that version.
+      - name: Shared scripts
+        uses: $/.github/actions/shared-files
+
       - name: Resolve push token
         id: push_token
-        uses: FlorianSchw/package-workflows/.github/actions/resolve-push-token@main
+        uses: $/.github/actions/resolve-push-token
         with:
           client-id: ${{ secrets.app-client-id }}
           app-private-key: ${{ secrets.app-private-key }}
           repositories: ${{ env.WITH_SERVER == 'true' && steps.server.outputs.name || '' }}
 
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.TARGET_BRANCH }}
-
-      - name: Checkout shared scripts
-        uses: actions/checkout@v7
-        with:
-          repository: FlorianSchw/package-workflows
-          ref: main
-          path: .shared-workflows
-
       - name: Checkout server package
         if: env.WITH_SERVER == 'true'
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           repository: ${{ inputs.server-repository }}
           ref: ${{ inputs.server-ref }}
           path: .ds-naming-server
@@ -96,14 +98,14 @@ jobs:
         id: server_base
         if: env.WITH_SERVER == 'true'
         env:
-          WANTED: ${{ inputs.server-target-branch || inputs.server-ref }}
+          WANTED: ${{ inputs.server-base-branch || inputs.server-ref }}
         run: echo "branch=${WANTED:-$(git -C .ds-naming-server rev-parse --abbrev-ref HEAD)}" >> "$GITHUB_OUTPUT"
 
-      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
           packages: any::yaml, any::purrr
 
@@ -115,11 +117,11 @@ jobs:
         run: Rscript .shared-workflows/R/apply_ds_naming.R
 
       - name: Propose renames here
-        uses: FlorianSchw/package-workflows/.github/actions/propose-branch@main
+        uses: $/.github/actions/propose-branch
         with:
           manifest: updated_files.txt
-          branch: bot-suggest/ds-naming-apply/${{ env.TARGET_BRANCH }}
-          base: ${{ env.TARGET_BRANCH }}
+          branch: bot-suggest/ds-naming-apply/${{ env.BASE_BRANCH }}
+          base: ${{ env.BASE_BRANCH }}
           title: 'Harmonise DataSHIELD argument names'
           body-file: naming_apply_report.md
           commit-message: |
@@ -130,7 +132,7 @@ jobs:
 
       - name: Propose renames in the server package
         if: env.WITH_SERVER == 'true'
-        uses: FlorianSchw/package-workflows/.github/actions/propose-branch@main
+        uses: $/.github/actions/propose-branch
         with:
           directory: .ds-naming-server
           repository: ${{ inputs.server-repository }}

@@ -8,6 +8,16 @@ on:
         required: false
         type: string
         default: 'add'
+      datashield-type:
+        description: '"none" (not a DataSHIELD package), "client", "server" or "utility"; only for the usage counts (DataSHIELD or other use), the authors bot itself works the same'
+        required: false
+        type: string
+        default: 'none'
+      self-test-fixture:
+        description: 'Only for the workflow repository''s own CI — leave empty. A fixture package of its tests/fixtures/ (with a made-up history) instead of this repository, with recorded GitHub answers; nothing is pushed or counted.'
+        required: false
+        type: string
+        default: ''
     secrets:
       app-client-id:
         description: 'GitHub App Client ID (Iv23li...); its token lets bot PRs trigger checks (optional).'
@@ -31,26 +41,38 @@ jobs:
       pull-requests: write
 
     steps:
+      # $/ = this workflow's own repository at the running commit (no
+      # checkout needed), so a caller pinned to a version gets that
+      # version's actions.
       - name: Resolve scope
         id: scope
-        uses: FlorianSchw/package-workflows/.github/actions/resolve-suggestion-scope@main
+        uses: $/.github/actions/resolve-suggestion-scope
         with:
-          scan-mode: changed
-          allow-sweep: 'false'
+          review-scope: changed
+          allow-scheduled: 'false'
 
-      - uses: actions/checkout@v7
-        if: steps.scope.outputs.skip != 'true'
+      # The calling repository first — actions/checkout empties the folder
+      # it checks out into, so the shared scripts can only come after it.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.scope.outputs.skip != 'true' && inputs.self-test-fixture == ''
         with:
+          persist-credentials: false   # pushes pass their token explicitly
           ref: ${{ steps.scope.outputs.ref }}
           fetch-depth: 0
 
-      - name: Checkout shared scripts
+      # Scripts and config at the commit of this workflow.
+      - name: Shared scripts
         if: steps.scope.outputs.skip != 'true'
-        uses: actions/checkout@v7
-        with:
-          repository: FlorianSchw/package-workflows
-          ref: main
-          path: .shared-workflows
+        uses: $/.github/actions/shared-files
+
+      # Self-test (the workflow repository's own CI): the fixture package
+      # with a made-up history by several authors takes the place of the
+      # caller; its commits after the first are the new ones.
+      - name: Use the self-test fixture
+        if: steps.scope.outputs.skip != 'true' && inputs.self-test-fixture != ''
+        env:
+          FIXTURE: ${{ inputs.self-test-fixture }}
+        run: bash .shared-workflows/tests/self-test/use-fixture.sh "$FIXTURE" history
 
       - name: Determine new commits
         id: commits
@@ -59,39 +81,57 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: ${{ steps.scope.outputs.branch }}
           FILE_PATTERN: ''
+          SELF_TEST: ${{ inputs.self-test-fixture != '' }}
         run: |
+          if [ "$SELF_TEST" = "true" ]; then
+            git rev-list --no-merges HEAD --not "$(git rev-list --max-parents=0 HEAD)" > commits.txt
+            echo "count=$(wc -l < commits.txt)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           SUB_BRANCH="bot-suggest/authors/${BRANCH//\//-}"
-          BOT_CONFIG="config/bot-authors.json"; [ -f "$BOT_CONFIG" ] || BOT_CONFIG=".shared-workflows/$BOT_CONFIG"
+          BOT_CONFIG=".shared-workflows/config/bot-authors.yml"  # a project's own copy is merged over it
           SUB_BRANCH="$SUB_BRANCH" BOT_CONFIG="$BOT_CONFIG" bash .shared-workflows/.github/actions/resolve-suggestion-scope/determine-changes.sh
 
-      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         if: steps.commits.outputs.count > 0
         with:
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         if: steps.commits.outputs.count > 0
         with:
-          packages: any::desc, any::jsonlite, any::httr2, any::purrr
+          packages: any::desc, any::jsonlite, any::httr2, any::purrr, any::yaml
 
       - name: Find and add missing contributors
         if: steps.commits.outputs.count > 0
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          CLAUDE_RECORDED_ANSWERS: ${{ inputs.self-test-fixture != '' && format('.shared-workflows/tests/fixtures/claude-answers/{0}.json', inputs.self-test-fixture) || '' }}
         run: Rscript .shared-workflows/R/suggest_authors.R
+
+      - name: Keep the self-test results
+        if: always() && inputs.self-test-fixture != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: self-test-authors-${{ inputs.self-test-fixture }}
+          path: |
+            updated_files.txt
+            suggestion_report.md
+            DESCRIPTION
+          if-no-files-found: error
 
       - name: Resolve push token
         id: push_token
-        if: steps.commits.outputs.count > 0
-        uses: FlorianSchw/package-workflows/.github/actions/resolve-push-token@main
+        if: steps.commits.outputs.count > 0 && inputs.self-test-fixture == ''
+        uses: $/.github/actions/resolve-push-token
         with:
           client-id: ${{ secrets.app-client-id }}
           app-private-key: ${{ secrets.app-private-key }}
 
       - name: Commit DESCRIPTION update
-        if: steps.commits.outputs.count > 0
-        uses: FlorianSchw/package-workflows/.github/actions/commit-updated-files@main
+        if: steps.commits.outputs.count > 0 && inputs.self-test-fixture == ''
+        uses: $/.github/actions/commit-updated-files
         with:
           scan-mode: 'changed'
           token: ${{ steps.push_token.outputs.token || secrets.commit-push-pat || secrets.GITHUB_TOKEN }}
@@ -108,9 +148,9 @@ jobs:
       # Counts this run once, anonymously, by workflow, outcome and version
       # (see docs: usage counting). Nothing about this repository is sent.
       - name: Count this run
-        if: always() && steps.scope.outputs.skip != 'true'   # not when the run was skipped (bot branch, fork, …)
+        if: always() && steps.scope.outputs.skip != 'true' && inputs.self-test-fixture == ''   # not when skipped (bot branch, fork, …) or a self-test
         continue-on-error: true
-        uses: FlorianSchw/package-workflows/.github/actions/count-run@main
+        uses: $/.github/actions/count-run
         with:
           workflow: authors-suggest
           job-status: ${{ job.status }}

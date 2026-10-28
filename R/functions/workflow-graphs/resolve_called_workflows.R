@@ -12,9 +12,13 @@ resolve_called_workflows <- function(workflows, max_depth = 5) {
   resolved <- list()
 
   visit <- function(ref, depth) {
-    if (!is.null(resolved[[ref$key]])) return(resolved[[ref$key]]$dispatches)
+    if (!is.null(resolved[[ref$key]])) {
+      return(resolved[[ref$key]]$dispatches)
+    }
     resolved[[ref$key]] <<- list(ref = ref, readable = FALSE, dispatches = list())  # loop guard
-    if (depth > max_depth) return(list())
+    if (depth > max_depth) {
+      return(list())
+    }
 
     wf <- fetch_called_workflow(ref)
     if (is.null(wf)) {
@@ -24,7 +28,9 @@ resolve_called_workflows <- function(workflows, max_depth = 5) {
     dispatches <- workflow_dispatches(wf)
     for (job in wf$jobs) {
       inner <- parse_workflow_ref(job$uses)
-      if (!is.null(inner)) dispatches <- c(dispatches, visit(inner, depth + 1))
+      if (!is.null(inner)) {
+        dispatches <- c(dispatches, visit(inner, depth + 1))
+      }
     }
     resolved[[ref$key]] <<- list(ref = ref, readable = TRUE, dispatches = unique(dispatches), workflow = wf)
     resolved[[ref$key]]$dispatches
@@ -33,7 +39,9 @@ resolve_called_workflows <- function(workflows, max_depth = 5) {
   for (wf in workflows) {
     for (job in wf$jobs) {
       ref <- parse_workflow_ref(job$uses)
-      if (!is.null(ref)) visit(ref, 1)
+      if (!is.null(ref)) {
+        visit(ref, 1)
+      }
     }
   }
   resolved

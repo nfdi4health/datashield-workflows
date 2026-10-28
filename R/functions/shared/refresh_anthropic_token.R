@@ -34,7 +34,9 @@ refresh_anthropic_token <- function() {
     message("Renewing the Anthropic token failed: ", conditionMessage(e))
     NULL
   })
-  if (is.null(token) || !nzchar(token)) return(NULL)
+  if (is.null(token) || !nzchar(token)) {
+    return(NULL)
+  }
   message("The Anthropic token expired during the run; renewed it.")
   token
 }

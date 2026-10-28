@@ -25,13 +25,23 @@ settle_step_results <- function(steps, to_write, drafted, rewritten, old_content
       unlink(candidate[[id]])
       candidate[[id]] <- NULL
     } else {
-      steps[[id]]$status <- if (length(answer$sections) == 0) "not_possible" else "written"
+      steps[[id]]$status <- if (length(answer$sections) == 0) {
+        "not_possible"
+      } else {
+        "written"
+      }
       steps[[id]]$files <- candidate[[id]]
     }
-    steps[[id]]$notes <- if (is.null(answer)) list() else answer$notes
+    steps[[id]]$notes <- if (is.null(answer)) {
+      list()
+    } else {
+      answer$notes
+    }
     if (steps[[id]]$status == "failed") {
       candidate[[id]] <- NULL
-      for (p in rewritten$path[rewritten$step == id]) writeLines(old_content[[p]], p)
+      for (p in rewritten$path[rewritten$step == id]) {
+        writeLines(old_content[[p]], p)
+      }
     }
   }
   list(steps = steps, written_files = unlist(candidate, use.names = FALSE))

@@ -1,12 +1,20 @@
-# The full reason list Claude chooses from per task (tool schema enum).
-# Which of them actually lead to a proposed change is configured as
-# the accept-reasons input, else accept_reasons in config/claude.yml
-# (accepted_reasons()) — see
+# The reasons Claude chooses from per task ("roxygen", "tests"), from
+# config/suggestion-policy.yml: their names (the tool schema's enum), with
+# `meanings` TRUE a named vector of what each means (for the schema's
+# description and the prompt), with `accepted` TRUE only those that lead
+# to a proposed change by default (`accept: true`; the accept-reasons
+# input overrides it, accepted_reasons()). See
 # dev-notes/suggestion-thresholds.md.
-suggestion_reasons <- function(task) {
-  switch(task,
-    roxygen = c("missing", "inaccurate", "incomplete", "clarity", "style"),
-    tests   = c("uncovered_branch", "error_handling", "edge_case", "regression", "other"),
+suggestion_reasons <- function(task, meanings = FALSE, accepted = FALSE, policy = suggestion_policy()) {
+  reasons <- policy[[task]]$reasons
+  if (is.null(reasons) || length(reasons) == 0) {
     stop(sprintf("Unknown suggestion task '%s'.", task))
-  )
+  }
+  if (accepted) {
+    reasons <- Filter(function(r) isTRUE(r$accept), reasons)
+  }
+  if (meanings) {
+    return(vapply(reasons, function(r) r$meaning, character(1)))
+  }
+  names(reasons)
 }

@@ -1,4 +1,4 @@
-name: Collect usage counts
+name: Usage counter files
 
 # Not reusable: runs in this repository only. The counted workflows — the
 # Claude-assisted ones (roxygen, tests, analysis scripts) and
@@ -8,11 +8,11 @@ name: Collect usage counts
 # each file's download count is a number of runs — from any caller, public
 # or private, without sending anything about the caller.
 #
-# This workflow keeps that release complete (the files for every workflow
-# calling count-run, also new ones) and records the counts once a day on the
-# usage-data branch, since GitHub only keeps the running total: the runs
-# in a period are the difference between two days. Design and KPIs:
-# dev-notes/usage-counting.md.
+# This workflow keeps that release complete: the files for every workflow
+# calling count-run, also new ones, with this repository's own token. The
+# daily counts are recorded by the private nfdi4health/datashield-kpi-reporting,
+# which only reads them (the release is public), so it holds no credential
+# for this repository. Design and KPIs: dev-notes/usage-counting.md.
 on:
   schedule:
     - cron: '17 5 * * *'
@@ -22,7 +22,7 @@ on:
     paths: ['.github/workflows/*.yml']   # a new reusable workflow gets its file at once
 
 concurrency:
-  group: collect-usage
+  group: usage-counter-files
   cancel-in-progress: false
 
 jobs:
@@ -34,9 +34,9 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: usage-counter
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          fetch-depth: 0
+          persist-credentials: false
 
       - name: Make sure every counted workflow has its counter file
         run: |
@@ -65,54 +65,16 @@ jobs:
           done
           # A file no counted workflow uses any more is removed — only if it
           # was never downloaded, so no count is ever lost.
-          gh api "repos/${{ github.repository }}/releases/tags/$TAG" --jq '.assets[] | "\(.id) \(.name) \(.download_count)"' |
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.assets[] | "\(.id) \(.name) \(.download_count)"' |
             while read -r id name count; do
               if ! grep -qx "$name" <<< "$wanted" && [ "$count" = "0" ]; then
-                gh api -X DELETE "repos/${{ github.repository }}/releases/assets/$id"
+                gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$id"
                 echo "Removed the unused counter file $name."
               fi
             done
-
-      - name: Record today's counts on the usage-data branch
-        run: |
-          # Asset name <workflow>-<outcome>-<channel> → separate columns.
-          gh api "repos/${{ github.repository }}/releases/tags/$TAG" \
-            --jq '.assets[] | (.name | split("-")) as $p | "\($p[:-2] | join("-")),\($p[-2]),\($p[-1]),\(.download_count)"' \
-            | sort > "$RUNNER_TEMP/counts.csv"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git fetch --quiet origin usage-data 2> /dev/null; then
-            git checkout --quiet -B usage-data FETCH_HEAD
-          else
-            git checkout --quiet --orphan usage-data
-            git rm -rfq .
-            printf 'date,workflow,outcome,channel,runs_total\n' > usage.csv
-            printf '%s\n' \
-              '# Usage counts' '' \
-              'Written daily by `.github/workflows/collect-usage.yml` on `main`.' \
-              '`usage.csv`: per day, workflow, outcome and channel, the total number of runs' \
-              'so far (the download count of its file in the `usage-counter` release).' \
-              '- outcome: `proposed` (files in the suggestion PR), `nothing`, `failed`;' \
-              '- channel: `release` (a released version, `@vX`), `dev` (`@main` or a branch:' \
-              '  development and testing).' \
-              'The runs in a period are the difference between its last and first day.' > README.md
-          fi
-          today="$(date -u +%F)"
-          # One set of rows per day: a second run on the same day replaces them.
-          # (grep -v exits 1 when no lines are left, e.g. on the first day.)
-          { head -1 usage.csv; tail -n +2 usage.csv | { grep -v "^$today," || true; }; sed "s/^/$today,/" "$RUNNER_TEMP/counts.csv"; } > "$RUNNER_TEMP/usage.csv"
-          mv "$RUNNER_TEMP/usage.csv" usage.csv
-          git add usage.csv README.md
-          if git diff --cached --quiet; then
-            echo "No change."
-          else
-            git commit --quiet -m "usage: counts of $today"
-            git push --quiet origin usage-data
-          fi
-          cat "$RUNNER_TEMP/counts.csv"
 
   keepalive:
     if: github.event_name == 'schedule'
     permissions:
       actions: write
-    uses: ./.github/workflows/workflow-keepalive.yml
+    uses: ./.github/workflows/workflow-keepalive.yml  # zizmor: ignore[self-repository] (not reusable: always this repository)

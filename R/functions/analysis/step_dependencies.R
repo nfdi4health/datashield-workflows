@@ -8,7 +8,11 @@ step_dependencies <- function(plan) {
   ids <- vapply(plan$steps, function(s) s$id, character(1))
   deps <- lapply(seq_along(plan$steps), function(i) {
     s <- plan$steps[[i]]
-    if ("depends_on" %in% names(s)) as.character(unlist(s$depends_on)) else ids[seq_len(i - 1)]
+    if ("depends_on" %in% names(s)) {
+      as.character(unlist(s$depends_on))
+    } else {
+      ids[seq_len(i - 1)]
+    }
   })
   stats::setNames(deps, ids)
 }

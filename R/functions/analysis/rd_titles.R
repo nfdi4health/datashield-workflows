@@ -5,7 +5,9 @@ rd_titles <- function(pkg) {
   for (rd in db) {
     tags <- vapply(rd, function(x) attr(x, "Rd_tag"), character(1))
     title <- paste(trimws(unlist(rd[tags == "\\title"])), collapse = " ")
-    for (alias in unlist(rd[tags == "\\alias"])) titles[[trimws(alias)]] <- title
+    for (alias in unlist(rd[tags == "\\alias"])) {
+      titles[[trimws(alias)]] <- title
+    }
   }
   titles
 }

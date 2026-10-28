@@ -7,7 +7,11 @@ project_login_files <- function(paths, profiles) {
   cfg <- tryCatch(yaml::read_yaml(paths$project_config), error = function(e) list())
   path_of <- function(profile, fallback) {
     p <- cfg[[profile]]
-    if (!is.null(p$login_folder) && !is.null(p$login_file)) file.path(p$login_folder, p$login_file) else fallback
+    if (!is.null(p$login_folder) && !is.null(p$login_file)) {
+      file.path(p$login_folder, p$login_file)
+    } else {
+      fallback
+    }
   }
   list(
     production = path_of(profiles$production, paths$login_production),

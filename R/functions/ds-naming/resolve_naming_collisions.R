@@ -15,7 +15,11 @@ resolve_naming_collisions <- function(rows, rules) {
   scheme <- rule_name(rules$multiple_inputs$scheme)
   fn <- rows$`function`[1]
   pairs <- Filter(function(e) fn %in% unlist(e$functions), rules$multiple_inputs$exceptions)
-  fixed <- if (length(pairs) > 0) unlist(pairs[[1]]$names) else character(0)
+  fixed <- if (length(pairs) > 0) {
+    unlist(pairs[[1]]$names)
+  } else {
+    character(0)
+  }
   movable <- !is.na(rows$proposed) & rows$match != "exception"
   conflict <- function(i, text) {
     rows$note[i] <<- text
@@ -33,18 +37,26 @@ resolve_naming_collisions <- function(rows, rules) {
   }
   for (name in unique(rows$proposed[movable])) {
     idx <- which(movable & rows$proposed %in% name)
-    if (length(idx) < 2) next
+    if (length(idx) < 2) {
+      next
+    }
     is_class <- all(startsWith(rows$rule[idx], "classes."))
     if (is_class) {
       descriptive <- idx[!vapply(idx, generic, logical(1))]
       for (i in descriptive) {
         rows$proposed[i] <- to_naming_style(rows$arg[i], sep)
         rows$rule[i] <- "style"
-        rows$match[i] <- if (rows$proposed[i] == rows$arg[i]) "canonical" else "style"
+        rows$match[i] <- if (rows$proposed[i] == rows$arg[i]) {
+          "canonical"
+        } else {
+          "style"
+        }
         rows$note[i] <- sprintf("descriptive name kept: several %s inputs", rows$class[i])
       }
       idx <- setdiff(idx, descriptive)
-      if (length(idx) < 2) next
+      if (length(idx) < 2) {
+        next
+      }
     }
     if (is_class && length(fixed) >= length(idx)) {
       new_names <- fixed[seq_along(idx)]
@@ -52,11 +64,19 @@ resolve_naming_collisions <- function(rows, rules) {
       new_names <- paste0(name, seq_along(idx))
     } else {
       holder <- idx[rows$arg[idx] == name]
-      if (length(holder) == 0) holder <- idx[rows$match[idx] == "alias"]
-      if (length(holder) != 1) holder <- integer(0)
+      if (length(holder) == 0) {
+        holder <- idx[rows$match[idx] == "alias"]
+      }
+      if (length(holder) != 1) {
+        holder <- integer(0)
+      }
+      keeps <- ""
+      if (length(holder) == 1) {
+        keeps <- sprintf("; `%s` keeps it", rows$arg[holder])
+      }
       for (i in setdiff(idx, holder)) {
-        conflict(i, sprintf("`%s` is proposed for %s too%s", name, paste(sprintf("`%s`", setdiff(rows$arg[idx], rows$arg[i])), collapse = ", "),
-                            if (length(holder) == 1) sprintf("; `%s` keeps it", rows$arg[holder]) else ""))
+        others <- paste(sprintf("`%s`", setdiff(rows$arg[idx], rows$arg[i])), collapse = ", ")
+        conflict(i, sprintf("`%s` is proposed for %s too%s", name, others, keeps))
       }
       next
     }
@@ -68,9 +88,13 @@ resolve_naming_collisions <- function(rows, rules) {
 
   target <- ifelse(is.na(rows$proposed), rows$arg, rows$proposed)
   for (i in seq_len(nrow(rows))) {
-    if (is.na(rows$proposed[i]) || rows$proposed[i] == rows$arg[i]) next
+    if (is.na(rows$proposed[i]) || rows$proposed[i] == rows$arg[i]) {
+      next
+    }
     clash <- setdiff(which(target == rows$proposed[i]), i)
-    if (length(clash) > 0) conflict(i, sprintf("`%s` is already the name of another argument", rows$proposed[i]))
+    if (length(clash) > 0) {
+      conflict(i, sprintf("`%s` is already the name of another argument", rows$proposed[i]))
+    }
   }
   rows
 }

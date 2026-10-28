@@ -16,8 +16,11 @@ format_analysis_report <- function(r, texts) {
   if (length(written) > 0) {
     out <- c(out, "", t$scripts_heading, "")
     for (s in written) {
-      out <- c(out, sprintf("- **%s**: %s%s", s$title, paste(sprintf("`%s`", s$files), collapse = ", "),
-        if (identical(s$status, "not_possible")) t$notes_only_suffix else ""))
+      suffix <- ""
+      if (identical(s$status, "not_possible")) {
+        suffix <- t$notes_only_suffix
+      }
+      out <- c(out, sprintf("- **%s**: %s%s", s$title, paste(sprintf("`%s`", s$files), collapse = ", "), suffix))
     }
     out <- c(out, "", fill_template(t$try_it, r$names))
   }
@@ -32,7 +35,11 @@ format_analysis_report <- function(r, texts) {
       # The package's catalogue status next to it, so a development package
       # isn't mistaken for an established one.
       pkg <- sprintf("`%s` (%s)", n$package, r$package_status[[n$package]] %||% "unknown")
-      where <- if (nzchar(n[["function"]] %||% "")) sprintf("%s, `%s()`", pkg, n[["function"]]) else pkg
+      where <- if (nzchar(n[["function"]] %||% "")) {
+        sprintf("%s, `%s()`", pkg, n[["function"]])
+      } else {
+        pkg
+      }
       out <- c(out, sprintf("- **%s** — %s: %s", n$step_title, where, n$text))
     }
   }
@@ -52,14 +59,20 @@ format_analysis_report <- function(r, texts) {
   limits <- by_kind("limitation")
   if (length(limits) > 0) {
     out <- c(out, "", t$limitations_heading, "")
-    for (n in limits) out <- c(out, sprintf("- **%s**: %s", n$step_title, n$text))
+    for (n in limits) {
+      out <- c(out, sprintf("- **%s**: %s", n$step_title, n$text))
+    }
   }
 
   reported <- Filter(function(s) s$status %in% c("failed", "blocked", "edited", "removed"), r$steps)
   if (length(reported) + length(r$notes) > 0) {
     out <- c(out, "", t$other_notes_heading, "")
-    for (s in reported) out <- c(out, sprintf("- **%s**: %s", s$title, s$error))
-    for (n in r$notes) out <- c(out, sprintf("- %s", n))
+    for (s in reported) {
+      out <- c(out, sprintf("- **%s**: %s", s$title, s$error))
+    }
+    for (n in r$notes) {
+      out <- c(out, sprintf("- %s", n))
+    }
   }
   out
 }

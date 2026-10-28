@@ -15,13 +15,19 @@ install_study_packages <- function(usable, catalogue, client_suffix, texts) {
     p <- usable$package[i]; v <- usable$version[i]
     server <- install_ds_package(p, v, catalogue, texts)
     notes <- c(notes, server$note)
-    if (is.na(server$installed)) next
+    if (is.na(server$installed)) {
+      next
+    }
     servers <- c(servers, p)
     client_name <- client_package_name(p, catalogue, client_suffix)
-    if (is.na(client_name)) next
+    if (is.na(client_name)) {
+      next
+    }
     client <- install_ds_package(client_name, v, catalogue, texts)
     notes <- c(notes, client$note)
-    if (is.na(client$installed)) next
+    if (is.na(client$installed)) {
+      next
+    }
     clients <- c(clients, client_name)
     tested <- c(tested, sprintf("%s %s (server: %s %s)", client_name, client$installed, p, server$installed))
   }

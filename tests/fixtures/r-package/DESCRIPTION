@@ -1,0 +1,10 @@
+Package: fixturepkg
+Title: A Made-Up Package for the Bots' Self-Tests
+Version: 0.1.0
+Authors@R: person("Ada", "Example", role = c("aut", "cre"), email = "ada@example.org")
+Description: Two small functions, with gaps in their documentation and
+    tests on purpose, for end-to-end runs of the roxygen and test bots.
+License: MIT
+Encoding: UTF-8
+Suggests: testthat (>= 3.0.0)
+Config/testthat/edition: 3
