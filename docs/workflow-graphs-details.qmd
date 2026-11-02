@@ -30,11 +30,19 @@ above or below it, rewrite the introduction.
 What a workflow produces can't be read from its YAML reliably, so it is
 described in `config/workflow-outcomes.yml` of this repository — for all
 workflows here. Workflows that aren't listed simply get no outcome boxes.
-To describe your own workflows, put a copy of that file at the same path
-in your repository ([as for the other settings](suggestions.qmd#adjusting-the-guidance))
-and add them, e.g. `.github/workflows/deploy.yml: [commit]` or your own
-wording, `.github/workflows/deploy.yml: ["Site deployed to {environment}"]`
-— `{environment}` is filled in from the calling job's input of that name.
+To describe your own workflows, put a file at the same path in your
+repository with only them — it is merged over the shared one
+([as for the other settings](suggestions.qmd#adjusting-the-guidance)):
+
+```yaml
+workflows:
+  .github/workflows/deploy.yml: ["Site deployed to {environment}"]
+  .github/workflows/nightly.yml: [commit]
+```
+
+An entry is a short name from the shared file (`commit`,
+`suggestion-pr`, …) or your own wording; `{environment}` is filled in
+from the calling job's input of that name.
 Conditions under which a job runs are added automatically. A result that
 depends on the event is written as
 `{outcome: commit, only-on: push}`.

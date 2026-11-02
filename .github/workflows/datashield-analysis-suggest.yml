@@ -12,7 +12,7 @@ on:
         description: 'Repository of dsAnalysis, whose functions update the DSLite test setup'
         required: false
         type: string
-        default: 'FlorianSchw/dsAnalysis'
+        default: 'nfdi4health/dsAnalysis'
       dsanalysis-ref:
         description: 'Branch or tag of dsAnalysis to use'
         required: false

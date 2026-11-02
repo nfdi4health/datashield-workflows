@@ -4,7 +4,7 @@ description: "How the test suggestions test DataSHIELD client and utility packag
 ---
 
 Client-side functions of a DataSHIELD package need a DataSHIELD server to
-run. With `datashield: true`, the [test suggestions](test-suggest.qmd)
+run. With `datashield-type` set, the [test suggestions](test-suggest.qmd)
 test them the way your tests already connect, or else against
 [DSLite](https://github.com/datashield/DSLite), an in-process server.
 Which functions need a connection depends on `datashield-type`:

@@ -354,10 +354,10 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   packages the proposed test files use (`pkg::`, `library()`,
   `require()`, `requireNamespace()`) to Suggests, proposed with the tests
   (finding kind `dependency`, "added to Suggests: …" in the summary line).
-  Docs pending: `test-suggest.qmd` (Suggests additions; tests run without
+  ~~Docs pending~~ Done in the docs pass of 2026-11-03: `test-suggest.qmd` (Suggests additions; tests run without
   credentials).
 
-- **Docs pending** (changes of 2026-10-02, internals pages already done):
+- ~~**Docs pending**~~ Done in the docs pass of 2026-11-03 (changes of 2026-10-02, internals pages already done):
   `test-suggest.qmd` "Test files": test files are named after the R file
   (`test-<R file>.R`, `test-<category>-<R file>.R`), not the function;
   suggestions page: failed Claude calls are retried within the run, give
@@ -425,8 +425,12 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   A–F), input renames B (`dev-notes/v1-input-review.md`), config/policy
   C+D (`dev-notes/v1-config-proposal.md`), rulesets, own release,
   governance YAML (`dev-notes/v1-drafts/`). Decisions of 2026-10-19 on
-  all of these: in the notes; built: B (except 8), C, D.
-  **Docs pending at v1** (user-facing pages, batched): config files are
+  all of these: in the notes; built: B, C, D (B8: `dsanalysis-repository`
+  default `nfdi4health/dsAnalysis`, 2026-11-03).
+  ~~**Docs pending at v1**~~ Done in the docs pass of 2026-11-03 (incl. a new page
+  `suggestion-choices.qmd`, v1 release notes in `docs/roadmap.qmd`,
+  the CEL rule in `claude-setup.qmd`; examples still `@main` until `v1`
+  exists) (user-facing pages, batched): config files are
   YAML and merged over the defaults (override table and wording in
   `suggestions.qmd#adjusting-the-guidance`, file names on the authors,
   roxygen and test pages); `config` package and `R_CONFIG_ACTIVE` gone;
@@ -593,7 +597,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   Combine with removing `app-id` (both need caller changes).~~
 - **`datashield-type: utility`** (built 2026-09-29, not yet run in CI or
   end to end). This type covers analyst-side helpers that are neither
-  client nor server, e.g. `FlorianSchw/dsAnalysis` and
+  client nor server, e.g. `nfdi4health/dsAnalysis` and
   `dife-bioinformatics/mepr`.
   - **DSLite per function:** a function uses DSLite only if
     `uses_ds_connections()` detects connection use: a `datasources`
@@ -623,7 +627,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
     at a time in plan order (`draft_steps_in_order()`); a step waits while
     one it depends on fails (plan `depends_on`, else all earlier steps);
     each prompt gets the scripts so far and the objects on the servers;
-    the shared prompt part is cached. **Docs pending:** `depends_on` and
+    the shared prompt part is cached. ~~**Docs pending:**~~ Done in the docs pass of 2026-11-03: `depends_on` and
     the order on the analysis pages, a commented `depends_on` in
     `examples/analysis-plan.yml`.
   - **Later stages:** models, figures/tables, and then tuning of the
@@ -676,7 +680,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   **Breaking for callers:** roxygen and test caller jobs must grant
   `actions: read` and `checks: read`; dsSupportClient's test caller should
   drop its `scan-mode` expression (else every schedule is a full review).
-  **Docs pending:** trigger sections of the roxygen/test pages (the test
+  ~~**Docs pending:**~~ Done in the docs pass of 2026-11-03: trigger sections of the roxygen/test pages (the test
   page still describes lookback/rotation), suggestions page, Getting
   started (permissions), example callers (a `scope` dispatch input,
   permissions), release note.
@@ -726,7 +730,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   "Possible bugs in the code" (failure classification and reports with a
   confidence, same `code-issue-confidence` input; issues only at high)
   and no duplicate issues any more (`post_issue_once()`).
-  **Docs pending:**
+  ~~**Docs pending:**~~ Done in the docs pass of 2026-11-03:
   - `roxygen-suggest.qmd` report section: one report, commit tags,
     crossed-out findings, "Latest review", verdict/confidence for
     possible bugs, the `code-issue-confidence` input (the table is
@@ -757,7 +761,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   read with `suggestion_policy()`; reason meanings written into the tool
   schemas and the roxygen prompt (`format_reason_meanings()`).
   `accept_reasons`, `code_issue_confidence`, `max_new_tests` left
-  `config/claude.yml`. Docs pending at v1. The original item: today reasons, action↔reason mapping, the `aut`/`ctb` rule, name
+  `config/claude.yml`. ~~Docs pending at v1~~ done 2026-11-03. The original item: today reasons, action↔reason mapping, the `aut`/`ctb` rule, name
   particles and report routing live partly only in R code. Move the
   tunable policy to one readable file that R and the tool schemas read
   (schema descriptions from the same source); keep safety invariants

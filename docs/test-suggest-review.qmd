@@ -65,15 +65,33 @@ Safeguards apply before anything is changed:
 
 ## Failing tests {#failing-tests}
 
-A generated test that fails is not proposed. Claude classifies why it
-failed, from the actual error output, and the workflow reports it:
+A generated test that fails is not proposed. Where the error alone
+decides — the test doesn't parse, calls a function that doesn't exist, or
+needs a package that isn't installed — R classifies it; the other failures
+of a function go to Claude in one call, with the actual error output.
+Claude says why each failed, and how sure it is (high, medium, low):
 
 | Classification | Meaning | Reported as |
 |---|---|---|
-| `real_bug` | The test is right and found a defect | An issue |
+| `real_bug` | The test is right and found a defect | A possible bug in the code: in the report, and at high confidence an issue |
 | `bad_test` | The test itself is wrong | A comment on your PR |
 | `env_misconfiguration` | The test setup is broken, e.g. a missing package | A comment on your PR |
 
-In a [sweep](test-suggest.qmd#sweep-scope) there is no PR to comment on,
-so the last two are listed in the sweep PR's description instead, or in
-one issue if no test passed at all.
+- **Which possible bugs are reported** follows the
+  `code-issue-confidence` input, else `possible_bugs` in
+  `config/suggestion-policy.yml`: reported at high and medium
+  confidence, an issue only at high.
+- **One issue per function**, titled "Possible bug found by generated
+  test: `<function>`". A new issue lists all failing tests of that run,
+  each with its code folded away. While it is open, a later run adds only
+  a short "still failing" comment with the test names.
+- **Repeats are left out:** a test that failed in an earlier run (same
+  name, or one Claude says it repeats) isn't classified, commented or
+  filed again.
+- **Without a pull request** (a push, scheduled or manual run, or a
+  [full review](suggestions.qmd#full-review)) there is no PR to comment on,
+  so the last two are listed in the suggestion PR's description instead,
+  or in one issue if no test passed at all.
+
+Where each kind of report goes can be changed, see
+[where reports go](suggestions.qmd#where-reports-go).

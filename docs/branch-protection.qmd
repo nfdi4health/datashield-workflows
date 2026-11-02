@@ -15,7 +15,8 @@ configured as [repository or organization rulesets](https://docs.github.com/en/r
 - Block force pushes and deletion.
 
 Suggestion PRs target your feature branches, not `dev`, so they are not
-affected. The monthly [sweep](suggestions.qmd#sweeps) PR does target `dev`;
+affected. Suggestion PRs of scheduled runs and
+[full reviews](suggestions.qmd#full-review) of `dev` do target `dev`;
 with the [GitHub App](getting-started.qmd#github-app) configured, the
 required checks run on it like on any other PR.
 

@@ -128,7 +128,7 @@ With an open suggestion PR to build on (a PR or push run), first:
 | [`handle_failed_new_test()`](https://github.com/nfdi4health/datashield-workflows/blob/main/R/functions/tests/handle_failed_new_test.R) | Decides what becomes of each classified failure: a possible bug in the code (with an issue at the confidence levels of `possible_bugs: open_issue`, high by default) or a failed test (commented on your PR, or listed in the report). |
 | [`create_bug_issue()`](https://github.com/nfdi4health/datashield-workflows/blob/main/R/functions/tests/create_bug_issue.R), [`post_issue_once()`](https://github.com/nfdi4health/datashield-workflows/blob/main/R/functions/shared/post_issue_once.R) | `real_bug` with a confidence to report: listed under possible bugs in the code, and at high confidence an issue, which outlives the PR — one per function: while it is open, further findings go there as comments. |
 | [`post_test_failure_comment()`](https://github.com/nfdi4health/datashield-workflows/blob/main/R/functions/tests/post_test_failure_comment.R) | Every other failure, in a PR: a comment on your PR. |
-| [`format_test_failure()`](https://github.com/nfdi4health/datashield-workflows/blob/main/R/functions/tests/format_test_failure.R) | The text of that comment — or, in a sweep, an entry in the report. |
+| [`format_test_failure()`](https://github.com/nfdi4health/datashield-workflows/blob/main/R/functions/tests/format_test_failure.R) | The text of that comment — or, without a PR, an entry in the report. |
 
 ## ⑨ Set up testthat and write the report
 

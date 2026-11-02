@@ -69,6 +69,12 @@ variables:                        # shaped like an Opal/Armadillo dictionary
     role: confounder
 
 # ---- STEPS (free) ------------------------------------------------------
+#
+# Steps are written and tested one at a time, in this order; each sees the
+# scripts before it and the objects they create on the servers. A step is
+# only written once the steps it builds on work: by default all steps
+# above it, or only those listed in `depends_on` (ids of steps above it;
+# `depends_on: []` for a step that needs none).
 
 steps:
   - id: data_management
@@ -98,7 +104,9 @@ steps:
   - id: sensitivity
     title: Sensitivity analysis
     description: "Main model without MEDI_LPD."
+    # depends_on: [data_management]   # not held up if the main model fails
 
   - id: figures                   # stage 3
     title: Figures
     description: "Histogram of BMI per study."
+    # depends_on: []                  # works on the raw data, needs no other step

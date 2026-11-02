@@ -9,8 +9,14 @@ on:
   #   branches-ignore: [main]
   #   paths: ['R/**']
   schedule:
-    - cron: '0 6 1 * *'   # monthly sweep of the whole package
+    - cron: '0 6 1 * *'   # monthly: what changed on dev since the last review
   workflow_dispatch:
+    inputs:
+      scope:
+        description: 'changed: what changed since the last review; all: every R file (a full review)'
+        type: choice
+        options: [changed, all]
+        default: changed
 
 jobs:
   suggest-docs:
@@ -19,12 +25,15 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
+      actions: read    # earlier runs: where the last review ended
+      checks: read     # their annotations
     uses: nfdi4health/datashield-workflows/.github/workflows/roxygen-suggest.yml@main
-    # PR or push: only what is new since the last run. Schedule: sweep of dev;
-    # manual run: sweep of the branch chosen in "Run workflow".
-    # with:
+    # Every run reviews what changed since the last review: PR or push, the
+    # schedule (on dev), or a manual run (on the branch chosen in "Run
+    # workflow"). A manual run with scope "all" reviews every R file.
+    with:
+      review-scope: ${{ inputs.scope || 'changed' }}
       # DataSHIELD packages only:
-      # datashield: true
       # datashield-type: client   # or server, utility
     secrets:
       anthropic-organization-id: ${{ secrets.ANTHROPIC_ORG_ID }}

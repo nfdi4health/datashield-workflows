@@ -50,12 +50,14 @@ flowchart TD
 
 | Step | Done by | What it does |
 |---|---|---|
-| Decide scope | [`resolve-suggestion-scope`](https://github.com/nfdi4health/datashield-workflows/tree/main/.github/actions/resolve-suggestion-scope) action | From the event alone: skip (bot branch, tag, deleted branch, fork, Dependabot), or which mode (new changes or sweep) and which branch to check out. |
-| Choose files | workflow step (shell), `determine-changes.sh` | In a PR or push: the `R/*.R` files of the commits [new since the last run](suggestions.qmd#what-gets-reviewed), from the suggestion PR's marker, the PR's base or the push's previous state. Commits from other branches and the bot's own are left out. In a sweep: all files (roxygen), or the recently changed ones plus a rotating share (tests, see [sweep scope](test-suggest.qmd#sweep-scope)). Writes `files_to_check.txt`; with no files, all later steps are skipped. |
+| Decide scope | [`resolve-suggestion-scope`](https://github.com/nfdi4health/datashield-workflows/tree/main/.github/actions/resolve-suggestion-scope) action | From the event alone: skip (bot branch, tag, deleted branch, fork, Dependabot), or which mode (what changed, or a full review) and which branch to check out. |
+| Choose files | workflow step (shell), `determine-changes.sh` | The `R/*.R` files of the commits [new since the last review](suggestions.qmd#what-gets-reviewed): from the suggestion PR's marker, the PR's base or the push's previous state — or, for a scheduled or manual run, the last review of the branch, read from the workflow's earlier runs (`review-history.sh`), plus files whose Claude call failed then. Commits from other branches, the bot's own and those a PR run already reviewed are left out. In a [full review](suggestions.qmd#full-review): all files. Writes `files_to_check.txt`; with no files, all later steps are skipped. |
 | Claude token | [`anthropic-token`](https://github.com/nfdi4health/datashield-workflows/tree/main/.github/actions/anthropic-token) action | Trades GitHub's identity token for a short-lived Claude token, see [Claude setup](claude-setup.qmd). |
 | R script | `R/suggest_roxygen.R`, `R/suggest_tests.R` | Everything below. Rewrites files in place and lists them in `updated_files.txt`; writes the PR description (`suggestion_report.md`) and the summary line (`suggestion_summary.md`). |
 | Push token | [`resolve-push-token`](https://github.com/nfdi4health/datashield-workflows/tree/main/.github/actions/resolve-push-token) action | A GitHub App token, so your required checks run on the suggestion PR. |
 | Commit and PR | [`commit-updated-files`](https://github.com/nfdi4health/datashield-workflows/tree/main/.github/actions/commit-updated-files) action | Commits exactly the listed files, opens the suggestion PR or adds to the open one, records the reviewed commit, and comments on your PR. See [how suggestions work](suggestions.qmd). |
+| Record review | workflow step | Leaves a notice on the run (`bot-suggest review`, with the branch and the reviewed commit), which the next scheduled or manual run reads as its starting point. |
+| Count this run | [`count-run`](https://github.com/nfdi4health/datashield-workflows/tree/main/.github/actions/count-run) action | Counts the run once, anonymously, see [usage counting](getting-started.qmd#usage-counting). |
 
 ## Step by step
 

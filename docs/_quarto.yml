@@ -42,6 +42,7 @@ website:
       - section: "Bot suggestions"
         contents:
           - suggestions.qmd
+          - suggestion-choices.qmd
           - authors-suggest.qmd
           - roxygen-suggest.qmd
           - section: "Test suggestions"

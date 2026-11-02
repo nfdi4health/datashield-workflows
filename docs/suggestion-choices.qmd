@@ -1,0 +1,66 @@
+---
+title: "Choosing suggestions"
+description: "Keep, decline or pick up single suggestions of a bot PR by ticking checkboxes in its description."
+---
+
+A suggestion PR often mixes changes you want with ones you don't. Instead
+of editing the bot's branch by hand, you choose in the PR's description:
+every suggestion of the [roxygen](roxygen-suggest.qmd) and
+[test suggestions](test-suggest.qmd) that changes a file is a checkbox.
+`suggestion-choices.yml` makes the bot's branch match the boxes — no
+Claude call, no git, all in the browser.
+
+## What the boxes do
+
+| Box | Ticked | Unticked |
+|---|---|---|
+| A new test | the test is in the file | it isn't; a test file left without tests is removed |
+| An updated existing test | the bot's version | your original |
+| A deleted existing test | the test is gone | your original is back |
+| An applied roxygen change (title, a `@param`, …) | the bot's text | your original text, or no such field if you had none |
+| A roxygen suggestion that wasn't applied (e.g. `clarity`) | the bot's text is applied | stays as it is |
+
+Possible bugs, failed tests and notes are plain list items: they change
+no file.
+
+After a change, the workflow commits the result to the bot's branch
+("chore: apply suggestion choices") and updates the description. A box
+that can't be applied — e.g. the block can't be found any more — is set
+back, with a note.
+
+**Your choices are remembered.** A suggestion you unticked isn't proposed
+again by later runs while the function's code stays the same; once the
+code changes, it is crossed out as "declined, but the code changed
+since" and may come back. Later runs also read the boxes before they
+rebuild the description, so a choice made in between isn't lost.
+
+::: {.callout-note}
+## Wait for the check before merging
+Each change takes about a minute, mostly for installing R. Meanwhile the
+bot PR shows a pending check, "suggestion choices", which turns green
+once the branch matches the boxes. Quick clicks queue up; waiting runs
+are combined.
+:::
+
+The choices work on suggestion PRs into your branches and on
+[full-review](suggestions.qmd#full-review) PRs alike. The
+[author suggestions](authors-suggest.qmd) have no boxes: each of their
+PRs is one change to `DESCRIPTION`.
+
+## Example
+
+{{< example suggestion-choices.yml >}}
+
+The caller has to be on the **base branch** of the bot PRs: your feature
+branches for suggestion PRs, `dev` for full reviews. Adding it to `dev`
+covers both, since feature branches start from there. The `if:` keeps it
+to roxygen and test bot PRs and to edits by a person — the bots' own
+edits of the description don't start it.
+
+## Secrets
+
+{{< wf-secrets suggestion-choices.yml >}}
+
+## Permissions
+
+{{< wf-permissions suggestion-choices.yml >}}

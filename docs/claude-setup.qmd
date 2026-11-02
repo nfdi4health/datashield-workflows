@@ -42,13 +42,24 @@ In the Claude Console under **Settings → Workload identity**:
 2. **Service account** — create one for the repository and add it to each
    workspace it uses.
 3. **Federation rules** — create one per workflow, with GitHub Actions as
-   the provider:
-   - *Subject prefix*: `repo:<owner>/<repo>:*`
-   - *Claim* `job_workflow_ref`:
-     `nfdi4health/datashield-workflows/.github/workflows/roxygen-suggest.yml@refs/heads/main`
-     (or `test-suggest.yml` for the test rule,
-     `datashield-analysis-suggest.yml` for the analysis rule)
-   - *Target*: the repository's service account, in the matching workspace
+   the provider and, under *Match configuration*, a **CEL expression**:
+
+   ```
+   claims.repository_owner_id == "<owner id>" && claims.repository_id == "<repository id>" && claims.job_workflow_ref.startsWith("nfdi4health/datashield-workflows/.github/workflows/roxygen-suggest.yml@")
+   ```
+
+   (or `test-suggest.yml` for the test rule,
+   `datashield-analysis-suggest.yml` for the analysis rule).
+   - *Target*: the repository's service account, in the matching workspace.
+   - The two IDs are numbers: `owner.id` and `id` in
+     `https://api.github.com/repos/<owner>/<repo>`. They keep the rule to
+     your one repository — a fork has another ID, and a rename doesn't
+     change it.
+   - `startsWith(…@")` admits that workflow at any version: `@main`,
+     `@v1`, or a branch you test with — no rule change when you switch.
+   - No subject is checked, so the rule works for both of GitHub's
+     subject formats (repositories created after mid-2026 get one with
+     IDs).
 4. **Secrets** — store in the repository:
 
    | Secret | Value |
@@ -69,3 +80,12 @@ This is also why the callers map secrets explicitly instead of using
 
 The caller job needs `id-token: write` to request the OIDC token; the
 example callers already include it.
+
+::: {.callout-note}
+## Rules from before the move
+Rules created with a subject prefix and an exact `job_workflow_ref` claim
+(`…@refs/heads/main`) only admit `@main` of the old path
+`FlorianSchw/package-workflows`. Change them to the expression above:
+rules can be edited, and their `fdrl_…` IDs stay the same, so your
+secrets don't change.
+:::
