@@ -38,6 +38,8 @@ workflows:
   nfdi4health/datashield-workflows/.github/workflows/create-issue.yml: ["Issue for the PR author"]
   nfdi4health/datashield-workflows/.github/workflows/package-release.yml: [release]
   nfdi4health/datashield-workflows/.github/workflows/workflow-keepalive.yml: [keepalive]
+  nfdi4health/datashield-workflows/.github/workflows/suggestion-choices.yml: ["Bot branch matches the checkboxes"]
+  nfdi4health/datashield-workflows/.github/workflows/datashield-analysis-suggest.yml: [suggestion-pr]
   nfdi4health/datashield-workflows/.github/workflows/workflow-graphs.yml:
     - {outcome: commit, only-on: push}
     - {outcome: "Note on the PR: runs on push only", only-on: pull_request}

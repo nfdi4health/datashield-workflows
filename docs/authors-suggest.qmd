@@ -31,7 +31,7 @@ reason for each change, e.g. "added as `aut` (changed `R/ds.rse.R`)".
 Trigger the workflow on **all** pull requests (and pushes, if you add
 them), without a `paths` filter. Otherwise contributors who only touch
 tests or docs are never seen. Schedules and manual runs do nothing: there
-is no sweep for authors.
+is no full review for authors.
 :::
 
 ## Names
@@ -41,7 +41,8 @@ in their local git configuration, so a GitHub handle doesn't end up next to
 an existing "Real Name" entry. Commits without a linked GitHub account use
 the git author name. Bots such as `dependabot[bot]` or
 `github-actions[bot]` are skipped; the list lives in
-`config/bot-authors.json` and can be [overridden](suggestions.qmd#adjusting-the-guidance).
+`config/bot-authors.yml`, where you can
+[add your own](suggestions.qmd#adjusting-the-guidance).
 
 **Existing entries are recognised** by a commit e-mail that matches the
 entry's (GitHub's noreply addresses are ignored), or by the name — ignoring
@@ -67,6 +68,10 @@ hand-formatted field is reformatted once, on the first change.
 ## Example
 
 {{< example authors-suggest.yml >}}
+
+## Inputs
+
+{{< wf-inputs authors-suggest.yml >}}
 
 ## Secrets
 

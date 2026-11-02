@@ -13,21 +13,26 @@ test**, and proposes only what passes as a [suggestion PR](suggestions.qmd).
 ## What it does
 
 - **Every function is reviewed**, whether it already has tests or not:
-  - in a pull request or push, those in files that are
-    [new since the last run](suggestions.qmd#what-gets-reviewed);
-  - in a [sweep](#sweep-scope), the recently changed ones plus a rotating
-    share of the rest.
+  - in a pull request, push, scheduled or manual run, those in files
+    that changed [since the last review](suggestions.qmd#what-gets-reviewed);
+  - in a [full review](suggestions.qmd#full-review), all of them.
 - **New tests only where they add value** — at most 10 per function, each
   with a stated reason, see [what gets proposed](suggestions.qmd#what-gets-proposed).
 - **Existing tests are reviewed too**: outdated ones are updated, obsolete
   ones deleted, and ones that point to a bug in the code reported.
 - **Every test is run** with your package loaded from source before it is
-  proposed. A generated test that fails is not proposed, but classified
-  and reported.
+  proposed — in a separate R process without the Claude and GitHub
+  tokens, since the tests are generated code. A generated test that fails
+  is not proposed, but classified and reported.
 - **No setup needed.** A package without `testthat` gets it set up in the
   same suggestion PR: `tests/testthat.R`, `testthat` in `Suggests`, and
   `Config/testthat/edition: 3` (only when the test runner is created; an
   existing suite keeps its edition).
+- **Packages the new tests use are declared.** If a proposed test calls
+  a package your `DESCRIPTION` doesn't list (e.g. `withr::local_tempdir()`),
+  it is added to `Suggests` in the same suggestion PR, so R CMD check
+  doesn't warn. Claude is asked to prefer base R, testthat and packages
+  you already declare.
 
 How Claude decides — what it is shown, the quality rules, the safeguards
 for existing tests and how failures are classified — is on
@@ -39,27 +44,30 @@ DSLite, see [DataSHIELD packages](test-suggest-datashield.qmd).
 
 Your test files are found in either of two naming schemes:
 
-- **`tests/testthat/test-<function>.R`**, the usual one;
-- **`test-<category>-<function>.R`**, with several files per function,
+- **`tests/testthat/test-<R file>.R`**, the usual one, e.g.
+  `test-ds.mean.R` for `R/ds.mean.R`;
+- **`test-<category>-<R file>.R`**, with several files per function,
   each for one purpose: e.g. `test-arg-ds.mean.R` for argument checks
   and `test-smk-ds.mean.R` for smoke tests, as in the DataSHIELD base
   packages.
 
-All of a function's test files are run and reviewed together, and each
-change stays in its own file. Names are matched exactly: tests of
+Test files are named after the **R file**, not the function — the same
+thing with one function per file, as the workflows assume. All of a
+function's test files are run and reviewed together, and each change
+stays in its own file. Names are matched exactly: tests of
 `ds.meanByClass` are never taken for tests of `ds.mean`.
 
 **Where new tests go** depends on the scheme, which is recognised
 automatically. If at least half of your test files (and at least three)
 are named by category, Claude picks a category for each new test from the
 ones your repository uses, and the test goes into
-`test-<category>-<function>.R`; the file is created if needed. Otherwise
-new tests go into `test-<function>.R`.
+`test-<category>-<R file>.R`; the file is created if needed. Otherwise
+new tests go into `test-<R file>.R`.
 
 What the common categories mean (`arg`, `smk`, `disc`, `math`, …) is
-explained to Claude in `config/test-categories.json`; a category without
+explained to Claude in `config/test-categories.yml`; a category without
 an entry is shown with your existing files of that category as examples.
-You can replace the list with your own
+You can add or change meanings
 ([per repository](suggestions.qmd#adjusting-the-guidance)).
 
 New tests are added before a file's clean-up at the end, such as a
@@ -70,30 +78,38 @@ are built, e.g. connecting at the top and disconnecting at the end.
 ## The report
 
 The link comment on your PR and the suggestion PR's description start with
-a one-line summary, e.g. "7 new tests · 1 existing test updated". The
-description then lists, grouped per test file in collapsible sections:
+a one-line summary, e.g. "7 new tests · 1 existing test updated · added
+to Suggests: `withr` · 1 possible bug". The description is
+[one report](suggestions.qmd#one-suggestion-pr-per-branch), rebuilt on
+every run, with collapsible sections per test file:
 
-- **Changes to existing tests**, each with its reason;
-- **Existing tests to look at** — reported tests and failing tests left
+- **New tests** and **changes to existing tests**, each with its reason
+  and a [checkbox](suggestion-choices.qmd) — every one passed a real run;
+- **Possible bugs in the code**: tests that fail because the code rather
+  than the test looks wrong, with how sure Claude is and a link to their
+  issue, see [failing tests](test-suggest-review.qmd#failing-tests);
+- **Existing tests to look at**: reported tests and failing tests left
   unchanged;
-- in a sweep, **generated tests that failed**;
+- **Generated tests that failed**, where they aren't commented on a PR;
 - for DataSHIELD packages with `dslite-setup: never`, **functions not
-  tested** because the tests have no way to connect (only listed when
-  there is a report anyway).
+  tested** because the tests have no way to connect.
+
+A test that failed in an earlier run isn't classified, commented or filed
+again; a reported test that passes now is marked as resolved.
 
 Heading sizes and spacing can be adjusted in `config/report-style.yml`
 ([per repository](suggestions.qmd#adjusting-the-guidance)). Without a
-suggestion PR, the report is posted as a comment on your PR, or, in a
-sweep or a push without a PR, as an issue.
+suggestion PR, the report is posted as a comment on your PR, or, without
+a PR, as an issue ([where reports go](suggestions.qmd#where-reports-go)).
 
-## Sweep scope {#sweep-scope}
+## Scheduled runs and full reviews
 
-A [sweep](suggestions.qmd#sweeps) doesn't review every function every
-month. It takes the functions whose file or test files changed within
-`sweep-lookback-days` (default 35), plus a rotating share of the rest, so
-that each function comes up at least once every `sweep-rotation-months`
-(default 6). Set `sweep-rotation-months: 0` to review all functions in
-every sweep.
+A scheduled or manual run reviews the functions whose R file changed on
+the branch since its last review, plus files whose Claude call failed
+then. To review every function, start a
+[full review](suggestions.qmd#full-review) (`review-scope: all`), e.g.
+once when you add the workflow. A full review of a large package costs a
+Claude call per function, with the stronger model the test review uses.
 
 ## Example
 

@@ -14,7 +14,8 @@ never touched.
 
 The workflow only runs if this caller exists on the **base branch** of the
 closed pull request: for suggestion PRs that is your feature branch, for
-[sweep](suggestions.qmd#sweeps) PRs `dev`. Adding it to `dev` covers both,
+scheduled runs and [full reviews](suggestions.qmd#full-review) usually
+`dev`. Adding it to `dev` covers both,
 since feature branches start from there.
 
 ## Permissions

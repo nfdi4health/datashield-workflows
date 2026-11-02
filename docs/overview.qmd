@@ -1,6 +1,6 @@
 ---
 title: "How it fits together"
-description: "What runs when: feature PRs, the release chain and the monthly sweeps."
+description: "What runs when: feature PRs, the release chain and the scheduled reviews."
 ---
 
 The workflows cover three moments in a package's life. Each diagram shows
@@ -29,7 +29,7 @@ flowchart LR
 ```
 
 Checks and suggestions only act if there is something to report; a PR
-without changes to `R/` skips the suggestion workflows entirely. After the
+without changes to `R/` skips the roxygen and test suggestions entirely. After the
 first run, each further push to the PR is reviewed on its own, and an open
 suggestion PR collects the new suggestions. With a `push` trigger, the
 same works on working branches without a PR, see
@@ -55,19 +55,21 @@ flowchart LR
 Why the release runs separately is explained on the
 [release chain](release.qmd) page.
 
-## Monthly sweep
+## Scheduled review
 
-On a schedule, the suggestion workflows review the *whole* package on
-`dev`, not just changed files, and collect everything in one pull request
-per month.
+On a schedule, e.g. monthly, the roxygen and test suggestions review
+`dev` — what changed there since their last review, e.g. pushes made
+without a pull request. Commits a pull request run already reviewed are
+left out. A [full review](suggestions.qmd#full-review) of the whole
+package is started by hand when you want one.
 
 ```{mermaid}
 flowchart LR
   cron(["Schedule, e.g. 1st of the month"])
-  cron --> rox["Roxygen sweep of dev"]
-  cron --> tests["Test sweep of dev"]
-  rox --> pr["Sweep PR into dev"]
+  cron --> rox["Roxygen review of dev"]
+  cron --> tests["Test review of dev"]
+  rox --> pr["Suggestion PR into dev"]
   tests --> pr
-  tests -. "failing generated tests" .-> report["Report in the sweep PR,<br/>issues for likely bugs"]
+  tests -. "failing generated tests" .-> report["Report in the suggestion PR,<br/>issues for likely bugs"]
   pr -- "merged or closed" --> clean["Bot branch deleted"]
 ```

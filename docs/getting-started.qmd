@@ -15,7 +15,7 @@ The workflows assume a two-branch model:
 
 Most example callers use `branches: [dev]` or `branches: [main]` in their
 triggers. If your branches are named differently, adjust those triggers and
-the `allowed-head` / `sweep-base` inputs. The bot suggestions can also run
+the `allowed-head` / `review-branch` inputs. The bot suggestions can also run
 on pushes to your working branches, without a pull request, see
 [how suggestions work](suggestions.qmd#what-gets-reviewed).
 
@@ -37,6 +37,13 @@ Every workflow page has an example caller to copy into
   Map them one by one, as the examples do, rather than
   `secrets: inherit` — two workflows may need different values under the
   same name (see [Claude setup](claude-setup.qmd)).
+- **GitHub.com only.** The workflows run on GitHub-hosted runners and use
+  their own helper actions through GitHub's self-repository reference
+  (`$/`), which GitHub Enterprise Server doesn't support yet.
+
+For the bot suggestions, add the
+[choosing suggestions](suggestion-choices.qmd) caller too, so the
+checkboxes in their pull requests work.
 
 ## Secrets
 

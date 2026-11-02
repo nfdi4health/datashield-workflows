@@ -4,7 +4,8 @@ description: "Keeps scheduled workflows from being disabled after 60 days of ina
 ---
 
 GitHub disables a repository's scheduled workflows after **60 days without
-activity** in it — for example the monthly [sweeps](suggestions.qmd#sweeps)
+activity** in it — for example the monthly
+[scheduled reviews](suggestions.qmd#scheduled-runs)
 or a scheduled [R CMD check](r-cmd-check.qmd) in a package that isn't
 changed for a while. They then silently stop running.
 

@@ -4,8 +4,9 @@ description: "Claude reviews and rewrites roxygen2 documentation."
 ---
 
 `roxygen-suggest.yml` has Claude review the roxygen2 block of each function
-whose file is new in a pull request or push (see
-[what gets reviewed](suggestions.qmd#what-gets-reviewed)), for
+whose file changed since the last review (see
+[what gets reviewed](suggestions.qmd#what-gets-reviewed)), or of every
+function in a [full review](suggestions.qmd#full-review), for
 completeness and accuracy against its code. It proposes an improved block
 as a [suggestion PR](suggestions.qmd).
 
@@ -18,11 +19,10 @@ as a [suggestion PR](suggestions.qmd).
   are required only for exported ones.
 - **Style**: explicit `@title` / `@description` tags, tags in a fixed
   order, examples wrapped in `\dontrun{}`. Order and guidance are set in
-  `config/roxygen-style.json` and can be
-  [overridden](suggestions.qmd#adjusting-the-guidance).
+  `config/roxygen-style.yml` and can be
+  [adjusted](suggestions.qmd#adjusting-the-guidance).
 - **One function per file** is assumed: only the first function of a file
   is reviewed.
-
 - **Only real improvements**: Claude gives a reason for every change.
   Changes that only make correct text clearer or restyle it are dropped,
   as are changes in whitespace, punctuation or case only — those parts
@@ -37,18 +37,31 @@ If a block is already adequate, nothing is proposed.
 
 The link comment on your PR and the suggestion PR's description start with
 a one-line summary, e.g. "8 changes applied · 3 not applied · 1 possible
-bug". The description then shows, in collapsible sections:
+bug". The description is
+[one report](suggestions.qmd#one-suggestion-pr-per-branch), rebuilt on
+every run, with collapsible sections:
 
-- **Applied changes**, grouped per file, each with its reason and a short
-  explanation;
-- **No changes applied**, grouped per reason (e.g. `clarity`), with
-  Claude's proposed text — adopt one by hand if it's worth it;
+- **Applied changes**, grouped per file, each with its reason, a short
+  explanation and a [checkbox](suggestion-choices.qmd) to decline it;
+- **Not applied**, grouped per reason (e.g. `clarity`), with Claude's
+  proposed text — tick one to apply it;
 - **Possible bugs in the code** that Claude noticed while checking the
-  documentation against the code. Nothing in the code is changed. Without
-  a suggestion PR, these are posted as a comment on your PR, or, in a
-  sweep or a push without a PR, collected in one issue per month
-  ("Roxygen sweep: possible bugs in the code (YYYY-MM)"). That's why the
-  caller grants `issues: write`.
+  documentation against the code. Nothing in the code is changed.
+
+Each finding names the commit it came from. With a suggestion PR open, a
+later run reviews the documentation **the PR proposes** (unless you
+edited it since), so the same fixes aren't suggested again; Claude also
+judges the earlier findings, and those that no longer hold are crossed
+out with the reason.
+
+**Possible bugs** are judged before they are reported: Claude first
+explains its reasoning, then gives a verdict and how sure it is. Only
+verdicts of a real defect are kept, at high or medium confidence by
+default — set with the input `code-issue-confidence` (`none`: not
+looked for). Without a suggestion PR, they are posted as a comment on
+your PR, or, without a PR, collected in one issue per month ("Roxygen
+sweep: possible bugs in the code (YYYY-MM)"). That's why the caller
+grants `issues: write`; see [where reports go](suggestions.qmd#where-reports-go).
 
 Heading sizes and spacing can be adjusted in `config/report-style.yml`
 ([per repository](suggestions.qmd#adjusting-the-guidance)); GitHub
@@ -57,8 +70,8 @@ and blank lines.
 
 ## DataSHIELD packages
 
-With `datashield: true`, Claude gets role-specific guidance, chosen with
-`datashield-type`:
+With `datashield-type` set, Claude gets role-specific guidance
+(the default `none` is for other packages):
 
 | `datashield-type` | For | Guidance |
 |---|---|---|
@@ -67,7 +80,7 @@ With `datashield: true`, Claude gets role-specific guidance, chosen with
 | `utility` | analyst-side helper packages, e.g. for setting up analysis projects or mock data | side effects on the analyst's machine; examples that write only to `tempdir()` |
 
 - **Login example:** client packages listed in
-  `config/datashield-example-env.json` get a ready-made multi-study login
+  `config/datashield-example-env.yml` get a ready-made multi-study login
   to the Opal demo server for their examples. Utility packages get it
   through the client packages they depend on (e.g. `dsBaseClient`), and
   only for functions that work on DataSHIELD connections (a `datasources`

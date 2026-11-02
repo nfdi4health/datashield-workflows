@@ -21,9 +21,10 @@ jobs:
 
 ::: {.callout-note}
 ## Work in progress
-These workflows are referenced at `@main` and still evolving. Versioned
-releases will follow once the inputs have settled — feedback on what you
-need is very welcome, see [Roadmap and open questions](roadmap.qmd).
+The examples reference `@main`, which gets every change first. Version 1
+is being prepared as the first release to pin to (`@v1`); see
+[what changes for callers](roadmap.qmd#recent-changes). Feedback on what
+you need is very welcome, see [Roadmap and open questions](roadmap.qmd).
 :::
 
 ## Workflows
@@ -38,7 +39,8 @@ need is very welcome, see [Roadmap and open questions](roadmap.qmd).
 | | [Merge pull request](merge-pull-request.qmd) | Merges a PR from a workflow |
 | | [Create issue](create-issue.qmd) | Opens an issue when a check fails |
 | | [Trigger release publish](trigger-release-publish.qmd) | Starts the release as a separate run |
-| Bot suggestions | [How suggestions work](suggestions.qmd) | Shared mechanics: suggestion PRs, sweeps, cleanup |
+| Bot suggestions | [How suggestions work](suggestions.qmd) | Shared mechanics: suggestion PRs, scheduled runs and full reviews, settings |
+| | [Choosing suggestions](suggestion-choices.qmd) | Keep or decline single suggestions of a bot PR by checkbox |
 | | [Author suggestions](authors-suggest.qmd) | Credits the contributors of a pull request in `DESCRIPTION` |
 | | [Roxygen suggestions](roxygen-suggest.qmd) | Claude reviews and rewrites roxygen2 documentation |
 | | [Test suggestions](test-suggest.qmd) | Claude reviews and writes testthat tests; only passing ones are proposed |

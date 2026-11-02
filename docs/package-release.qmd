@@ -8,7 +8,8 @@ on `main`. From the [Conventional Commits](commitlint.qmd) since the last
 release it
 
 1. works out the next version (`fix:` → patch, `feat:` → minor,
-   breaking change → major) — no release if nothing qualifies;
+   `feat!:` or a `BREAKING CHANGE:` footer → major) — no release if
+   nothing qualifies;
 2. writes it to `DESCRIPTION` and commits that as
    `chore(release): set Description file to <version>`;
 3. tags the commit with the plain version (`1.2.0`, no `v` prefix);
@@ -28,8 +29,25 @@ It is normally started by the [release chain](release.qmd), not directly.
 ## Configuration
 
 If your repository has a `.releaserc.json` in its root, it is used as is.
-Otherwise the shared configuration of this repository is used, read at the
-ref given by `config-ref`.
+Otherwise the shared configuration of this repository is used, from the
+same version of the workflows you call (`@main`, a tag, …).
+
+The shared configuration reads commits with the `conventionalcommits`
+preset, so a `!` after the type (`feat!:`) makes a major release as well
+as a `BREAKING CHANGE:` footer does. semantic-release's default preset
+(`angular`) only knows the footer: a configuration of your own needs
+`"preset": "conventionalcommits"` for the commit analyzer and the release
+notes generator to behave the same. The preset is installed by the
+workflow.
+
+::: {.callout-tip}
+## Squash merges
+A squash merge leaves one commit, and only its title decides the type
+(`feat:`, `fix:`, …) — the commits inside the pull request count only as
+its message body. Give the squash commit a conventional title, and keep
+a `BREAKING CHANGE:` line in its message if the release should be a
+major one.
+:::
 
 Only `desc` is installed for R. If your own configuration runs R code that
 needs more packages, the release will fail on the missing package.

@@ -5,7 +5,7 @@ description: "Drafts tested starter scripts for a DataSHIELD analysis from the a
 
 `datashield-analysis-suggest.yml` is for **analysis projects**, not
 packages: projects set up with
-[dsAnalysis](https://github.com/FlorianSchw/dsAnalysis). You describe
+[dsAnalysis](https://github.com/nfdi4health/dsAnalysis). You describe
 your analysis in a plan file, `config/analysis-plan.yml`: the studies,
 the variables and the steps. Each change to that file drafts starter
 scripts with the right DataSHIELD calls, **tests them on mock data**, and
@@ -31,12 +31,13 @@ flowchart TD
     check --> pkgs["Install the studies'<br/>DataSHIELD packages"]
     pkgs --> mock["Mock data<br/>from the plan"]
   end
-  subgraph draft ["Draft and test"]
+  subgraph draft ["For each step, in plan order"]
     direction LR
-    claude["Claude drafts<br/>the steps"] --> verify["Check every call,<br/>run all scripts in DSLite"]
+    claude["Claude drafts<br/>the step"] --> verify["Check every call,<br/>run the scripts so far in DSLite"]
     verify -- "fails: one repair round" --> claude
-    verify -- "passes" --> pr["Suggestion PR"]
+    verify -- "passes" --> next(["Next step"])
   end
+  draft --> pr["Suggestion PR"]
   prep --> draft
 ```
 
@@ -49,9 +50,15 @@ flowchart TD
 - **Every DataSHIELD call is checked** against the functions and arguments
   of the installed client packages. Every column has to be a variable of
   your plan or one a step creates.
-- **All scripts run** in your project's testing mode: dsAnalysis's DSLite
-  setup with the mock data. A failing step gets one repair round; if it
+- **One step at a time,** in plan order: Claude sees the scripts before
+  it and the objects they left on the servers, and the step is tested
+  together with them in your project's testing mode (dsAnalysis's DSLite
+  setup with the mock data). A failing step gets one repair round; if it
   still fails, it isn't proposed.
+- **A step waits for the steps it builds on:** by default all steps above
+  it, or those named in its `depends_on`. If one of them failed in this
+  run, the step isn't written yet; the report says so, and it is tried
+  again on the next run.
 
 Details: [analysis plan and checks](datashield-analysis-details.qmd).
 
@@ -61,8 +68,9 @@ Details: [analysis plan and checks](datashield-analysis-details.qmd).
 
 The **core** (`symbol`, `studies`, `variables`) is fixed, because the mock
 data and the package checks rely on it. The **steps** are free: only a
-title is required, and everything else is passed on as you wrote it.
-Plans can look completely different.
+title is required, and everything else is passed on as you wrote it —
+except `depends_on`, which sets what a step builds on. Plans can look
+completely different.
 
 ## What you get
 

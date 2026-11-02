@@ -13,8 +13,9 @@ workflows, step by step, is shown [under the hood](suggestions-internals.qmd).
 ## When they run and what they review {#what-gets-reviewed}
 
 The workflows run on pull requests and, if your caller adds a `push`
-trigger, on pushes to your working branches. Either way they review **only
-what is new since their last run**:
+trigger, on pushes to your working branches. The roxygen and test
+workflows can also run on a schedule or by hand. Every run reviews **only
+what is new since the last review**:
 
 | Event | Reviewed |
 |---|---|
@@ -22,19 +23,22 @@ what is new since their last run**:
 | Another push to an open PR | only the commits of that push |
 | A push to a branch without a PR | only the commits of that push |
 | The first push of a new branch | the commits that exist on no other branch |
-| A schedule or manual run | the whole package: a [sweep](#sweeps) |
+| A schedule or manual run | what changed on the branch since its last review, see [scheduled and manual runs](#scheduled-runs) |
 
-How far your branch is ahead of or behind `dev` doesn't matter. Two kinds
-of commits are left out, because they aren't new work on your branch:
+How far your branch is ahead of or behind `dev` doesn't matter. Some
+commits are left out, because they aren't new work on your branch or were
+already reviewed:
 
 - **commits merged in from another branch**, e.g. when you merge `dev`
   into your branch to catch up: they aren't reviewed, and their authors
   aren't credited on your branch;
 - **the bot's own commits**, e.g. after you merge its suggestion PR: it
-  doesn't review its own suggestions again.
+  doesn't review its own suggestions again;
+- **commits a pull request run already reviewed**, e.g. a feature merged
+  into `dev`: a later scheduled run on `dev` doesn't review them again.
 
 A `paths` filter in your caller decides whether a run starts at all, e.g.
-only when files under `R/` changed. The examples on each page show both
+only when files under `R/` changed. The examples on each page show the
 triggers.
 
 ## Suggestions are pull requests, never direct commits
@@ -57,7 +61,10 @@ suggest, it
    DESCRIPTION".
 
 You review the suggestion like any PR: merge it, edit it first, or close
-it.
+it. In roxygen and test suggestion PRs, every suggestion that changes a
+file is a **checkbox** in the description: untick what you don't want, or
+tick a suggestion that wasn't applied, and the branch follows — see
+[choosing suggestions](suggestion-choices.qmd).
 
 ### One suggestion PR per branch
 
@@ -66,17 +73,24 @@ opening another one:
 
 - your new commits are merged into the bot's branch, and where both
   changed the same lines, **your version wins**;
-- the new suggestions are added on top, and the PR description gets an
-  "Update for …" section with that run's report;
+- the new suggestions are added on top;
 - if you changed a file that already has a suggestion, it is reviewed
   again against your current code, and the new suggestion replaces the
   old one.
 
 So you can push and keep working before you look at the suggestions.
 
-The suggestion PR's description also records, invisibly, up to which
-commit the bot has reviewed. That's how a run that was dropped or failed in
-between is caught up.
+**The description is one report.** For roxygen and tests it is rebuilt
+on every run from all findings so far: each finding is tagged with the
+commit it came from, findings that no longer hold are crossed out with
+the reason (never deleted), and a "Latest review" line says what the last
+run changed. Edits you make to the description by hand are overwritten —
+except the checkboxes, which are read first. Comments on the PR are
+safe. The author suggestions add a section per run instead.
+
+The description also records, invisibly, up to which commit the bot has
+reviewed. That's how a run that was dropped or failed in between is
+caught up.
 
 The bot's branch is **rebuilt** instead (with a note in the PR) when your
 branch's history was rewritten, e.g. by a rebase and force-push, or when
@@ -89,33 +103,54 @@ run's suggestions, set the input `open-suggestion-pr: replace`.
 GitHub keeps at most one waiting run per branch. If you push three times
 within a few minutes while **no** suggestion PR is open, the middle push's
 run can be dropped, and its files are only reviewed when they change
-again or in a sweep. Nothing wrong is proposed; one review is missing.
+again or in a [full review](#full-review). Nothing wrong is proposed; one
+review is missing.
 :::
 
-## Sweeps {#sweeps}
+### When a Claude call fails
 
-The roxygen and test workflows also review the **whole package**, meant
-for a monthly schedule, and collect everything in one pull request:
+The roxygen and test workflows retry a Claude call that fails for a
+passing reason (rate limit, overloaded, a lost connection). If it still
+fails, the run goes on with the other files and stays green; the file is
+named in a **warning** on the run's summary page and in the pull
+request's checks. While a suggestion PR is open, the next run checks that
+file again, even if nothing changed in it.
 
-- **A scheduled run** sweeps `dev`, since GitHub always starts a schedule
+## Scheduled and manual runs {#scheduled-runs}
+
+The roxygen and test workflows can also run on a schedule (e.g. monthly)
+or by hand ("Run workflow"). They review **what changed on the branch
+since its last review**, so nothing is reviewed twice:
+
+- **A scheduled run** reviews `dev`, since GitHub always starts a schedule
   on the default branch (usually `main`).
-- **A manual run** ("Run workflow") sweeps the branch you choose in the
-  menu.
-- **The `sweep-base` input** sets a fixed branch for both, e.g.
-  `sweep-base: main` in a repository without `dev`.
+- **A manual run** reviews the branch you choose in the menu.
+- **The `review-branch` input** sets a fixed branch for both, e.g.
+  `review-branch: main` in a repository without `dev`.
 
-The pull request goes into that branch, from
-`bot-suggest/<kind>-sweep-<branch>-YYYY-MM`. Running a sweep again in the
-same month updates that month's pull request. The test workflow limits
-each sweep to recently changed functions plus a rotating share of the rest,
-see [sweep scope](test-suggest.qmd#sweep-scope).
-
-The mode follows the trigger by itself (`scan-mode: auto`, the default), so
-one caller file handles pull requests, pushes and sweeps.
+The last review is read from the workflow's earlier runs, so the caller
+grants `actions: read` and `checks: read` (the examples do). Before a
+branch has been reviewed at all, a scheduled or manual run has nothing to
+compare with: it reviews nothing and becomes the starting point — run a
+full review once instead. The suggestions go into a suggestion PR into
+that branch, as for a push.
 
 GitHub stops scheduled workflows in repositories without activity for 60
-days. Add the [workflow keepalive](workflow-keepalive.qmd) so the sweeps
-keep running.
+days. Add the [workflow keepalive](workflow-keepalive.qmd) so the
+scheduled runs keep running.
+
+## Full review {#full-review}
+
+With `review-scope: all`, the roxygen and test workflows review **every**
+`R/*.R` file of the branch, whatever changed, and collect everything in
+one pull request into that branch, from
+`bot-suggest/<kind>-all-<branch>-YYYY-MM`, titled "Roxygen documentation:
+full review" or "Test suggestions: full review". Running a full review
+again in the same month updates that month's pull request.
+
+The example callers offer it as a choice in "Run workflow": a `scope`
+input passed on as `review-scope`. A full review on every schedule is
+possible too, but costs a Claude call for every function each time.
 
 ## What gets proposed {#what-gets-proposed}
 
@@ -130,15 +165,46 @@ change, from a fixed list, and only some reasons lead to a proposal:
 
 On top of that, the workflows drop documentation changes that differ only
 in whitespace, punctuation or case, and tests whose assertions already
-exist. The lists are set as `accept_reasons` in `config/claude.yml` and can
-be [changed per repository](#adjusting-the-guidance). They are a first
-setting, likely to be tuned.
+exist. A suggestion you declined (unticked) isn't proposed again while
+the function's code stays the same.
+
+The reasons, what each means, and which are proposed are set in
+`config/suggestion-policy.yml`, together with the other rules: at most 10
+new tests per function, which possible bugs in the code are reported and
+which get an issue, and [where reports go](#where-reports-go). Change it
+[per repository](#adjusting-the-guidance), or per caller with two inputs
+of the roxygen and test workflows:
+
+- **`accept-reasons`**, e.g. `missing,inaccurate,incomplete,clarity`;
+- **`code-issue-confidence`**: which possible bugs are reported, by how
+  sure Claude is (`high`, `high,medium`, `high,medium,low`), or `none`
+  for no such reports at all.
+
+These settings are a first guess, likely to be tuned.
 
 The test workflow also changes **existing tests**, but only for fixed
 reasons: an update when the function's behaviour was changed on purpose
 (`contract_changed`), a deletion for a duplicate, removed behaviour or a
 trivial test. A test that fails because the code may be wrong is only
 reported. See [existing tests](test-suggest-review.qmd#existing-tests).
+
+### Where reports go {#where-reports-go}
+
+Findings that don't change a file — possible bugs in the code, failing
+tests, names that may already be listed — go into the suggestion PR's
+description. Without a suggestion PR, they go where `routing` in
+`config/suggestion-policy.yml` says:
+
+| Report | On a pull request | Without a pull request |
+|---|---|---|
+| Roxygen: possible bugs in the code | a comment | one issue per month |
+| Tests: the report | a comment | an issue |
+| Tests: each failed generated test | a comment | in the report |
+| Authors: may already be listed | a comment | the job log |
+
+Each can be set to `comment`, `issue` or `log`; an issue needs
+`issues: write` on the caller (the roxygen and test examples grant it).
+A comment isn't posted again on the next push if it says the same.
 
 ## Housekeeping
 
@@ -156,24 +222,53 @@ reported. See [existing tests](test-suggest-review.qmd#existing-tests).
   [GitHub App](getting-started.qmd#github-app) configured, your required
   checks run on suggestion PRs; without it they don't, and a ruleset
   requiring them would block the merge.
+- **Generated code gets no tokens:** the test workflow runs the tests it
+  writes in a separate R process without the Claude and GitHub tokens.
 
-## Adjusting the guidance
+## Adjusting the guidance {#adjusting-the-guidance}
 
 The workflows read their settings, guidance and prompts from this
 repository. To change one for your package only, put a file at the **same
-path** in your repository. It is used instead of the shared one:
+path** in your repository. Settings files are **merged over the shared
+ones key by key**: yours only needs the entries you change, and later
+additions to the shared file still reach you. A list is replaced as a
+whole.
 
 | File | Controls |
 |---|---|
-| `config/bot-authors.json` | Accounts never added to `DESCRIPTION`, and how the bot recognises its own commits |
-| `config/claude.yml` | Claude model, request settings and `accept_reasons` |
+| `config/suggestion-policy.yml` | Reasons and which are proposed, the number of new tests, possible bugs, author roles and name particles, where reports go |
+| `config/claude.yml` | Claude model and request settings, per task |
+| `config/bot-authors.yml` | Accounts never added to `DESCRIPTION`, and how the bot recognises its own commits |
 | `config/report-style.yml` | Heading levels and spacing of the suggestion reports |
-| `config/roxygen-style.json` | Roxygen tag order and per-tag guidance |
-| `config/test-categories.json` | Meanings of test file categories (`test-<category>-<function>.R`), see [test files](test-suggest.qmd#test-files) |
-| `config/test-role-guidance.json` | Testing strategy given to Claude |
+| `config/roxygen-style.yml` | Roxygen tag order and per-tag guidance |
+| `config/datashield-role-guidance.yml` | Roxygen guidance for DataSHIELD client, server and utility packages |
+| `config/datashield-example-env.yml` | The demo-server login used in DataSHIELD client examples |
+| `config/test-categories.yml` | Meanings of test file categories (`test-<category>-<R file>.R`), see [test files](test-suggest.qmd#test-files) |
+| `config/test-role-guidance.yml` | Testing strategy given to Claude |
+| `config/dslite-canned-datasets.yml` | The DSLite datasets a new DataSHIELD test setup can use |
 | `config/workflow-outcomes.yml` | What workflows produce, for the [workflow graphs](workflow-graphs.qmd) |
 | `prompts/*.md` | The full prompts sent to Claude |
 
-Start from a copy of the shared file, since yours replaces it completely.
-(The [analysis scripts](datashield-analysis-suggest.qmd) workflow works
-differently: its two settings files are merged key by key.)
+For example, to also propose clearer wording in roxygen documentation,
+your `config/suggestion-policy.yml` needs only:
+
+```yaml
+roxygen:
+  reasons:
+    clarity:
+      accept: true
+```
+
+A prompt is the one exception: your copy **replaces** the shared one, so
+start from a copy of it. The settings of the
+[analysis scripts](datashield-analysis-details.qmd#settings) work the same
+way.
+
+::: {.callout-note}
+## Before v1: JSON, and replaced as a whole
+Until v1, some of these files were JSON (`bot-authors.json`,
+`roxygen-style.json`, `test-categories.json`, `test-role-guidance.json`),
+replaced the shared file completely, and `config/claude.yml` held
+`accept_reasons`. A copy with the old name is no longer read: move what
+you changed into the new YAML file, keeping only your entries.
+:::

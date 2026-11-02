@@ -22,6 +22,73 @@ may be closed without review until this is set up.
 
 ## Recent changes {#recent-changes}
 
+**Version 1**
+
+The first versioned release. Callers have to change a few lines once;
+after that, breaking changes only come with a new major version.
+
+**What callers need to change:**
+
+- **New address:** the repository moved to
+  `nfdi4health/datashield-workflows`. Change the `uses:` lines of your
+  callers; the old path `FlorianSchw/package-workflows` still redirects
+  for now, but may stop doing so.
+- **Federation rules** in the Claude Console: change each rule to the
+  [CEL expression](claude-setup.qmd#setting-up-a-repository). It admits
+  the new path at any version (`@main`, `@v1`, a test branch); the rule
+  IDs, and so your secrets, stay the same.
+- **Renamed inputs** of the roxygen and test suggestions — a caller still
+  using an old name fails at the start:
+  - `scan-mode` → `review-scope`, with the values `changed` (default)
+    and `all`;
+  - `sweep-base` → `review-branch`;
+  - `datashield: true` is gone: `datashield-type` alone says it
+    (`none` by default, else `client`, `server` or `utility`).
+- **Package release:** the inputs `config-repo` and `config-ref` are
+  gone; the shared release configuration comes from the version of the
+  workflows you call.
+- **Permissions:** the roxygen and test caller jobs grant
+  `actions: read` and `checks: read`, or GitHub refuses to start the
+  run.
+- **Settings files** of your own (e.g. `config/bot-authors.json`) are
+  now YAML and merged over the shared ones key by key, see
+  [adjusting the guidance](suggestions.qmd#adjusting-the-guidance). An
+  old JSON copy is no longer read; `accept_reasons` moved from
+  `config/claude.yml` to `config/suggestion-policy.yml`.
+
+**New and changed:**
+
+- **Scheduled and manual runs review only what changed** since the
+  branch's last review, read from the workflow's earlier runs — no more
+  monthly sweeps with a rotating share. A **full review** of every file is
+  `review-scope: all`, offered in the example callers as a choice in
+  "Run workflow". Its pull request is
+  `bot-suggest/<kind>-all-<branch>-YYYY-MM`, titled "…: full review". See
+  [scheduled and manual runs](suggestions.qmd#scheduled-runs).
+- **[Choosing suggestions](suggestion-choices.qmd) by checkbox:** untick
+  a suggestion you don't want, or tick one that wasn't applied, and the
+  bot's branch follows. Needs one more caller.
+- **One report per suggestion PR**, rebuilt on every run: findings with
+  the commit they came from, outdated ones crossed out, a "Latest review"
+  line. With a suggestion PR open, the bots build on what it proposes.
+- **The bots' rules in one file,** `config/suggestion-policy.yml`:
+  reasons, limits, possible bugs, author roles, and
+  [where reports go](suggestions.qmd#where-reports-go).
+- **Possible bugs in the code** come with Claude's verdict and how sure
+  it is; set which are reported with `code-issue-confidence`. The test
+  suggestions open one issue per function, at high confidence only, and
+  don't file the same failing test again.
+- **Test suggestions** declare packages the new tests use in
+  `Suggests`, and run the generated tests without any tokens.
+- **Analysis scripts** are written step by step, each tested with the
+  ones before it; a step can name the steps it builds on with
+  [`depends_on`](datashield-analysis-details.qmd#the-plans-fields).
+- **Failed Claude calls** are retried; a call that still fails leaves a
+  warning, the run stays green, and the file is checked again next run.
+- **Releases** read commits with the `conventionalcommits` preset, so
+  `feat!:` makes a major release too, see
+  [package release](package-release.qmd#configuration).
+
 **October 2026**
 
 - **Usage counting:** every run of the bot suggestions (roxygen, tests,
@@ -74,9 +141,10 @@ hard to fill in.
 
 ### Versioning
 
-All workflows are referenced at `@main`, so every change reaches every
-caller on its next run. Versioned releases (`@v1`, with breaking changes
-in `@v2`) will follow once the inputs have settled.
+Version 1 is the first versioned release: `@v1` follows its compatible
+updates, breaking changes come as `@v2`. `@main` keeps getting every
+change first. The examples still reference `@main` until `v1` is
+published.
 
 *Feedback wanted:* inputs you miss, or ones you never need.
 
@@ -110,8 +178,8 @@ issues?
 
 ## Not yet proven in real use
 
-- **Monthly sweeps**: both have run when started by hand; the first
-  scheduled run is still ahead.
+- **Scheduled runs** reviewing what changed since the last review: the
+  first is still ahead. Full reviews and the checkboxes work.
 - **Changes to existing tests**: updating and deleting them, and reporting
   possible bugs. Generating, running and proposing new tests works.
 - **The first real release** with the version written to `DESCRIPTION` —
@@ -119,11 +187,11 @@ issues?
 - ~~**[Workflow graphs](workflow-graphs.qmd)**: new; the first real runs
   are still ahead.~~ Running on a first repository; the layout is still
   being refined.
-- **Suggestions on push**, and building on an open suggestion PR: tested
-  locally; the first real runs are still ahead.
+- **Suggestions on push**: tested locally; the first real runs are
+  still ahead. Building on an open suggestion PR works.
 - **[DataSHIELD analysis scripts](datashield-analysis-suggest.qmd)**:
-  tested locally with real DSLite runs; the first real runs, with Claude
-  and the package installs, are still ahead.
+  tested locally with real DSLite runs; the first real runs, with Claude,
+  the package installs and the step-by-step drafting, are still ahead.
 - **`datashield-type: utility`**: the first real runs are still ahead.
 
 ## Planned
@@ -137,5 +205,7 @@ issues?
   proposed test adds.
 - **Analysis scripts, next stages:** models with the assumption checks
   DataSHIELD allows, then figures and tables as files.
-- **The bots' rules in one readable settings file**, e.g. which reasons
-  lead to a proposal and where reports go, adjustable per repository.
+- ~~**The bots' rules in one readable settings file**, e.g. which reasons
+  lead to a proposal and where reports go, adjustable per repository.~~
+  Available: `config/suggestion-policy.yml`, see
+  [what gets proposed](suggestions.qmd#what-gets-proposed).
