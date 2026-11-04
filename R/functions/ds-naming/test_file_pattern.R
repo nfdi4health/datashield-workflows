@@ -8,7 +8,7 @@
 test_file_pattern <- function(package_rules, side) {
   tests <- package_rules$tests
   categories <- names(tests$category)
-  after_first <- c(categories, names(tests$qualifiers))
+  after_first <- c(categories, names(tests$qualifier))
   category <- sprintf("(?<category>(%s)(%s(%s))*)", paste(categories, collapse = "|"), tests$category_joiner,
                       paste(after_first, collapse = "|"))
   fn <- gsub("^\\^|\\$$", "", package_rules$`function`[[side]]$pattern)
