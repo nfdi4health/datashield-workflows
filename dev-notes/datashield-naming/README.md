@@ -259,6 +259,14 @@ other packages that call the renamed functions.
 - Deprecation shims (old names accepted with a warning) or hard break?
 - Scope of the first round: dsBase/Client only, or all packages.
 - Rename `datasources` given the 2/7 objection?
+- Test files of internal functions: reported for now, as `<function>` in
+  the test file template follows the client or server function pattern.
+  Depends on `functions.internal.prefix` (`.` vs `int.`). Options: (1) the
+  template also accepts the prefix (`test-arg-int.checkClass.R`; with `.`
+  it reads `test-arg-.checkClass.R`), after renaming existing internal
+  functions; (2) test files only for user-facing functions, internal ones
+  tested through them; (3) any function of the package (looser, not
+  wanted so far).
 - Test files that test no function: datasets (`test-datachk-CNSIM.R`) and
   topics (`conndisconn`, `void`, `per_study_arguments`, `utils`). Removed
   from the rules on 2026-11-05 until discussed, so they are reported now;
