@@ -16,7 +16,7 @@ function:
   server:
     pattern: "^[a-z][A-Za-z0-9]*DS$"
   internal:
-    prefix: [".", "int."]
+    prefix: [".", "int."] # discussion: only "." sometimes caused problems
   one_function_per_file: true
   file_name: "<function>.R"
 
