@@ -1,4 +1,4 @@
-# A rule's `name` from config/ds-naming-rules.yml: a decided name, or a
+# A rule's `name` from config/ds-naming-argument-rules.yml: a decided name, or a
 # list of candidates while still open (the first is the front-runner).
 # Returns the name to propose and whether the rule is still open — open
 # ones are proposed all the same, marked in the entry and the report.

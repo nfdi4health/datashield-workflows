@@ -1,0 +1,55 @@
+# DataSHIELD naming rules for packages in general: function names, test
+# file names, argument order. Argument names: ds-naming-argument-rules.yml.
+# A list of candidates under a rule = still open, the first one is used.
+# A project's own copy is merged over this file key by key.
+
+meta:
+  version: 0.1.0
+  status: draft
+
+functions:
+  client:
+    pattern: "^ds\\.[a-z][A-Za-z0-9]*$"
+    allowed_prefixes: [dh., dss]
+    namespaced: ["ds.vert.", "ds.imaging."]
+  server:
+    pattern: "^[a-z][A-Za-z0-9]*DS$"
+  internal:
+    prefix: [".", "int."]
+  one_function_per_file: true
+  file_name: "<function>.R"
+
+tests:
+  pattern: "^test-(<category>-)?<target>(-<variant>)?\\.R$"
+  target: "[A-Za-z][A-Za-z0-9._]*"
+  target_must_be:
+    - existing_function
+    - dataset
+    - topic
+  allowed_topics: [conndisconn, void, per_study_arguments, utils]
+  category_joiner: "_"
+  categories:
+    smk: smoke test, function runs and returns expected structure
+    arg: argument validation and error messages
+    perf: performance against a stored profile
+    disc: disclosure checks
+    discctrl: disclosure control settings (nfilter.*)
+    datachk: data checks / class consistency
+    expt: expected results against known values
+    math: mathematical correctness
+    dgr: degraded or unusual input (missing values, edge cases)
+  qualifiers:
+    bug: regression test for a reported bug
+  category_required: false
+  function_part: exact_function_name
+  variant: "[a-z0-9_]+"
+  helpers_allowed: ["setup.R", "teardown.R", "^helper-.*\\.R$"]
+  coverage:
+    every_exported_function_has: [smk]
+  rename_with_function: true
+
+order:
+  datasources_last: true
+  dots_after_datasources: true
+  primary_input_first: true
+  newobj_after_inputs: true

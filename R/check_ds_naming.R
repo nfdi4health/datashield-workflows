@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 # Checks a DataSHIELD package's argument names against the naming rules
-# (config/ds-naming-rules.yml, a repository's own copy merged over it) and
+# (config/ds-naming-argument-rules.yml, config/ds-naming-package-rules.yml,
+# a repository's own copies merged over them) and
 # writes the transformation file people approve renames in:
 #   1. read the package (the caller) and, if given, its server package
 #      (SERVER_DIR), and pair client arguments with the server arguments
@@ -28,7 +29,8 @@ functions_dir <- if (dir.exists("R/functions/ds-naming")) {
 }
 walk(list.files(file.path(functions_dir, c("shared", "ds-naming")), pattern = "\\.R$", full.names = TRUE), source)
 
-rules <- read_config_yaml("config/ds-naming-rules.yml")
+rules <- read_config_yaml("config/ds-naming-argument-rules.yml")
+package_rules <- read_config_yaml("config/ds-naming-package-rules.yml")
 transformation_file <- Sys.getenv("TRANSFORMATION_FILE", ".github/ds-naming/transformations.yml")
 previous_file <- Sys.getenv("PREVIOUS_FILE", transformation_file)
 server_dir <- Sys.getenv("SERVER_DIR")
@@ -136,9 +138,9 @@ write_transformation_file(entries, meta, transformation_file, classifications)
 
 checks <- lapply(pkgs, function(p) list(
   package = p$name,
-  function_names = check_function_names(p, rules),
-  order = check_argument_order(rows[rows$package == p$name, ], rules),
-  tests = check_test_file_names(p, rules)
+  function_names = check_function_names(p, package_rules),
+  order = check_argument_order(rows[rows$package == p$name, ], package_rules),
+  tests = check_test_file_names(p, package_rules)
 ))
 report <- format_naming_report(rows, entries, checks, transformation_file, rules$meta$version)
 report_file <- file.path(dirname(transformation_file), "report.md")
