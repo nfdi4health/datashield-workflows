@@ -15,8 +15,8 @@ The rules are in two files of this repository, used by the
 
 | File | Rules for |
 |---|---|
-| `config/ds-naming-package-rules.yml` | Packages in general: function names, test file names, argument order |
-| `config/ds-naming-argument-rules.yml` | Function arguments: style, classes and roles |
+| `config/ds-naming-package-rules.yml` | Packages in general: function names and test file names |
+| `config/ds-naming-argument-rules.yml` | Function arguments: style, classes, roles and order |
 
 ## Package rules
 
@@ -79,10 +79,6 @@ functions, or of functions under the open prefixes, are reported too.
 `setup.R`, `teardown.R` and
 `helper-*.R` are exempt.
 
-### Argument order
-
-`datasources` comes last; only `...` may follow it.
-
 ## Argument rules
 
 An argument's name depends on what it is. Client arguments usually hold
@@ -138,6 +134,11 @@ For an argument naming an object on the server:
 Numbered (`df1`, `df2`) or distinct (`x`, `y`) is open; numbered is used
 for now. Established `x`, `y` pairs stay, e.g. in `ds.cor` and `ds.cov`.
 Descriptive names such as `sex` are kept.
+
+### Order
+
+`datasources` comes last; only `...` may follow it. This is reported by
+the check; the apply workflow doesn't reorder arguments.
 
 ### Exceptions
 

@@ -1,5 +1,5 @@
-# DataSHIELD naming rules for packages in general: function names, test
-# file names, argument order. Argument names: ds-naming-argument-rules.yml.
+# DataSHIELD naming rules for packages in general: function names and test
+# file names. Function arguments: ds-naming-argument-rules.yml.
 # A list of candidates under a rule = still open, the first one is used.
 # A project's own copy is merged over this file key by key.
 
@@ -40,9 +40,3 @@ tests:
     bug: regression test for a reported bug
   variant: "[a-z0-9_]+"
   helpers_allowed: ["setup.R", "teardown.R", "^helper-.*\\.R$"]
-
-order:
-  datasources_last: true
-  dots_after_datasources: true
-  primary_input_first: true
-  newobj_after_inputs: true

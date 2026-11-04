@@ -139,7 +139,7 @@ write_transformation_file(entries, meta, transformation_file, classifications)
 checks <- lapply(pkgs, function(p) list(
   package = p$name,
   function_names = check_function_names(p, package_rules),
-  order = check_argument_order(rows[rows$package == p$name, ], package_rules),
+  order = check_argument_order(rows[rows$package == p$name, ], rules),
   tests = check_test_file_names(p, package_rules)
 ))
 report <- format_naming_report(rows, entries, checks, transformation_file, rules$meta$version)

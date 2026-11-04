@@ -110,8 +110,7 @@ the live caller used to validate changes before wider rollout.
     naming harmonisation (rules not agreed yet; draft pages
     `docs/ds-naming.qmd`, `docs/ds-naming-rules.qmd` since 2026-11-05). Run from a client package, which checks out its server
     package. Check: rules (`config/ds-naming-argument-rules.yml` for arguments,
-    `config/ds-naming-package-rules.yml` for function and test file names
-    and argument order, each merged key by key via `read_config_yaml()`,
+    `config/ds-naming-package-rules.yml` for function and test file names, each merged key by key via `read_config_yaml()`,
     now in `shared/`) + Claude for unclear
     arguments → `.github/ds-naming/transformations.yml` in a review PR,
     people set `status: approved|skip`. Apply (on push of that file):

@@ -1,9 +1,9 @@
 # Functions whose `datasources` argument (role connection) is not last,
-# with only `...` allowed after it (`order` in the package rules). `rows` are the
+# with only `...` allowed after it (`order` in the rules). `rows` are the
 # classified argument rows of one package. Report only: reordering breaks
 # positional calls and is left to the maintainers.
-check_argument_order <- function(rows, package_rules) {
-  if (!isTRUE(package_rules$order$datasources_last) || nrow(rows) == 0) {
+check_argument_order <- function(rows, rules) {
+  if (!isTRUE(rules$order$datasources_last) || nrow(rows) == 0) {
     return(character(0))
   }
   bad <- character(0)
@@ -15,7 +15,7 @@ check_argument_order <- function(rows, package_rules) {
     }
     after <- r$arg[seq_len(nrow(r)) > max(conn)]
     allowed_after <- character(0)
-    if (isTRUE(package_rules$order$dots_after_datasources)) {
+    if (isTRUE(rules$order$dots_after_datasources)) {
       allowed_after <- "..."
     }
     if (length(setdiff(after, allowed_after)) > 0) {

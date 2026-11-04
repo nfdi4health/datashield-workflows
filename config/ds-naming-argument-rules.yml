@@ -109,6 +109,12 @@ multiple_inputs:
     - { functions: [ds.cor, ds.corTest, ds.cov, ds.scatterPlot, ds.contourPlot, ds.heatmapPlot, ds.densityGrid], names: ["x", "y"] }
   vector_of_names: [x.names, x_names]
 
+order:
+  datasources_last: true
+  dots_after_datasources: true
+  primary_input_first: true
+  newobj_after_inputs: true
+
 roles:
   connection:
     description: 'The list of DSConnection objects returned by datashield.login(); decides which servers the call goes to.'
