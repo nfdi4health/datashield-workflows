@@ -12,8 +12,10 @@ person with the DataSHIELD developers before the rules are final.
 
 | File | What |
 | --- | --- |
-| `../../config/ds-naming-rules.yml` | Draft rules config v0.1 (the single source of truth; moved there from this folder on 2026-10-14, read by the workflows, a repository's own copy merged over it key by key). YAML, not JSON, because every line carries a comment. `name: [a, b]` = still open (front-runner first); entries have `description`, `param_doc` (standard `@param` text), `aliases`, `status`. |
-| `example-ds-naming-check.yml`, `example-ds-naming-apply.yml` | Caller files (kept here, not in `examples/`, while the rules are internal). |
+| `../../config/ds-naming-argument-rules.yml` | Draft rules for function arguments: style, what an argument refers to, classes, roles, several inputs, exceptions. `name: [a, b]` = still open (front-runner first); entries have `description`, `param_doc` (standard `@param` text), `aliases`, `status`. |
+| `../../config/ds-naming-package-rules.yml` | Draft rules for packages in general: function names, test file names, argument order. Split from one file on 2026-11-04 (user); both are read by the workflows, a repository's own copy merged over each key by key. |
+| `rules-annotated-v0.1.yml` | The one file as it was before the split: the reasoning, survey and inventory counts per line, the examples, `scope` (package pairs) and the shape of a transformation entry. Background only, not read by anything; the config files hold rules, not documentation. |
+| `../../docs/ds-naming.qmd`, `../../docs/ds-naming-rules.qmd` | Draft documentation on the site since 2026-11-05 (user: needed for clarity even before the rules are agreed), marked as draft; examples of the test file template there. Callers in `../../examples/ds-naming-*.yml`. |
 | `survey-191723-results.csv` | Earlier nomenclature survey (15 rows, ~8 complete answers). Git-ignored. |
 | `datashield_argument_inventory.csv` | Every function argument of 32 packages × prod/dev (20,046 rows; filter `in_scope == TRUE` → 4,868 latest-track user-facing args) with inferred role, object class, confidence, doc text. 3.8 MB — git-ignored (`*.csv` in this folder); move to a release asset if it must be shared. |
 | `inventory-summary.json` | Aggregated tables behind the findings below. |

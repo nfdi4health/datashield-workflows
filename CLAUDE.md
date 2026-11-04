@@ -107,10 +107,12 @@ the live caller used to validate changes before wider rollout.
     Design, marker formats and the dsAnalysis checklist are in
     [dev-notes/analysis-suggest.md](dev-notes/analysis-suggest.md).
   - `ds-naming-check.yml`, `ds-naming-apply.yml` — DataSHIELD argument
-    naming harmonisation (internal, kept off the docs until the rules are
-    agreed). Run from a client package, which checks out its server
-    package. Check: rules (`config/ds-naming-rules.yml`, merged key by key
-    via `read_config_yaml()`, now in `shared/`) + Claude for unclear
+    naming harmonisation (rules not agreed yet; draft pages
+    `docs/ds-naming.qmd`, `docs/ds-naming-rules.qmd` since 2026-11-05). Run from a client package, which checks out its server
+    package. Check: rules (`config/ds-naming-argument-rules.yml` for arguments,
+    `config/ds-naming-package-rules.yml` for function and test file names
+    and argument order, each merged key by key via `read_config_yaml()`,
+    now in `shared/`) + Claude for unclear
     arguments → `.github/ds-naming/transformations.yml` in a review PR,
     people set `status: approved|skip`. Apply (on push of that file):
     approved renames via parse data in code/tests/roxygen/Rd/vignette
@@ -809,17 +811,19 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
 - **DataSHIELD argument naming harmonisation** (designed 2026-10-14;
   check and apply workflows **built the same day, tested locally on a
   fixture pair, not yet on a real package or in CI**; keep off
-  `docs/roadmap.qmd` and `examples/` until the rules are agreed with the
-  DataSHIELD developers in person — the callers are in the dev-note
-  folder). Goal: a breaking release with one
+  `docs/roadmap.qmd` until the rules are agreed with the DataSHIELD
+  developers in person; draft docs pages and `examples/ds-naming-*.yml`
+  exist since 2026-11-05, for clarity, marked as draft: update
+  `ds-naming-rules.qmd` when the rule files change). Goal: a breaking release with one
   argument name per object class/role across all DataSHIELD packages
   (today e.g. `newobj` vs `newobj.name`), done by a workflow, covering R
   code, server side, tests, test file names, roxygen and vignettes.
   Everything is in [dev-notes/datashield-naming/](dev-notes/datashield-naming/README.md):
   survey results, an inventory of 32 packages × prod/dev (1,077
   user-facing functions; Python prototype + 3.8 MB CSV, git-ignored), the
-  draft rules (now `config/ds-naming-rules.yml`; YAML with per-line
-  comments; `name: [a, b]` = open, the check uses the front-runner and
+  draft rules (now the two config files above, split and without
+  comments 2026-11-04, the annotated original is
+  `dev-notes/datashield-naming/rules-annotated-v0.1.yml`; `name: [a, b]` = open, the check uses the front-runner and
   marks `rule_open`), and what was built ("Built" section).
   - **First real run done locally** (2026-10-14, dsBaseClient + dsBase
     v7.0-dev, no Claude): 336 proposals; applying all of them leaves every

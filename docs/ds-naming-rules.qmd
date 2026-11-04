@@ -1,0 +1,145 @@
+---
+title: "Naming rules (draft)"
+description: "The draft rules for DataSHIELD function, test file and argument names."
+---
+
+::: {.callout-warning}
+## Draft
+Nothing here is agreed with the DataSHIELD developers yet. Where a rule
+lists several options, it is still open: the first one is used for now,
+and renames that depend on it are marked `rule_open: true`.
+:::
+
+The rules are in two files of this repository, used by the
+[naming workflows](ds-naming.qmd):
+
+| File | Rules for |
+|---|---|
+| `config/ds-naming-package-rules.yml` | Packages in general: function names, test file names, argument order |
+| `config/ds-naming-argument-rules.yml` | Function arguments: style, classes and roles |
+
+## Package rules
+
+These are reported by the check; the apply workflow doesn't change them.
+
+### Function names
+
+| Side | Rule | Example |
+|---|---|---|
+| Client | `ds.` + camelCase | `ds.mean` |
+| Server | ends in `DS`, digits go before it | `meanDS`, `glm1DS` |
+
+Open: the prefixes `dh.` and `dss`, and the forms `ds.vert.` and
+`ds.imaging.`, count as following the rules for now.
+
+### Test file names {#test-files}
+
+Test files in `tests/testthat/` follow the template
+
+```
+^test-(<category>-)?<target>(-<variant>)?\.R$
+```
+
+where `(…)?` means optional. For
+`test-smk_expt-ds.mean-factor_missing.R`:
+
+| Template part | Matches | Meaning |
+|---|---|---|
+| `^test-` | `test-` | fixed start |
+| `(<category>-)?` | `smk_expt-` | categories `smk` and `expt`, joined by `_`; optional |
+| `<target>` | `ds.mean` | the function being tested |
+| `(-<variant>)?` | `-factor_missing` | free-text variant; optional |
+| `\.R$` | `.R` | fixed end |
+
+The categories are `smk`, `arg`, `perf`, `disc`, `discctrl`, `datachk`,
+`expt`, `math` and `dgr`. The qualifier `bug` can follow a category.
+
+These names also pass:
+
+| File name | Category | Target | Variant |
+|---|---|---|---|
+| `test-ds.mean.R` | none | `ds.mean` | none |
+| `test-smk-ds.mean.R` | `smk` | `ds.mean` | none |
+| `test-expt_bug-ds.table.R` | `expt` + qualifier `bug` | `ds.table` | none |
+| `test-ds.mean-factor_missing.R` | none | `ds.mean` | `factor_missing` |
+
+These fail:
+
+| File name | Why |
+|---|---|
+| `test-bug-ds.mean.R` | `bug` is a qualifier, so it can only follow a category |
+| `test-ds.mean.r` | the ending must be `.R` |
+| `test-smk-ds.mean-Factor.R` | a variant can only use lowercase letters, digits and `_` |
+| `ds.mean.R` | the `test-` start is missing |
+
+The template only checks the shape of the name. A second step checks that
+the target is a function of the package, an allowed topic or, for
+`datachk` tests, a dataset: `test-smk-ds.typo.R` matches the template but
+is reported if `ds.typo` doesn't exist. `setup.R`, `teardown.R` and
+`helper-*.R` are exempt.
+
+### Argument order
+
+`datasources` comes last; only `...` may follow it.
+
+## Argument rules
+
+An argument's name depends on what it is. Client arguments usually hold
+the *name* of something on the server, so a name says what it refers to,
+without a `.name` suffix: `df`, not `df.name`.
+
+### Roles
+
+Roles apply whatever the argument's class is.
+
+| Role | Name | Holds |
+|---|---|---|
+| Connection | `datasources` | The connections from `datashield.login()` |
+| New object | `newobj` | The name for the result on the server |
+| Output type | `type` | `split`, `combine` or `both` |
+| Checks | `checks` or `classConsistencyCheck` (open) | The switch for optional pre-checks |
+| Method | `method` | The choice of algorithm or variant |
+| Seed | `seed` | The seed for random numbers on the server |
+
+### Object classes
+
+For an argument naming an object on the server:
+
+| Class | Name |
+|---|---|
+| Vector | `x` |
+| Data frame | `df` |
+| Matrix | `mat` or `matrix` (open) |
+| Tibble | `tbl` |
+| Model | `model` |
+| Formula | `formula` |
+| List | `lst` or `x` (open) |
+| Omics object | `set`, `eset` or `x` (open) |
+| Resource | `resource` or `res` (open) |
+
+### Columns and values
+
+- **A column inside a data frame** gets the suffix `.col` or `_col` (open),
+  `.cols` / `_cols` for several: `idCol` → `id.col`.
+- **A plain value** sent from the client, such as a threshold, keeps its
+  name in the general style.
+
+### Style
+
+- **Words** are separated by `.` or `_` (open), in lower case.
+- **Too generic names** go to Claude for a closer look, as they say little
+  about the argument: `matrix`, `tibble`, `data`, `object`, `what`, `input`.
+- **R conventions** keep their name: `...`, `formula`, `family`, `weights`,
+  `offset`, `na.rm`, `subset`.
+
+### Several inputs of the same class
+
+Numbered (`df1`, `df2`) or distinct (`x`, `y`) is open; numbered is used
+for now. Established `x`, `y` pairs stay, e.g. in `ds.cor` and `ds.cov`.
+Descriptive names such as `sex` are kept.
+
+### Exceptions
+
+- **dsTidyverse and dsTidyverseClient** mirror dplyr's argument names.
+- **Protocol arguments** such as `session_id` keep their names.
+- **The server suffix `.transmit`** stays on arguments that have it (open).

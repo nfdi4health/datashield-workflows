@@ -63,6 +63,10 @@ website:
             href: datashield-analysis-suggest.qmd
             contents:
               - datashield-analysis-details.qmd
+      - section: "DataSHIELD naming (draft)"
+        href: ds-naming.qmd
+        contents:
+          - ds-naming-rules.qmd
       - section: "Workflow upkeep"
         contents:
           - workflow-keepalive.qmd
