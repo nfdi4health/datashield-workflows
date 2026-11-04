@@ -8,6 +8,7 @@ meta:
   status: draft
 
 package:
+  case: camelCase
   client: "ds<name>Client"
   server: "ds<name>"
   name: "[A-Z][A-Za-z0-9]*"

@@ -25,7 +25,8 @@ These are reported by the check; the apply workflow doesn't change them.
 ### Package names
 
 A pair is called `ds<name>` (server) and `ds<name>Client` (client), where
-`<name>` starts with a capital letter: `dsBase` and `dsBaseClient`.
+`<name>` is camelCase and starts with a capital letter: `dsBase` and
+`dsBaseClient`.
 
 Exceptions are listed in the rules:
 
