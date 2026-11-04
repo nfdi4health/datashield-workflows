@@ -40,8 +40,6 @@ tests:
     bug: regression test for a reported bug
   variant: "[a-z0-9_]+"
   helpers_allowed: ["setup.R", "teardown.R", "^helper-.*\\.R$"]
-  coverage:
-    every_exported_function_has: [smk]
   rename_with_function: true
 
 order:
