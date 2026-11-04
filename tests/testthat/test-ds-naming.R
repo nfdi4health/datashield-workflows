@@ -10,10 +10,14 @@ test_that("the rules file reads one-letter values as text, not booleans", {
 })
 
 test_that("test_file_pattern() builds the test file name regex from its parts", {
-  tests <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))$tests
-  pattern <- test_file_pattern(tests)
-  expect_true(all(grepl(pattern, unlist(tests$examples), perl = TRUE)))
-  expect_equal(pattern, "^test-((?<category>(smk|arg|perf|disc|discctrl|datachk|expt|math|dgr)(_(smk|arg|perf|disc|discctrl|datachk|expt|math|dgr|bug))*)-)?(?<function>[A-Za-z][A-Za-z0-9._]*)(-[a-z0-9_]+)?\\.R$")
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  pattern <- test_file_pattern(package_rules, "client")
+  server <- test_file_pattern(package_rules, "server")
+  expect_true(all(grepl(pattern, unlist(package_rules$tests$examples), perl = TRUE)))
+  expect_equal(pattern, "^test-((?<category>(smk|arg|perf|disc|discctrl|datachk|expt|math|dgr)(_(smk|arg|perf|disc|discctrl|datachk|expt|math|dgr|bug))*)-)?(?<function>ds\\.[a-z][A-Za-z0-9]*)(-[a-z0-9_]+)?\\.R$")
+  expect_true(grepl(server, "test-smk-glm1DS.R", perl = TRUE))
+  expect_false(any(grepl(server, c("test-smk-glmDS1.R", "test-smk-ds.mean.R"), perl = TRUE)))
+  expect_false(grepl(pattern, "test-smk-meanDS.R", perl = TRUE))
   ok <- c("test-ds.mean.R", "test-smk-ds.mean.R", "test-smk_expt-ds.mean.R", "test-expt_bug-ds.table.R",
           "test-smk_dgr-ds.recodeValues-factor_missing.R")
   expect_true(all(grepl(pattern, ok, perl = TRUE)))

@@ -25,7 +25,6 @@ tests:
   examples:
     simple: test-ds.mean.R
     extended: test-smk_expt-ds.mean-factor_missing.R
-  function: "[A-Za-z][A-Za-z0-9._]*"
   category_joiner: "_"
   categories:
     smk: smoke test, function runs and returns expected structure

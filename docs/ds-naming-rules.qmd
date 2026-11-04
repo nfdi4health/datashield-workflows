@@ -47,7 +47,7 @@ where `(…)?` means optional. For
 |---|---|---|
 | `^test-` | `test-` | fixed start |
 | `(<category>-)?` | `smk_expt-` | categories `smk` and `expt`, joined by `_`; optional |
-| `<function>` | `ds.mean` | the function being tested |
+| `<function>` | `ds.mean` | the function being tested, following the [function name](#function-names) rule of the package's side |
 | `(-<variant>)?` | `-factor_missing` | free-text variant; optional |
 | `\.R$` | `.R` | fixed end |
 
@@ -74,7 +74,9 @@ These fail:
 
 The template only checks the shape of the name. A second step checks that
 it names a function of the package: `test-smk-ds.typo.R` matches the
-template but is reported if `ds.typo` doesn't exist. `setup.R`, `teardown.R` and
+template but is reported if `ds.typo` doesn't exist. Test files of internal
+functions, or of functions under the open prefixes, are reported too.
+`setup.R`, `teardown.R` and
 `helper-*.R` are exempt.
 
 ### Argument order

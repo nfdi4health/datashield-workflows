@@ -7,7 +7,7 @@ check_test_file_names <- function(pkg, package_rules) {
   exempt <- vapply(files, function(f) any(vapply(unlist(package_rules$tests$helpers_allowed), function(p) grepl(p, f) || f == p, logical(1))), logical(1))
   files <- files[!exempt & startsWith(files, "test")]
   functions <- vapply(pkg$defs, function(d) d$name, character(1))
-  pattern <- test_file_pattern(package_rules$tests)
+  pattern <- test_file_pattern(package_rules, pkg$side)
   problems <- list()
   for (f in files) {
     m <- regexpr(pattern, f, perl = TRUE)
