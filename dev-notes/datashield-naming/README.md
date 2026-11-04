@@ -259,6 +259,10 @@ other packages that call the renamed functions.
 - Deprecation shims (old names accepted with a warning) or hard break?
 - Scope of the first round: dsBase/Client only, or all packages.
 - Rename `datasources` given the 2/7 objection?
+- Test files that test no function: datasets (`test-datachk-CNSIM.R`) and
+  topics (`conndisconn`, `void`, `per_study_arguments`, `utils`). Removed
+  from the rules on 2026-11-05 until discussed, so they are reported now;
+  the earlier wording is in `rules-annotated-v0.1.yml`.
 
 ## Second idea (not started)
 

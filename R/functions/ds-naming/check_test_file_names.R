@@ -1,7 +1,6 @@
 # Test files of a package (`pkg`, read_ds_package()) that don't follow
-# `tests` in the package rules: stage 1 the file name pattern (test_file_pattern()), stage 2 its target
-# part must be a function of the package, a listed topic, or (datachk
-# tests) a test dataset. Helper and setup files are exempt. Returns a data
+# `tests` in the package rules: stage 1 the file name pattern (test_file_pattern()), stage 2 its function
+# part must be a function of the package. Helper and setup files are exempt. Returns a data
 # frame file, problem.
 check_test_file_names <- function(pkg, package_rules) {
   files <- basename(list.files(file.path(pkg$dir, "tests", "testthat"), pattern = "\\.[Rr]$"))
@@ -24,10 +23,9 @@ check_test_file_names <- function(pkg, package_rules) {
         substr(f, start, start + attr(m, "capture.length")[1, g] - 1)
       }
     }
-    target <- group("target")
-    is_dataset <- grepl("datachk", group("category"))
-    if (!target %in% functions && !target %in% unlist(package_rules$tests$allowed_topics) && !is_dataset) {
-      problems[[length(problems) + 1]] <- data.frame(file = f, problem = sprintf("`%s` is no function of the package or listed topic", target))
+    target <- group("function")
+    if (!target %in% functions) {
+      problems[[length(problems) + 1]] <- data.frame(file = f, problem = sprintf("`%s` is no function of the package", target))
     }
   }
   if (length(problems) == 0) {

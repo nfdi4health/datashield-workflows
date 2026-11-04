@@ -21,13 +21,8 @@ functions:
   file_name: "<function>.R"
 
 tests:
-  pattern: "^test-(<category>-)?<target>(-<variant>)?\\.R$"
-  target: "[A-Za-z][A-Za-z0-9._]*"
-  target_must_be:
-    - existing_function
-    - dataset
-    - topic
-  allowed_topics: [conndisconn, void, per_study_arguments, utils]
+  pattern: "^test-(<category>-)?<function>(-<variant>)?\\.R$"
+  function: "[A-Za-z][A-Za-z0-9._]*"
   category_joiner: "_"
   categories:
     smk: smoke test, function runs and returns expected structure

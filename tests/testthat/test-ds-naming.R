@@ -11,9 +11,9 @@ test_that("the rules file reads one-letter values as text, not booleans", {
 
 test_that("test_file_pattern() builds the test file name regex from its parts", {
   pattern <- test_file_pattern(yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))$tests)
-  expect_equal(pattern, "^test-((?<category>(smk|arg|perf|disc|discctrl|datachk|expt|math|dgr)(_(smk|arg|perf|disc|discctrl|datachk|expt|math|dgr|bug))*)-)?(?<target>[A-Za-z][A-Za-z0-9._]*)(-[a-z0-9_]+)?\\.R$")
+  expect_equal(pattern, "^test-((?<category>(smk|arg|perf|disc|discctrl|datachk|expt|math|dgr)(_(smk|arg|perf|disc|discctrl|datachk|expt|math|dgr|bug))*)-)?(?<function>[A-Za-z][A-Za-z0-9._]*)(-[a-z0-9_]+)?\\.R$")
   ok <- c("test-ds.mean.R", "test-smk-ds.mean.R", "test-smk_expt-ds.mean.R", "test-expt_bug-ds.table.R",
-          "test-smk_dgr-ds.recodeValues-factor_missing.R", "test-datachk-CNSIM.R")
+          "test-smk_dgr-ds.recodeValues-factor_missing.R")
   expect_true(all(grepl(pattern, ok, perl = TRUE)))
   expect_false(any(grepl(pattern, c("test-_-vm-test.R", "test-bug-ds.mean.R", "ds.mean.R"), perl = TRUE)))
 })

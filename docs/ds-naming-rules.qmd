@@ -37,7 +37,7 @@ Open: the prefixes `dh.` and `dss`, and the forms `ds.vert.` and
 Test files in `tests/testthat/` follow the template
 
 ```
-^test-(<category>-)?<target>(-<variant>)?\.R$
+^test-(<category>-)?<function>(-<variant>)?\.R$
 ```
 
 where `(…)?` means optional. For
@@ -47,7 +47,7 @@ where `(…)?` means optional. For
 |---|---|---|
 | `^test-` | `test-` | fixed start |
 | `(<category>-)?` | `smk_expt-` | categories `smk` and `expt`, joined by `_`; optional |
-| `<target>` | `ds.mean` | the function being tested |
+| `<function>` | `ds.mean` | the function being tested |
 | `(-<variant>)?` | `-factor_missing` | free-text variant; optional |
 | `\.R$` | `.R` | fixed end |
 
@@ -56,7 +56,7 @@ The categories are `smk`, `arg`, `perf`, `disc`, `discctrl`, `datachk`,
 
 These names also pass:
 
-| File name | Category | Target | Variant |
+| File name | Category | Function | Variant |
 |---|---|---|---|
 | `test-ds.mean.R` | none | `ds.mean` | none |
 | `test-smk-ds.mean.R` | `smk` | `ds.mean` | none |
@@ -73,9 +73,8 @@ These fail:
 | `ds.mean.R` | the `test-` start is missing |
 
 The template only checks the shape of the name. A second step checks that
-the target is a function of the package, an allowed topic or, for
-`datachk` tests, a dataset: `test-smk-ds.typo.R` matches the template but
-is reported if `ds.typo` doesn't exist. `setup.R`, `teardown.R` and
+it names a function of the package: `test-smk-ds.typo.R` matches the
+template but is reported if `ds.typo` doesn't exist. `setup.R`, `teardown.R` and
 `helper-*.R` are exempt.
 
 ### Argument order
