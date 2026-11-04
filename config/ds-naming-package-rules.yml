@@ -38,8 +38,6 @@ tests:
     dgr: degraded or unusual input (missing values, edge cases)
   qualifiers:
     bug: regression test for a reported bug
-  category_required: false
-  function_part: exact_function_name
   variant: "[a-z0-9_]+"
   helpers_allowed: ["setup.R", "teardown.R", "^helper-.*\\.R$"]
   coverage:
