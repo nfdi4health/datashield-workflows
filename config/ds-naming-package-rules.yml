@@ -8,6 +8,7 @@ meta:
   status: draft
 
 functions:
+  case: camelCase
   client:
     pattern: "^ds\\.[a-z][A-Za-z0-9]*$"
     allowed_prefixes: [dh., dss]
