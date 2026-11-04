@@ -7,7 +7,7 @@ meta:
   version: 0.1.0
   status: draft
 
-functions:
+function:
   case: camelCase
   client:
     pattern: "^ds\\.[a-z][A-Za-z0-9]*$"
@@ -26,7 +26,7 @@ tests:
     simple: test-ds.mean.R
     extended: test-smk_expt-ds.mean-factor_missing.R
   category_joiner: "_"
-  categories:
+  category:
     smk: smoke test, function runs and returns expected structure
     arg: argument validation and error messages
     perf: performance against a stored profile

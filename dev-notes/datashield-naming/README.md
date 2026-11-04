@@ -261,7 +261,7 @@ other packages that call the renamed functions.
 - Rename `datasources` given the 2/7 objection?
 - Test files of internal functions: reported for now, as `<function>` in
   the test file template follows the client or server function pattern.
-  Depends on `functions.internal.prefix` (`.` vs `int.`). Options: (1) the
+  Depends on `function.internal.prefix` (`.` vs `int.`). Options: (1) the
   template also accepts the prefix (`test-arg-int.checkClass.R`; with `.`
   it reads `test-arg-.checkClass.R`), after renaming existing internal
   functions; (2) test files only for user-facing functions, internal ones

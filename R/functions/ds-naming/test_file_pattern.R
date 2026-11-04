@@ -7,11 +7,11 @@
 # `function` are read by check_test_file_names().
 test_file_pattern <- function(package_rules, side) {
   tests <- package_rules$tests
-  categories <- names(tests$categories)
+  categories <- names(tests$category)
   after_first <- c(categories, names(tests$qualifiers))
   category <- sprintf("(?<category>(%s)(%s(%s))*)", paste(categories, collapse = "|"), tests$category_joiner,
                       paste(after_first, collapse = "|"))
-  fn <- gsub("^\\^|\\$$", "", package_rules$functions[[side]]$pattern)
+  fn <- gsub("^\\^|\\$$", "", package_rules$`function`[[side]]$pattern)
   pattern <- sub("<category>", category, tests$pattern, fixed = TRUE)
   pattern <- sub("<function>", sprintf("(?<function>%s)", fn), pattern, fixed = TRUE)
   sub("<variant>", tests$variant, pattern, fixed = TRUE)
