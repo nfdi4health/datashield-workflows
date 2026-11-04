@@ -11,8 +11,8 @@ functions:
   case: camelCase
   client:
     pattern: "^ds\\.[a-z][A-Za-z0-9]*$"
-    allowed_prefixes: [dh., dss]
-    namespaced: ["ds.vert.", "ds.imaging."]
+    allowed_prefixes: [dh., dss] # discussion: should be removed
+    namespaced: ["ds.vert.", "ds.imaging."] # discussion: should be removed
   server:
     pattern: "^[a-z][A-Za-z0-9]*DS$"
   internal:
