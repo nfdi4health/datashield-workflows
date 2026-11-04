@@ -15,12 +15,26 @@ The rules are in two files of this repository, used by the
 
 | File | Rules for |
 |---|---|
-| `config/ds-naming-package-rules.yml` | Packages in general: function names and test file names |
+| `config/ds-naming-package-rules.yml` | Packages in general: package names, function names, server methods, test file names |
 | `config/ds-naming-argument-rules.yml` | Function arguments: style, classes, roles and order |
 
 ## Package rules
 
 These are reported by the check; the apply workflow doesn't change them.
+
+### Package names
+
+A pair is called `ds<name>` (server) and `ds<name>Client` (client), where
+`<name>` starts with a capital letter: `dsBase` and `dsBaseClient`.
+
+Exceptions are listed in the rules:
+
+- **Client only:** dsHelper, dsSyntheticClient;
+- **Server only:** dsResource, dsMeta;
+- **Pairs named differently:** dsMTLClient and dsMTLBase.
+
+A package that isn't listed, and is checked without its counterpart, is
+reported.
 
 ### Function names
 
@@ -31,6 +45,37 @@ These are reported by the check; the apply workflow doesn't change them.
 
 Open: the prefixes `dh.` and `dss`, and the forms `ds.vert.` and
 `ds.imaging.`, count as following the rules for now.
+
+### Server methods
+
+A server package declares its Aggregate and Assign methods in
+`inst/DATASHIELD`, not in `DESCRIPTION`, as packages on CRAN do:
+
+```
+AssignMethods:
+    selectDS,
+    renameDS
+AggregateMethods:
+    groupKeysDS
+```
+
+Every declared method has a function behind it, unless it points to
+another package (`asChar=base::as.character`).
+
+### Client and server
+
+These go by the calls a client package actually makes, not by comparing
+names: one client function can call several server functions, and some
+call none.
+
+- Every server method a client function calls is declared by the server
+  package.
+- Every declared method is called by a client function.
+
+Client calls are recognised in `call("meanDS", …)`,
+`paste0("meanDS(", …)` and strings passed directly to `datashield.aggregate()`
+or `datashield.assign()`. A method called in another way is listed as not
+called.
 
 ### Test file names {#test-files}
 

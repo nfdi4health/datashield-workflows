@@ -1,8 +1,9 @@
 # The check's report in Markdown: how many user-facing arguments already
 # follow the rules, the proposed renames per package (from `entries`,
 # after merging decisions), what needs a person (unresolved, conflicts),
-# and the report-only findings in `checks` (function names, argument
-# order, test file names; one element per package). Returns list(full,
+# and the report-only findings in `checks` (package names, server methods,
+# client/server calls, function names, argument order, test file names;
+# one element per package). Returns list(full,
 # summary): the full report is committed next to the transformation file,
 # the summary (no tables) goes into the PR description, which GitHub caps
 # in length.
@@ -81,7 +82,21 @@ format_naming_report <- function(rows, entries, checks, file_path, rules_version
     if (nrow(ch$tests) > 0) {
       test_lines <- sprintf("- `%s`: %s", ch$tests$file, ch$tests$problem)
     }
+    bullets <- function(x) {
+      if (length(x) == 0) {
+        return("None.")
+      }
+      paste0("- ", x)
+    }
     full <- c(full, sprintf("## %s: other findings (report only)", ch$package), "",
+              "**Package name:**", "", bullets(ch$package_names), "")
+    if (length(ch$methods) > 0) {
+      full <- c(full, "**Server methods:**", "", bullets(ch$methods), "")
+    }
+    if (length(ch$pairing) > 0) {
+      full <- c(full, "**Client and server:**", "", bullets(ch$pairing), "")
+    }
+    full <- c(full,
               paste0("**Function names not following the pattern:** ", code_list(ch$function_names)), "",
               paste0("**`datasources` not last:** ", code_list(ch$order)), "",
               "**Test file names:**", "",

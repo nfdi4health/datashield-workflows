@@ -9,6 +9,57 @@ test_that("the rules file reads one-letter values as text, not booleans", {
   expect_equal(unlist(rules$multiple_inputs$exceptions[[1]]$names), c("x", "y"))
 })
 
+test_that("check_package_names() checks names and pairs, with the listed exceptions", {
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  client <- function(name) list(name = name, side = "client")
+  server <- function(name) list(name = name, side = "server")
+  expect_length(check_package_names(client("dsFooClient"), server("dsFoo"), package_rules), 0)
+  expect_length(check_package_names(server("dsFoo"), client("dsFooClient"), package_rules), 0)
+  expect_match(check_package_names(client("dsFooClient"), server("dsBar"), package_rules), "expected the client `dsBarClient`")
+  expect_match(check_package_names(client("fooClient"), server("dsFoo"), package_rules)[1], "doesn't follow")
+  expect_length(check_package_names(client("dsMTLClient"), server("dsMTLBase"), package_rules), 0)
+  expect_length(check_package_names(client("dsHelper"), NULL, package_rules), 0)          # client only
+  expect_length(check_package_names(server("dsResource"), NULL, package_rules), 0)        # server only
+  expect_match(check_package_names(client("dsFooClient"), NULL, package_rules), "No paired package")
+})
+
+test_that("check_server_methods() wants inst/DATASHIELD and a function behind each method", {
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  dir <- withr::local_tempdir()
+  dir.create(file.path(dir, "inst"))
+  dir.create(file.path(dir, "R"))
+  writeLines("Package: dsFoo", file.path(dir, "DESCRIPTION"))
+  writeLines(c("AggregateMethods:", "    meanDS,", "    goneDS,", "    asChar=base::as.character"), file.path(dir, "inst", "DATASHIELD"))
+  writeLines("meanDS <- function(x) x", file.path(dir, "R", "meanDS.R"))
+  expect_identical(check_server_methods(read_ds_package(dir, "server"), package_rules), "Declared without a function: `goneDS`.")
+
+  file.remove(file.path(dir, "inst", "DATASHIELD"))
+  writeLines(c("Package: dsFoo", "AggregateMethods: meanDS"), file.path(dir, "DESCRIPTION"))
+  found <- check_server_methods(read_ds_package(dir, "server"), package_rules)
+  expect_match(found[1], "No `inst/DATASHIELD`")
+  expect_match(found[2], "declared in `DESCRIPTION`")
+})
+
+test_that("check_client_server_pairing() goes by the calls, not by comparing names", {
+  dir <- withr::local_tempdir()
+  dir.create(file.path(dir, "R"))
+  writeLines("Package: dsFooClient", file.path(dir, "DESCRIPTION"))
+  writeLines("export(ds.glm, ds.local)", file.path(dir, "NAMESPACE"))
+  writeLines(c("ds.glm <- function(x) {", "  a <- call(\"glm1DS\", x)", "  b <- paste0(\"glm2DS(\", x, \")\")", "  DSI::datashield.aggregate(x, \"lsDS()\")",
+               "  helper(x)", "}"), file.path(dir, "R", "ds.glm.R"))
+  writeLines(c("helper <- function(x) call(\"helperDS\", x)"), file.path(dir, "R", "helper.R"))
+  writeLines(c("ds.local <- function(x) stop(paste0(\"sum(\", x))"), file.path(dir, "R", "ds.local.R"))
+  client <- read_ds_package(dir, "client")
+  expect_setequal(client_server_calls(client)$method, c("glm1DS", "glm2DS", "lsDS", "helperDS"))
+
+  server <- list(name = "dsFoo", methods = c(glm1DS = "glm1DS", glm2DS = "glm2DS", lsDS = "lsDS", helperDS = "helperDS"))
+  expect_length(check_client_server_pairing(client, server), 0)
+  server$methods <- c(glm1DS = "glm1DS", lsDS = "lsDS", helperDS = "helperDS", oldDS = "oldDS")
+  found <- check_client_server_pairing(client, server)
+  expect_match(found[1], "`ds.glm` calls `glm2DS`, which `dsFoo` doesn't declare")
+  expect_match(found[2], "no client function calls it: `oldDS`")
+})
+
 test_that("test_file_pattern() builds the test file name regex from its parts", {
   package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
   pattern <- test_file_pattern(package_rules, "client")

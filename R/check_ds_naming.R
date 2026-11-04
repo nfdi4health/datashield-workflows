@@ -15,7 +15,8 @@
 #      server in lockstep;
 #   5. merge with the decisions in the previous file (PREVIOUS_FILE, the
 #      open bot PR's or the branch's own), write file, report and PR text.
-# Report-only checks: function names, argument order, test file names.
+# Report-only checks: package names, server methods, client/server calls,
+# function names, argument order, test file names.
 # Design: dev-notes/datashield-naming/README.md.
 
 library(httr2)
@@ -136,12 +137,28 @@ meta <- list(
 )
 write_transformation_file(entries, meta, transformation_file, classifications)
 
-checks <- lapply(pkgs, function(p) list(
-  package = p$name,
-  function_names = check_function_names(p, package_rules),
-  order = check_argument_order(rows[rows$package == p$name, ], rules),
-  tests = check_test_file_names(p, package_rules)
-))
+other_side <- function(p) {
+  Find(function(x) !identical(x$side, p$side), pkgs)
+}
+checks <- lapply(pkgs, function(p) {
+  methods <- character(0)
+  if (p$side == "server") {
+    methods <- check_server_methods(p, package_rules)
+  }
+  pairing <- character(0)
+  if (p$side == "client" && !is.null(server)) {
+    pairing <- check_client_server_pairing(p, server)
+  }
+  list(
+    package = p$name,
+    package_names = check_package_names(p, other_side(p), package_rules),
+    methods = methods,
+    pairing = pairing,
+    function_names = check_function_names(p, package_rules),
+    order = check_argument_order(rows[rows$package == p$name, ], rules),
+    tests = check_test_file_names(p, package_rules)
+  )
+})
 report <- format_naming_report(rows, entries, checks, transformation_file, rules$meta$version)
 report_file <- file.path(dirname(transformation_file), "report.md")
 writeLines(report$full, report_file, useBytes = TRUE)

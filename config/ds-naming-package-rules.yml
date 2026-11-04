@@ -7,6 +7,16 @@ meta:
   version: 0.1.0
   status: draft
 
+package:
+  client: "ds<name>Client"
+  server: "ds<name>"
+  name: "[A-Z][A-Za-z0-9]*"
+  exceptions:
+    client_only: [dsHelper, dsSyntheticClient, dsSupportClient] # discussion: dsHelperClient?
+    server_only: [dsResource, dsMeta] # discussion: are these still mainained?
+    pairs:
+      - { client: dsMTLClient, server: dsMTLBase } # discussion: rename?
+
 function:
   case: camelCase
   client:
@@ -15,6 +25,7 @@ function:
     namespaced: ["ds.vert.", "ds.imaging."] # discussion: should be removed
   server:
     pattern: "^[a-z][A-Za-z0-9]*DS$"
+    methods_file: inst/DATASHIELD
   internal:
     prefix: [".", "int."] # discussion: only "." sometimes caused problems
   one_function_per_file: true
