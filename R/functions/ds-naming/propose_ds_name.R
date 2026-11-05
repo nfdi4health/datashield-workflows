@@ -57,7 +57,7 @@ propose_ds_name <- function(arg, role, class, package, rules) {
   if (role == "column") {
     suffix <- sub("^[._]", "", rule_name(rules$reference_kinds$column$suffix)$name)
     # idCol -> id.col, outcome -> outcome.col, by.x.names -> by.x.cols
-    words <- strsplit(to_naming_style(arg, " "), " ")[[1]]
+    words <- strsplit(to_naming_style(arg, " ", rules$style$case), " ")[[1]]
     last <- tail(words, 1)
     plural <- last %in% c("names", "vars", "variables", "cols", "columns")
     if (last %in% c("name", "names", "var", "vars", "variable", "variables", "column", "columns", suffix, paste0(suffix, "s"))) {
@@ -71,7 +71,7 @@ propose_ds_name <- function(arg, role, class, package, rules) {
     return(result(paste(words, collapse = sep$name), "reference_kinds.column", TRUE))
   }
   if (role %in% c("value", "plumbing")) {
-    styled <- to_naming_style(arg, sep$name)
+    styled <- to_naming_style(arg, sep$name, rules$style$case)
     r <- result(styled, "style")
     if (!identical(styled, arg)) {
       r$match <- "style"

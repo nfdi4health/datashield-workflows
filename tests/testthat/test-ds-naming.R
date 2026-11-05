@@ -133,10 +133,11 @@ test_that("classify_ds_argument() recognises roles and classes from docs and nam
 })
 
 test_that("to_naming_style() splits camelCase and keeps acronym plurals together", {
-  expect_equal(to_naming_style("idCol", "."), "id.col")
-  expect_equal(to_naming_style("nBreaks", "."), "n.breaks")
-  expect_equal(to_naming_style("keep.NAs", "."), "keep.nas")
-  expect_equal(to_naming_style("time_col", "."), "time.col")
+  expect_equal(to_naming_style("idCol", ".", "lowercase"), "id.col")
+  expect_equal(to_naming_style("nBreaks", ".", "lowercase"), "n.breaks")
+  expect_equal(to_naming_style("keep.NAs", ".", "lowercase"), "keep.nas")
+  expect_equal(to_naming_style("time_col", ".", "lowercase"), "time.col")
+  expect_equal(to_naming_style("idCol", ".", "any"), "id.Col")       # style$case decides
 })
 
 test_that("propose_ds_name() follows roles, classes, columns and exceptions", {

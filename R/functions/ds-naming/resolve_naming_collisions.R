@@ -44,7 +44,7 @@ resolve_naming_collisions <- function(rows, rules) {
     if (is_class) {
       descriptive <- idx[!vapply(idx, generic, logical(1))]
       for (i in descriptive) {
-        rows$proposed[i] <- to_naming_style(rows$arg[i], sep)
+        rows$proposed[i] <- to_naming_style(rows$arg[i], sep, rules$style$case)
         rows$rule[i] <- "style"
         rows$match[i] <- if (rows$proposed[i] == rows$arg[i]) {
           "canonical"
