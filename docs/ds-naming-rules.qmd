@@ -103,7 +103,8 @@ Open: the prefixes `dh.` and `dss`, and the forms `ds.vert.` and
 ### Roxygen tags
 
 Every user-facing function has `@title`, `@description`, `@details`,
-`@param` for each argument except `...` (or `@inheritParams`), `@return`
+`@param` for each argument except `...` (or `@inheritParams` or
+`@template`), `@return`
 and `@author`. Client functions also have `@examples`. A title or
 description written without its tag is reported.
 

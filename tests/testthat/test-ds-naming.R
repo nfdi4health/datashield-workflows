@@ -48,9 +48,10 @@ test_that("check_roxygen_tags() names missing tags of user-facing functions", {
     list(name = "ds.ok", args = c("x", "..."), param_docs = list(x = "a"), tags = c(common, "param", "examples")),
     list(name = "ds.bad", args = c("x", "y"), param_docs = list(x = "a"), tags = c("param")),
     list(name = "ds.inherit", args = "x", param_docs = list(), tags = c(common, "examples", "inheritParams")),
+    list(name = "ds.template", args = "x", param_docs = list(), tags = c(common, "examples", "template")),
     list(name = "helper", args = "x", param_docs = list(), tags = character(0))
   )
-  pkg <- list(side = "client", defs = defs, user_facing = c("ds.ok", "ds.bad", "ds.inherit"))
+  pkg <- list(side = "client", defs = defs, user_facing = c("ds.ok", "ds.bad", "ds.inherit", "ds.template"))
   expect_identical(check_roxygen_tags(pkg, package_rules), "`ds.bad`: missing title, description, details, return, author, examples, param (y).")
   pkg$side <- "server"                                           # examples: client only
   pkg$defs[[1]]$tags <- setdiff(pkg$defs[[1]]$tags, "examples")
@@ -92,13 +93,13 @@ test_that("check_client_server_pairing() goes by the calls, not by comparing nam
   writeLines(c("ds.glm <- function(x) {", "  a <- call(\"glm1DS\", x)", "  b <- paste0(\"glm2DS(\", x, \")\")", "  DSI::datashield.aggregate(x, \"lsDS()\")",
                "  helper(x)", "}"), file.path(dir, "R", "ds.glm.R"))
   writeLines(c("helper <- function(x) call(\"helperDS\", x)"), file.path(dir, "R", "helper.R"))
-  writeLines(c("ds.local <- function(x) stop(paste0(\"sum(\", x))"), file.path(dir, "R", "ds.local.R"))
+  writeLines(c("ds.local <- function(x) stop(paste0(\"sum(\", x[, 1]))"), file.path(dir, "R", "ds.local.R"))  # empty argument
   client <- read_ds_package(dir, "client", character(0))
   expect_setequal(client_server_calls(client)$method, c("glm1DS", "glm2DS", "lsDS", "helperDS"))
 
   server <- list(name = "dsFoo", methods = c(glm1DS = "glm1DS", glm2DS = "glm2DS", lsDS = "lsDS", helperDS = "helperDS"))
   expect_length(check_client_server_pairing(client, server), 0)
-  server$methods <- c(glm1DS = "glm1DS", lsDS = "lsDS", helperDS = "helperDS", oldDS = "oldDS")
+  server$methods <- structure(c(glm1DS = "glm1DS", lsDS = "lsDS", helperDS = "helperDS", oldDS = "oldDS", sum = "sum"), other_package = "sum")
   found <- check_client_server_pairing(client, server)
   expect_match(found[1], "`ds.glm` calls `glm2DS`, which `dsFoo` doesn't declare")
   expect_match(found[2], "no client function calls it: `oldDS`")

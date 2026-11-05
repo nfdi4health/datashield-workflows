@@ -11,7 +11,9 @@ check_client_server_pairing <- function(client, server) {
   if (nrow(undeclared) > 0) {
     problems <- c(problems, sprintf("`%s` calls `%s`, which `%s` doesn't declare.", undeclared$client_fn, undeclared$method, server$name))
   }
-  unused <- setdiff(declared, calls$method)
+  # Methods of other packages (sum=base::sum) are general tools, not the
+  # server side of a client function.
+  unused <- setdiff(setdiff(declared, attr(server$methods, "other_package")), calls$method)
   if (length(unused) > 0) {
     problems <- c(problems, sprintf("Declared, but no client function calls it: %s.", paste(sprintf("`%s`", unused), collapse = ", ")))
   }

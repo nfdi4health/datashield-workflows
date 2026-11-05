@@ -30,15 +30,16 @@ client_server_calls <- function(client, declared = character(0)) {
     } else if (head %in% c("paste0", "paste") && grepl("\\($", first)) {
       note(fn, called_name(first))
     } else if (startsWith(head, "datashield.a")) {
-      for (p in parts) {
-        if (is.character(p) && length(p) == 1 && grepl("^[A-Za-z.][A-Za-z0-9._]*\\(", p)) {
-          note(fn, called_name(p))
+      for (i in seq_along(parts)) {
+        if (is.character(parts[[i]]) && length(parts[[i]]) == 1 && grepl("^[A-Za-z.][A-Za-z0-9._]*\\(", parts[[i]])) {
+          note(fn, called_name(parts[[i]]))
         }
       }
     }
-    for (p in parts) {
-      if (is.call(p)) {
-        walk_code(p, fn)
+    # by index: an empty argument, as in x[, 1], can't be held in a variable
+    for (i in seq_along(parts)) {
+      if (is.call(parts[[i]])) {
+        walk_code(parts[[i]], fn)
       }
     }
   }

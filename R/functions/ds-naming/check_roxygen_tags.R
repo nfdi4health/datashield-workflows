@@ -1,7 +1,8 @@
 # Which of `function$roxygen$required_tags` in the package rules, plus
 # those of the package's side (e.g. `function$client$roxygen$required_tags`),
 # each user-facing function's roxygen block lacks. `param` means every argument
-# but `...` is documented, or the block has @inheritParams. Returns the
+# but `...` is documented, or the block has @inheritParams or @template
+# (shared text, which may hold the @param). Returns the
 # problems as sentences, one per function. Report only.
 check_roxygen_tags <- function(pkg, package_rules) {
   rules <- package_rules$`function`
@@ -13,7 +14,7 @@ check_roxygen_tags <- function(pkg, package_rules) {
     }
     missing <- setdiff(setdiff(required, "param"), d$tags)
     undocumented <- setdiff(d$args, c(names(d$param_docs), "..."))
-    if ("param" %in% required && length(undocumented) > 0 && !"inheritParams" %in% d$tags) {
+    if ("param" %in% required && length(undocumented) > 0 && !any(c("inheritParams", "template") %in% d$tags)) {
       missing <- c(missing, sprintf("param (%s)", paste(undocumented, collapse = ", ")))
     }
     if (length(missing) > 0) {
