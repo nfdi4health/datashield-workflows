@@ -10,7 +10,6 @@ meta:
 
 style:
   separator: [".", "_"] # discussion: necessary to define or not?
-  column_suffix: col
   case: lowercase # discussion: what about common abbreviations?
   max_words: 3
   abbreviations:

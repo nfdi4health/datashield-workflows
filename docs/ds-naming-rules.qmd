@@ -235,10 +235,9 @@ For an argument naming an object on the server:
 
 ### Columns and values
 
-- **A column inside a data frame** gets the suffix `.col` or `_col` (open),
-  `.cols` / `_cols` for several: `idCol` → `id.col`.
-- **A plain value** sent from the client, such as a threshold, keeps its
-  name in the general style.
+- **A column inside a data frame** and **a plain value** sent from the
+  client, such as a threshold, keep their name in the general style:
+  `idCol` → `id.col`, and `outcome` stays `outcome`.
 
 ### Style
 

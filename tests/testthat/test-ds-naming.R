@@ -143,7 +143,8 @@ test_that("to_naming_style() splits camelCase and keeps acronym plurals together
 test_that("propose_ds_name() follows roles, classes, columns and exceptions", {
   expect_equal(propose_ds_name("newobj.name", "new_object", "", "pkg", rules)$proposed, "newobj")
   expect_equal(propose_ds_name("dataName", "object", "data.frame", "pkg", rules)$proposed, "df")
-  expect_equal(propose_ds_name("by.x.names", "column", "", "pkg", rules)$proposed, "by.x.cols")
+  expect_equal(propose_ds_name("by.x.names", "column", "", "pkg", rules)$proposed, "by.x.names")
+  expect_equal(propose_ds_name("idCol", "column", "", "pkg", rules)$proposed, "id.col")
   expect_equal(propose_ds_name("formula", "object", "formula", "pkg", rules)$match, "exception")
   expect_true(is.na(propose_ds_name("extra", "unknown", "", "pkg", rules)$proposed))
 })
@@ -203,7 +204,7 @@ test_that("check and apply run end to end on the fixture pair and apply is idemp
   apply1 <- run_entry_script("apply_ds_naming.R", dir, env)
   expect_equal(apply1$status, 0L, info = paste(apply1$output, collapse = "\n"))
   merge_code <- readLines(file.path(dir, "R", "ds.merge.R"))
-  expect_true(any(grepl("function(df1, df2, by.x.cols, newobj", merge_code, fixed = TRUE)))
+  expect_true(any(grepl("function(df1, df2, by.x.names, newobj", merge_code, fixed = TRUE)))
   expect_true(any(grepl("\tcalltext <- call", merge_code, fixed = TRUE)))   # tabs kept
   expect_true(any(grepl("ds.merge(df1 = \"D\"", readLines(file.path(dir, "vignettes", "intro.Rmd")), fixed = TRUE)))
   expect_true(any(grepl("meanDS <- function(x)", readLines(file.path(dir, ".ds-naming-server", "R", "meanDS.R")), fixed = TRUE)))

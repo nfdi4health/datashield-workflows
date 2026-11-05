@@ -158,8 +158,8 @@ them alone (`package-side: server`).
    the whole run, the rules part of the prompt is cached when the run
    makes more than one call.
 5. `propose_ds_name()` — exceptions/R conventions keep; roles and classes
-   → canonical name (open rules: front-runner, `rule_open: true`); column
-   args → `<stem>.col` / `.cols`; values → style only (`idCol` → `id.col`).
+   → canonical name (open rules: front-runner, `rule_open: true`); column args and values →
+   style only (`idCol` → `id.col`).
    `resolve_naming_collisions()` — same class twice → numbered (`df1`,
    `df2`) or the listed pairs (`x`, `y`); a name another kept argument has
    → `unresolved` with a conflict note. `propose_naming_rows()` — a
@@ -251,7 +251,9 @@ other packages that call the renamed functions.
 - Separator for multi-word names: dot.case or snake_case?
 - matrix (`mat`/`matrix`), list, omics, resource names; factor separate
   from vector?
-- Column-name args: suffix `.col`/`_col`?
+- ~~Column-name args: suffix `.col`/`_col`?~~ Dropped 2026-11-05: 138 column
+  args of 4,868, only 17 of them with `col` in the name, and the group is
+  noisy (`weights`, `sep`). Columns get style only.
 - Internal prefix `.` vs `int.`; multiple inputs numbered vs distinct
   (exception list for `x`/`y` pairs drafted).
 - Function prefixes `dh.`, `dss`, `ds.vert.`, `ds.imaging.`: exception or
