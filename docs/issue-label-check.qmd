@@ -1,0 +1,52 @@
+---
+title: "Issue label check"
+description: "Removes the approval label if the wrong person set it or the issue changed afterwards."
+---
+
+`issue-label-check.yml` guards the label that approves an issue for a bot.
+An approval only counts if the right person gave it, for the text as it
+stands. No Claude is involved, and the calling repository is not checked
+out.
+
+- **Label set:** if the person who set it is not in `allowed-logins`, the
+  label is removed, with one short comment saying why. Only the exact login
+  counts, not the person's access level: a maintainer who isn't listed is
+  treated like anyone else, and so is a bot.
+- **Issue edited:** if the issue carries the label, it is removed, with a
+  comment that the issue needs approving again. This applies to everyone,
+  listed people included, because a changed title or body is no longer
+  what was approved.
+
+Anything else does nothing, including the removal itself, so the check
+can't set itself off.
+
+## Example
+
+{{< example issue-label-check.yml >}}
+
+`issues` events only start workflows from the default branch, so the
+caller has to be there. Create the label in the repository first.
+
+## Limits
+
+The check runs after the fact, usually within seconds, so it is not the
+gate itself. Whatever acts on the label has to verify the approval again
+when it starts. In particular:
+
+- For a few seconds, a label set by the wrong person stands on the issue.
+- Renaming another label to the approval label puts it on issues without
+  a `labeled` event, so this check doesn't see it.
+- Logins are compared exactly, including case. A login spelled
+  differently from the GitHub account means that person's own approvals
+  are removed.
+
+Approving within seconds of your own edit can be undone by the check for
+that edit; set the label again.
+
+## Inputs
+
+{{< wf-inputs issue-label-check.yml >}}
+
+## Permissions
+
+{{< wf-permissions issue-label-check.yml >}}
