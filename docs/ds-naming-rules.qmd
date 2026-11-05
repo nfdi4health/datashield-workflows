@@ -130,7 +130,7 @@ another package (`asChar=base::as.character`).
 
 Open, not checked yet. Server functions read the study's disclosure
 settings instead of hard-coding thresholds, because an administrator can
-change them. The names come from Opal and Armadillo:
+change them. The settings are:
 `datashield.privacyLevel`, `datashield.privacyControlLevel`, `nfilter.tab`,
 `nfilter.subset`, `nfilter.glm`, `nfilter.kNN`, `nfilter.string`,
 `nfilter.stringShort`, `nfilter.noise`, `nfilter.levels.density` and

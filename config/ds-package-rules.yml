@@ -37,7 +37,7 @@ function:
     pattern: "^[a-z][A-Za-z0-9]*DS$"
     methods_file: inst/DATASHIELD
     method_types: [AggregateMethods, AssignMethods]
-    disclosure: # discussion: names come from Opal and Armadillo; which should a server package use or declare?
+    disclosure: # discussion: which should a server package use or declare?
       at_least_one_in: [AggregateMethods] # discussion: every aggregate function? also assign functions?
       settings:
         - datashield.privacyLevel

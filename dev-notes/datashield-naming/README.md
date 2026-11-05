@@ -268,7 +268,7 @@ other packages that call the renamed functions.
   tested through them; (3) any function of the package (looser, not
   wanted so far).
 - Disclosure settings (`function.server.disclosure`, not checked yet; the
-  names come from Opal and Armadillo, the list from dsBase `master`): must
+  list comes from dsBase `master`): must
   every aggregate function read at least one, and assign functions too?
   Must server functions read them through `listDisclosureSettingsDS()`
   instead of hard-coding thresholds (a check can only roughly detect
