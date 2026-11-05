@@ -38,7 +38,6 @@ classes:
     description: 'A one-dimensional server-side object: numeric, integer, character, logical or factor, usually a single variable such as D$age.'
     param_doc: 'a character string naming a vector on the server, e.g. "D$age".'
     name: x
-    includes: [numeric, integer, character, logical, factor]
     aliases: [xvect, var, variable, vec, input.var.name, x.name, objs]
     status: proposed
   data.frame:
