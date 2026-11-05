@@ -263,5 +263,4 @@ the check; the apply workflow doesn't reorder arguments.
 ### Exceptions
 
 - **dsTidyverse and dsTidyverseClient** mirror dplyr's argument names.
-- **Protocol arguments** such as `session_id` keep their names.
 - **The server suffix `.transmit`** stays on arguments that have it (open).

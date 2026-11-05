@@ -30,9 +30,6 @@ propose_ds_name <- function(arg, role, class, package, rules) {
   if (arg == "...") {
     return(keep("style.allowed_r_conventions", "dots"))
   }
-  if (any(vapply(unlist(rules$exceptions$argument_patterns), grepl, logical(1), x = arg))) {
-    return(keep("exceptions.argument_patterns", "protocol argument"))
-  }
   if (arg %in% unlist(rules$style$allowed_r_conventions)) {
     return(keep("style.allowed_r_conventions", "R convention"))
   }

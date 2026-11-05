@@ -142,10 +142,4 @@ exceptions:
       reason: mirrors dplyr argument names
     dsTidyverseClient:
       reason: mirrors dplyr argument names
-  argument_patterns:
-    - "session_id"
-    - "_json$"
-    - "manifest"
-    - "operation_id$"
-    - "^chunk"
   server_transmit_suffix: ".transmit"
