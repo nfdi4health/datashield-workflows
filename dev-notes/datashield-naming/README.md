@@ -267,6 +267,14 @@ other packages that call the renamed functions.
   functions; (2) test files only for user-facing functions, internal ones
   tested through them; (3) any function of the package (looser, not
   wanted so far).
+- Disclosure settings (`function.server.disclosure`, not checked yet; the
+  names come from Opal and Armadillo, the list from dsBase `master`): must
+  every aggregate function read at least one, and assign functions too?
+  Must server functions read them through `listDisclosureSettingsDS()`
+  instead of hard-coding thresholds (a check can only roughly detect
+  that)? Must a package's own thresholds be declared under `Options:` in
+  `inst/DATASHIELD` as `default.nfilter.*`, and documented? dsSurvival and
+  dsTidyverse declare no `Options:`; do they rely on dsBase's?
 - Test files that test no function: datasets (`test-datachk-CNSIM.R`) and
   topics (`conndisconn`, `void`, `per_study_arguments`, `utils`). Removed
   from the rules on 2026-11-05 until discussed, so they are reported now;
