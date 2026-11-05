@@ -6,7 +6,7 @@ rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-argument-rules.yml")
 
 test_that("the rules file reads one-letter values as text, not booleans", {
   expect_equal(rules$style$abbreviations$number, "n")
-  expect_equal(unlist(rules$multiple_inputs$exceptions[[1]]$names), c("x", "y"))
+  expect_equal(unlist(rules$multiple_inputs$pair$vector), c("x", "y"))
 })
 
 test_that("check_package_names() checks names and pairs, with the listed exceptions", {
@@ -158,6 +158,16 @@ test_that("propose_ds_name() follows roles, classes, columns and exceptions", {
   expect_equal(propose_ds_name("idCol", "column", "", "pkg", rules)$proposed, "id.col")
   expect_equal(propose_ds_name("formula", "object", "formula", "pkg", rules)$match, "exception")
   expect_true(is.na(propose_ds_name("extra", "unknown", "", "pkg", rules)$proposed))
+})
+
+test_that("resolve_naming_collisions() gives two vectors the pair, in any function", {
+  vectors <- function(args, confidence = "high") {
+    data.frame(`function` = "ds.any", arg = args, proposed = "x", rule = "classes.vector", rule_open = FALSE,
+               match = "rule", class = "vector", confidence = confidence, note = "", check.names = FALSE)
+  }
+  expect_equal(resolve_naming_collisions(vectors(c("V1", "V2")), rules)$proposed, c("x", "y"))
+  expect_equal(resolve_naming_collisions(vectors(c("V1", "V2", "V3")), rules)$proposed, c("x1", "x2", "x3"))
+  expect_true(all(is.na(resolve_naming_collisions(vectors(c("V1", "V2"), "medium"), rules)$proposed)))
 })
 
 test_that("resolve_naming_collisions() numbers generic inputs only and never roles", {

@@ -1,9 +1,9 @@
 # Makes one function's proposed names distinct (`rows`: that function's
 # arguments, in order). When several arguments get the same name:
 #   - several inputs of one object class (two data frames -> two "df")
-#     follow `multiple_inputs`: the established pairs listed under its
-#     exceptions (x, y for ds.cor, ...), else numbered (df1, df2) — but
-#     only when every one of them was classified with high confidence;
+#     follow `multiple_inputs`: the pair of that class if there are exactly
+#     two (two vectors -> x, y), else numbered (df1, df2) — but only when
+#     every one of them was classified with high confidence;
 #   - otherwise (a role such as checks or method, a weaker
 #     classification, a column or style name) the argument that already
 #     has the name, or the one known alias of it, keeps it;
@@ -13,13 +13,6 @@
 # argument already has is a conflict too.
 resolve_naming_collisions <- function(rows, rules) {
   scheme <- rule_name(rules$multiple_inputs$scheme)
-  fn <- rows$`function`[1]
-  pairs <- Filter(function(e) fn %in% unlist(e$functions), rules$multiple_inputs$exceptions)
-  fixed <- if (length(pairs) > 0) {
-    unlist(pairs[[1]]$names)
-  } else {
-    character(0)
-  }
   movable <- !is.na(rows$proposed) & rows$match != "exception"
   conflict <- function(i, text) {
     rows$note[i] <<- text
@@ -58,9 +51,14 @@ resolve_naming_collisions <- function(rows, rules) {
         next
       }
     }
-    if (is_class && length(fixed) >= length(idx)) {
-      new_names <- fixed[seq_along(idx)]
-    } else if (is_class && scheme$name == "numbered" && all(rows$confidence[idx] == "high")) {
+    pair <- character(0)
+    if (is_class) {
+      pair <- unlist(rules$multiple_inputs$pair[[rows$class[idx[1]]]])
+    }
+    sure <- all(rows$confidence[idx] == "high")
+    if (length(pair) == length(idx) && sure) {
+      new_names <- pair
+    } else if (is_class && scheme$name == "numbered" && sure) {
       new_names <- paste0(name, seq_along(idx))
     } else {
       holder <- idx[rows$arg[idx] == name]
@@ -82,7 +80,7 @@ resolve_naming_collisions <- function(rows, rules) {
     }
     rows$proposed[idx] <- new_names
     rows$rule[idx] <- "multiple_inputs"
-    rows$rule_open[idx] <- rows$rule_open[idx] | (scheme$open && length(fixed) < length(idx))
+    rows$rule_open[idx] <- rows$rule_open[idx] | (scheme$open && length(pair) != length(idx))
     rows$match[idx] <- ifelse(rows$arg[idx] == new_names, "canonical", "rule")
   }
 

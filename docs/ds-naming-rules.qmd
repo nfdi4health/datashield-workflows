@@ -251,8 +251,8 @@ For an argument naming an object on the server:
 
 ### Several inputs of the same class
 
-Numbered (`df1`, `df2`) or distinct (`x`, `y`) is open; numbered is used
-for now. Established `x`, `y` pairs stay, e.g. in `ds.cor` and `ds.cov`.
+Two vectors in one function are `x` and `y`. Otherwise, numbered (`df1`,
+`df2`) or distinct is open; numbered is used for now.
 Descriptive names such as `sex` are kept.
 
 ### Order

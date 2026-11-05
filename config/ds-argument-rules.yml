@@ -92,9 +92,9 @@ classes:
     aliases: [res, nc, client]
 
 multiple_inputs:
-  scheme: [numbered, distinct]
-  exceptions:
-    - { functions: [ds.cor, ds.corTest, ds.cov, ds.scatterPlot, ds.contourPlot, ds.heatmapPlot, ds.densityGrid], names: ["x", "y"] }
+  scheme: [numbered, distinct] # discussion: distinct could also be defined as single letters
+  pair:
+    vector: ["x", "y"]
   vector_of_names: [x.names, x_names]
 
 order:
