@@ -9,8 +9,9 @@ meta:
   status: draft
 
 style:
-  separator: [".", "_"]
-  case: lowercase
+  separator: [".", "_"] # discussion: necessary to define or not?
+  column_suffix: col
+  case: lowercase # discussion: what about common abbreviations?
   max_words: 3
   abbreviations:
     number: "n"
@@ -32,19 +33,6 @@ style:
     - offset
     - na.rm
     - subset
-
-reference_kinds:
-  object:
-    description: 'The argument holds the name of an object that lives on the server; the client never sees its contents.'
-    naming: by_class
-  column:
-    description: 'The argument holds the name of a column inside a data frame given in another argument (e.g. the ID or time column).'
-    naming: suffix
-    suffix: [".col", "_col"]
-    multiple: [".cols", "_cols"]
-  value:
-    description: 'The argument holds an actual value sent from the client, such as a threshold, a number of breaks or a vector of knots.'
-    naming: free
 
 classes:
   vector:
