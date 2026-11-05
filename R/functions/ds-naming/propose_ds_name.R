@@ -1,8 +1,8 @@
 # The name the rules give one argument, from its role and class
 # (classify_ds_argument(), or Claude's classification): exceptions and R
 # conventions keep their name; roles and object classes get the canonical
-# name; column arguments the column suffix; plain values only the general
-# style (to_naming_style()). Returns list(proposed, rule, rule_open, match,
+# name; columns and plain values only the general style
+# (to_naming_style()). Returns list(proposed, rule, rule_open, match,
 # reason); `proposed` is NA when nothing can be said (role unknown, object
 # of unknown class) — those go to Claude or stay unresolved. `match`:
 # canonical (already right), alias (a known variant), rule (renamed by the
@@ -30,9 +30,6 @@ propose_ds_name <- function(arg, role, class, package, rules) {
   if (arg == "...") {
     return(keep("style.allowed_r_conventions", "dots"))
   }
-  if (any(vapply(unlist(rules$exceptions$argument_patterns), grepl, logical(1), x = arg))) {
-    return(keep("exceptions.argument_patterns", "protocol argument"))
-  }
   if (arg %in% unlist(rules$style$allowed_r_conventions)) {
     return(keep("style.allowed_r_conventions", "R convention"))
   }
@@ -52,26 +49,10 @@ propose_ds_name <- function(arg, role, class, package, rules) {
     }
     r <- rules$classes[[class]]
     n <- rule_name(r$name)
-    return(result(n$name, paste0("classes.", class), n$open || identical(r$status, "open"), unlist(r$aliases)))
+    return(result(n$name, paste0("classes.", class), n$open, unlist(r$aliases)))
   }
-  if (role == "column") {
-    suffix <- sub("^[._]", "", rule_name(rules$reference_kinds$column$suffix)$name)
-    # idCol -> id.col, outcome -> outcome.col, by.x.names -> by.x.cols
-    words <- strsplit(to_naming_style(arg, " "), " ")[[1]]
-    last <- tail(words, 1)
-    plural <- last %in% c("names", "vars", "variables", "cols", "columns")
-    if (last %in% c("name", "names", "var", "vars", "variable", "variables", "column", "columns", suffix, paste0(suffix, "s"))) {
-      words <- head(words, -1)
-    }
-    if (plural) {
-      words <- c(words, paste0(suffix, "s"))
-    } else {
-      words <- c(words, suffix)
-    }
-    return(result(paste(words, collapse = sep$name), "reference_kinds.column", TRUE))
-  }
-  if (role %in% c("value", "plumbing")) {
-    styled <- to_naming_style(arg, sep$name)
+  if (role %in% c("column", "value", "plumbing")) {
+    styled <- to_naming_style(arg, sep$name, rules$style$case)
     r <- result(styled, "style")
     if (!identical(styled, arg)) {
       r$match <- "style"

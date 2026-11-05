@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 # Checks a DataSHIELD package's argument names against the naming rules
-# (config/ds-naming-rules.yml, a repository's own copy merged over it) and
+# (config/ds-argument-rules.yml, config/ds-package-rules.yml,
+# a repository's own copies merged over them) and
 # writes the transformation file people approve renames in:
 #   1. read the package (the caller) and, if given, its server package
 #      (SERVER_DIR), and pair client arguments with the server arguments
@@ -14,7 +15,9 @@
 #      server in lockstep;
 #   5. merge with the decisions in the previous file (PREVIOUS_FILE, the
 #      open bot PR's or the branch's own), write file, report and PR text.
-# Report-only checks: function names, argument order, test file names.
+# Report-only checks: package names, DESCRIPTION fields, required files,
+# server methods, client/server calls, function names and files, roxygen
+# tags, argument order, test file names.
 # Design: dev-notes/datashield-naming/README.md.
 
 library(httr2)
@@ -28,7 +31,8 @@ functions_dir <- if (dir.exists("R/functions/ds-naming")) {
 }
 walk(list.files(file.path(functions_dir, c("shared", "ds-naming")), pattern = "\\.R$", full.names = TRUE), source)
 
-rules <- read_config_yaml("config/ds-naming-rules.yml")
+rules <- read_config_yaml("config/ds-argument-rules.yml")
+package_rules <- read_config_yaml("config/ds-package-rules.yml")
 transformation_file <- Sys.getenv("TRANSFORMATION_FILE", ".github/ds-naming/transformations.yml")
 previous_file <- Sys.getenv("PREVIOUS_FILE", transformation_file)
 server_dir <- Sys.getenv("SERVER_DIR")
@@ -38,9 +42,10 @@ use_claude <- max_calls > 0 && tolower(Sys.getenv("USE_CLAUDE", "true")) == "tru
 
 # --- 1. Packages and links ------------------------------------------------------
 
-own <- read_ds_package(".", package_side)
+method_types <- unlist(package_rules$`function`$server$method_types)
+own <- read_ds_package(".", package_side, method_types)
 server <- if (package_side == "client" && nzchar(server_dir) && dir.exists(server_dir)) {
-  read_ds_package(server_dir, "server")
+  read_ds_package(server_dir, "server", method_types)
 } else {
   NULL
 }
@@ -134,12 +139,31 @@ meta <- list(
 )
 write_transformation_file(entries, meta, transformation_file, classifications)
 
-checks <- lapply(pkgs, function(p) list(
-  package = p$name,
-  function_names = check_function_names(p, rules),
-  order = check_argument_order(rows[rows$package == p$name, ], rules),
-  tests = check_test_file_names(p, rules)
-))
+other_side <- function(p) {
+  Find(function(x) !identical(x$side, p$side), pkgs)
+}
+checks <- lapply(pkgs, function(p) {
+  methods <- character(0)
+  if (p$side == "server") {
+    methods <- check_server_methods(p, package_rules)
+  }
+  pairing <- character(0)
+  if (p$side == "client" && !is.null(server)) {
+    pairing <- check_client_server_pairing(p, server)
+  }
+  list(
+    package = p$name,
+    package_names = c(check_package_names(p, other_side(p), package_rules), check_description_fields(p, package_rules),
+                      check_required_files(p, package_rules)),
+    methods = methods,
+    pairing = pairing,
+    function_names = check_function_names(p, package_rules),
+    function_files = check_function_files(p, package_rules),
+    roxygen = check_roxygen_tags(p, package_rules),
+    order = check_argument_order(rows[rows$package == p$name, ], rules),
+    tests = check_test_file_names(p, package_rules)
+  )
+})
 report <- format_naming_report(rows, entries, checks, transformation_file, rules$meta$version)
 report_file <- file.path(dirname(transformation_file), "report.md")
 writeLines(report$full, report_file, useBytes = TRUE)

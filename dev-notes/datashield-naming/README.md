@@ -12,8 +12,10 @@ person with the DataSHIELD developers before the rules are final.
 
 | File | What |
 | --- | --- |
-| `../../config/ds-naming-rules.yml` | Draft rules config v0.1 (the single source of truth; moved there from this folder on 2026-10-14, read by the workflows, a repository's own copy merged over it key by key). YAML, not JSON, because every line carries a comment. `name: [a, b]` = still open (front-runner first); entries have `description`, `param_doc` (standard `@param` text), `aliases`, `status`. |
-| `example-ds-naming-check.yml`, `example-ds-naming-apply.yml` | Caller files (kept here, not in `examples/`, while the rules are internal). |
+| `../../config/ds-argument-rules.yml` | Draft rules for function arguments: style, what an argument refers to, classes, roles, several inputs, order, exceptions. `name: [a, b]` = still open (front-runner first); entries have `description`, `param_doc` (standard `@param` text), `aliases`. |
+| `../../config/ds-package-rules.yml` | Draft rules for packages in general: package names and pairs, required `DESCRIPTION` fields and files, function names and files, roxygen tags, server methods (`inst/DATASHIELD`, as on CRAN: dsTidyverse, dsBase), test file names. Split from one file on 2026-11-04 (user); both are read by the workflows, a repository's own copy merged over each key by key. |
+| `rules-annotated-v0.1.yml` | The one file as it was before the split: the reasoning, survey and inventory counts per line, the examples, `scope` (package pairs) and the shape of a transformation entry. Background only, not read by anything; the config files hold rules, not documentation. |
+| `../../docs/ds-naming.qmd`, `../../docs/ds-naming-rules.qmd` | Draft documentation on the site since 2026-11-05 (user: needed for clarity even before the rules are agreed), marked as draft; examples of the test file template there. Callers in `../../examples/ds-naming-*.yml`. |
 | `survey-191723-results.csv` | Earlier nomenclature survey (15 rows, ~8 complete answers). Git-ignored. |
 | `datashield_argument_inventory.csv` | Every function argument of 32 packages × prod/dev (20,046 rows; filter `in_scope == TRUE` → 4,868 latest-track user-facing args) with inferred role, object class, confidence, doc text. 3.8 MB — git-ignored (`*.csv` in this folder); move to a release asset if it must be shared. |
 | `inventory-summary.json` | Aggregated tables behind the findings below. |
@@ -97,7 +99,7 @@ medium / 18% low.
 
 ## Workflow design (agreed shape, not built)
 
-1. **Rules config** (`ds-naming-rules.yaml`) — names, aliases, style,
+1. **Rules config** (`config/ds-package-rules.yml`, `config/ds-argument-rules.yml`) — names, aliases, style,
    order, function/test file patterns, exceptions.
 2. **Detect — deterministic.** Parse formals/docs/file names, match the
    rules → (a) a report per package and aggregated (dashboard input),
@@ -156,8 +158,8 @@ them alone (`package-side: server`).
    the whole run, the rules part of the prompt is cached when the run
    makes more than one call.
 5. `propose_ds_name()` — exceptions/R conventions keep; roles and classes
-   → canonical name (open rules: front-runner, `rule_open: true`); column
-   args → `<stem>.col` / `.cols`; values → style only (`idCol` → `id.col`).
+   → canonical name (open rules: front-runner, `rule_open: true`); column args and values →
+   style only (`idCol` → `id.col`).
    `resolve_naming_collisions()` — same class twice → numbered (`df1`,
    `df2`) or the listed pairs (`x`, `y`); a name another kept argument has
    → `unresolved` with a conflict note. `propose_naming_rows()` — a
@@ -247,9 +249,13 @@ other packages that call the renamed functions.
 
 - `checks` vs v7.0-dev's `classConsistencyCheck` — same flag or separate?
 - Separator for multi-word names: dot.case or snake_case?
-- matrix (`mat`/`matrix`), list, omics, resource names; factor separate
-  from vector?
-- Column-name args: suffix `.col`/`_col`?
+- Resource name; factor separate from vector? The class `omics` was split
+  into `eset`, `genotype` and `exposome` on 2026-11-05 (user): 9 dsOmics
+  functions take ExpressionSet and SummarizedExperiment in one argument,
+  so they stay one class; its name `set` or `eset` is open.
+- ~~Column-name args: suffix `.col`/`_col`?~~ Dropped 2026-11-05: 138 column
+  args of 4,868, only 17 of them with `col` in the name, and the group is
+  noisy (`weights`, `sep`). Columns get style only.
 - Internal prefix `.` vs `int.`; multiple inputs numbered vs distinct
   (exception list for `x`/`y` pairs drafted).
 - Function prefixes `dh.`, `dss`, `ds.vert.`, `ds.imaging.`: exception or
@@ -257,6 +263,26 @@ other packages that call the renamed functions.
 - Deprecation shims (old names accepted with a warning) or hard break?
 - Scope of the first round: dsBase/Client only, or all packages.
 - Rename `datasources` given the 2/7 objection?
+- Test files of internal functions: reported for now, as `<function>` in
+  the test file template follows the client or server function pattern.
+  Depends on `function.internal.prefix` (`.` vs `int.`). Options: (1) the
+  template also accepts the prefix (`test-arg-int.checkClass.R`; with `.`
+  it reads `test-arg-.checkClass.R`), after renaming existing internal
+  functions; (2) test files only for user-facing functions, internal ones
+  tested through them; (3) any function of the package (looser, not
+  wanted so far).
+- Disclosure settings (`function.server.disclosure`, not checked yet; the
+  list comes from dsBase `master`): must
+  every aggregate function read at least one, and assign functions too?
+  Must server functions read them through `listDisclosureSettingsDS()`
+  instead of hard-coding thresholds (a check can only roughly detect
+  that)? Must a package's own thresholds be declared under `Options:` in
+  `inst/DATASHIELD` as `default.nfilter.*`, and documented? dsSurvival and
+  dsTidyverse declare no `Options:`; do they rely on dsBase's?
+- Test files that test no function: datasets (`test-datachk-CNSIM.R`) and
+  topics (`conndisconn`, `void`, `per_study_arguments`, `utils`). Removed
+  from the rules on 2026-11-05 until discussed, so they are reported now;
+  the earlier wording is in `rules-annotated-v0.1.yml`.
 
 ## Second idea (not started)
 

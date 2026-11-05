@@ -48,6 +48,7 @@ you need is very welcome, see [Roadmap and open questions](roadmap.qmd).
 | | [Cleanup suggestion branch](cleanup-suggestion-branch.qmd) | Deletes bot branches once their PR is closed |
 | | [Under the hood](suggestions-internals.qmd) | How the roxygen and test suggestions work, step by step |
 | Analysis projects | [DataSHIELD analysis scripts](datashield-analysis-suggest.qmd) | Drafts starter scripts from your analysis plan, tested on mock data in DSLite |
+| DataSHIELD naming (draft) | [Naming check and apply](ds-naming.qmd) | Checks packages against shared [naming rules](ds-naming-rules.qmd) and renames what people approve |
 | Workflow upkeep | [Workflow keepalive](workflow-keepalive.qmd) | Keeps scheduled workflows from being disabled after 60 days of inactivity |
 | | [Workflow graphs](workflow-graphs.qmd) | Writes an overview of your workflows — table and diagrams — into `.github/workflow-graphs/README.md` |
 

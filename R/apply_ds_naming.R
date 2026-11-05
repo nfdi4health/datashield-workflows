@@ -27,9 +27,10 @@ if (!file.exists(transformation_file)) {
 }
 
 entries <- read_transformation_file(transformation_file)$entries
-own <- read_ds_package(".", package_side)
+method_types <- unlist(read_config_yaml("config/ds-package-rules.yml")$`function`$server$method_types)
+own <- read_ds_package(".", package_side, method_types)
 server <- if (package_side == "client" && nzchar(server_dir) && dir.exists(server_dir)) {
-  read_ds_package(server_dir, "server")
+  read_ds_package(server_dir, "server", method_types)
 } else {
   NULL
 }

@@ -1,0 +1,79 @@
+# DataSHIELD naming rules for packages in general: function names and test
+# file names. Function arguments: ds-argument-rules.yml.
+# A list of candidates under a rule = still open, the first one is used.
+# A project's own copy is merged over this file key by key.
+
+meta:
+  version: 0.1.0
+  status: draft
+
+package:
+  case: camelCase
+  client: "ds<name>Client"
+  server: "ds<name>"
+  name: "[A-Z][A-Za-z0-9]*"
+  required_files: [README.md, tests/testthat] # discussion: mandatory? NEWS.md too?
+  description:
+    required_fields: [License, Authors@R, URL, BugReports]
+    version:
+      format: "x.y.z" # discussion: is this relevant to define at all (could be made flexibe for "v" prefix?
+      development: "x.y.z.9000" # discussion: R convention, or only a -dev branch?
+      client_server_match: true # discussion: must a pair always have the same version?
+  exceptions:
+    client_only: [dsHelper, dsSyntheticClient, dsSupportClient] # discussion: dsHelperClient?
+    server_only: [dsResource, dsMeta] # discussion: are these still maintained?
+    pairs:
+      - { client: dsMTLClient, server: dsMTLBase } # discussion: rename?
+
+function:
+  case: camelCase
+  client:
+    pattern: "^ds\\.[a-z][A-Za-z0-9]*$"
+    roxygen:
+      required_tags: [examples]
+    allowed_prefixes: [dh., dss] # discussion: should be removed
+    namespaced: ["ds.vert.", "ds.imaging."] # discussion: should be removed
+  server:
+    pattern: "^[a-z][A-Za-z0-9]*DS$"
+    methods_file: inst/DATASHIELD
+    method_types: [AggregateMethods, AssignMethods]
+    disclosure: # discussion: which should a server package use or declare?
+      settings:
+        - datashield.privacyLevel
+        - datashield.privacyControlLevel
+        - nfilter.tab
+        - nfilter.subset
+        - nfilter.glm
+        - nfilter.kNN
+        - nfilter.string
+        - nfilter.stringShort
+        - nfilter.noise
+        - nfilter.levels.density
+        - nfilter.levels.max
+  internal:
+    prefix: [".", "int."] # discussion: only "." sometimes caused problems
+  one_function_per_file: true
+  file_name: "<function>.R"
+  roxygen:
+    required_tags: [title, description, details, param, return, author]
+
+tests:
+  pattern: "^test-(<category>-)?<function>(-<variant>)?\\.R$"
+  examples:
+    simple: test-ds.mean.R
+    extended: test-smk_expt-ds.mean-factor_missing.R
+  category_joiner: "_"
+  category:
+    smk: smoke test, function runs and returns expected structure
+    arg: argument validation and error messages
+    perf: performance against a stored profile
+    disc: disclosure checks
+    discctrl: disclosure control settings (nfilter.*)
+    datachk: data checks / class consistency
+    expt: expected results against known values
+    math: mathematical correctness
+    dgr: degraded or unusual input (missing values, edge cases)
+  qualifier:
+    bug: regression test for a reported bug # discussion: should be a category?
+  variant: "[a-z0-9_]+"
+  helpers_allowed: ["setup.R", "teardown.R", "^helper-.*\\.R$"]

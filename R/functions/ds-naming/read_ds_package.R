@@ -1,10 +1,10 @@
 # Reads one package source directory for the naming check: its name, the
 # user-facing functions (client: NAMESPACE exports; server: the
-# AggregateMethods/AssignMethods in DESCRIPTION, else its exports) and one
+# methods declared in `method_types`, else its exports) and one
 # row per argument of those (data frame), with its default and @param text
 # (roxygen, else man/*.Rd). `defs` keeps every definition, user-facing or
 # not, for the test-file and call checks.
-read_ds_package <- function(pkg_dir, side) {
+read_ds_package <- function(pkg_dir, side, method_types) {
   name <- unname(read.dcf(file.path(pkg_dir, "DESCRIPTION"), fields = "Package")[1, 1])
   defs <- unlist(lapply(list.files(file.path(pkg_dir, "R"), pattern = "\\.[Rr]$", full.names = TRUE), read_r_definitions), recursive = FALSE)
   def_names <- vapply(defs, function(d) d$name, character(1))
@@ -13,7 +13,7 @@ read_ds_package <- function(pkg_dir, side) {
                  error = function(e) list(exports = character(0), exportPatterns = character(0)))
   exports <- union(ns$exports, unlist(lapply(ns$exportPatterns, function(p) grep(p, def_names, value = TRUE))))
   methods <- if (side == "server") {
-    read_description_methods(pkg_dir)
+    read_description_methods(pkg_dir, method_types)
   } else {
     character(0)
   }

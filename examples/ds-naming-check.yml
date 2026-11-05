@@ -1,5 +1,3 @@
-# Caller for the naming check, in a client package (e.g. dsBaseClient).
-# Not in examples/ (the docs) until the rules are agreed.
 name: DataSHIELD Argument Naming Check
 
 on:
@@ -13,7 +11,7 @@ jobs:
       id-token: write
       contents: write
       pull-requests: write
-    uses: FlorianSchw/package-workflows/.github/workflows/ds-naming-check.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/ds-naming-check.yml@main
     with:
       server-repository: datashield/dsBase
       server-ref: v7.0-dev
@@ -29,4 +27,4 @@ jobs:
     if: github.event_name == 'schedule'
     permissions:
       actions: write
-    uses: FlorianSchw/package-workflows/.github/workflows/workflow-keepalive.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/workflow-keepalive.yml@main

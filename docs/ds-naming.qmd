@@ -1,0 +1,144 @@
+---
+title: "DataSHIELD naming (draft)"
+description: "Checks a DataSHIELD client and server package against shared naming rules and renames what people approve."
+---
+
+::: {.callout-warning}
+## Draft
+The [rules](ds-naming-rules.qmd) aren't agreed with the DataSHIELD
+developers yet, and may change. Both workflows have only been tested
+locally, not yet in GitHub Actions or with a real Claude answer. This page
+describes what exists today.
+:::
+
+Today the same kind of argument has many names across DataSHIELD packages,
+e.g. `newobj` and `newobj.name`, or `df`, `data` and `dataName` for a data
+frame. Two workflows bring a package in line with one set of
+[naming rules](ds-naming-rules.qmd), in a breaking release:
+
+- **`ds-naming-check.yml`** compares the package with the rules and
+  proposes renames in a review pull request. It changes no code.
+- **`ds-naming-apply.yml`** makes the renames people approved, in code,
+  tests and documentation.
+
+Both run from the **client** repository, which checks out its paired
+server package, so client and server arguments change together. A package
+without a counterpart can run them alone.
+
+## How it works
+
+```{mermaid}
+flowchart LR
+  check["Check: read the code,<br/>classify the arguments"] --> pr["Review PR with<br/>transformations.yml"]
+  pr --> people["People approve<br/>or skip renames"]
+  people -- "PR merged" --> apply["Apply: rename in code,<br/>tests and docs"]
+  apply --> prs["One PR per repository"]
+```
+
+## The check
+
+1. **Reads the package:** the user-facing functions (client: `NAMESPACE`
+   exports; server: the Aggregate and Assign methods) with their arguments
+   and documentation, and which client argument is passed to which server
+   argument.
+2. **Works out what each argument is:** its role (e.g. new object) or, for
+   an object on the server, its class (e.g. data frame), from its name,
+   default and documentation.
+3. **Asks Claude about the unclear ones,** at most `max-claude-calls`
+   functions per run. Claude only classifies; the name always comes from
+   the rules. Answers are kept and reused until the argument's default or
+   documentation changes.
+4. **Proposes names by the rules,** distinct within a function, with client
+   and server arguments in step.
+
+The results go into a pull request on `bot-suggest/ds-naming/<branch>`:
+
+- **`.github/ds-naming/transformations.yml`**: one entry per function and
+  argument that would change or needs a decision;
+- **`.github/ds-naming/report.md`**: the overview per package, plus what
+  breaks the rules for packages (names, `DESCRIPTION`, required files),
+  server methods, client and server calls, function names and files,
+  roxygen tags, argument order and test file names. Those are
+  reported only; the apply workflow doesn't change them.
+
+## Reviewing
+
+Edit `transformations.yml` in the pull request. Each entry has a `status`:
+
+| `status` | Meaning |
+|---|---|
+| `proposed` | Waiting for a decision |
+| `approved` | Rename it; you may change `proposed` first |
+| `skip` | Keep the name |
+| `unresolved` | The rules can't decide: fill in `proposed`, then approve or skip |
+| `applied` | Done; kept as history |
+
+Entries marked `rule_open: true` follow a rule that is still open. Your
+decisions survive later checks. Merging the pull request starts the apply
+workflow.
+
+## The apply workflow
+
+It checks each approved entry against the code first: an argument already
+renamed is marked as applied, and a new name that is already taken is
+reported as a conflict and not renamed. Then it renames, for each function:
+
+- **R code** in `R/`, `tests/` and `vignettes/`, using R's parser: the
+  argument, its uses in the function, and calls with `old = ` anywhere;
+- **Roxygen blocks,** shared templates and `man/*.Rd`;
+- **R chunks** in vignettes and the README.
+
+Text is left alone: mentions of the old name in error messages are listed
+for a person, and vignette prose isn't changed. A file that wouldn't parse
+afterwards isn't changed either.
+
+Each repository gets one pull request, on
+`bot-suggest/ds-naming-apply/<branch>`, with a `refactor!:` commit and a
+`BREAKING CHANGE` footer.
+
+**Not done by the workflow yet:** renaming functions and test files,
+reordering arguments, adding deprecated aliases for old names, harmonising
+`@param` texts, and packages that call the renamed functions.
+
+## Before you start
+
+- **GitHub App:** installed on the client and the server repository, which
+  must have the same owner, see [GitHub App](getting-started.qmd#github-app).
+- **Claude access:** a federation rule for `ds-naming-check.yml`, see
+  [Claude setup](claude-setup.qmd). With `max-claude-calls: 0` no Claude
+  access is needed, and unclear arguments stay `unresolved`.
+- **Adjusting the rules:** a file at the same path in your repository is
+  merged over the shared one, see
+  [adjusting the guidance](suggestions.qmd#adjusting-the-guidance).
+
+## Example: check
+
+{{< example ds-naming-check.yml >}}
+
+### Inputs
+
+{{< wf-inputs ds-naming-check.yml >}}
+
+### Secrets
+
+{{< wf-secrets ds-naming-check.yml >}}
+
+### Permissions
+
+{{< wf-permissions ds-naming-check.yml >}}
+
+## Example: apply
+
+{{< example ds-naming-apply.yml >}}
+
+### Inputs
+
+{{< wf-inputs ds-naming-apply.yml >}}
+
+### Secrets
+
+{{< wf-secrets ds-naming-apply.yml >}}
+
+### Permissions
+
+{{< wf-permissions ds-naming-apply.yml >}}

@@ -1,7 +1,3 @@
-# Caller for the naming apply step, in the same client package: runs when
-# the reviewed transformation file lands on the branch (the review PR is
-# merged), and by hand. Not in examples/ (the docs) until the rules are
-# agreed.
 name: DataSHIELD Argument Naming Apply
 
 on:
@@ -15,7 +11,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: FlorianSchw/package-workflows/.github/workflows/ds-naming-apply.yml@main
+    uses: nfdi4health/datashield-workflows/.github/workflows/ds-naming-apply.yml@main
     with:
       server-repository: datashield/dsBase
       server-ref: v7.0-dev

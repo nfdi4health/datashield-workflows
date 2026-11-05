@@ -1,0 +1,267 @@
+---
+title: "Naming rules (draft)"
+description: "The draft rules for DataSHIELD function, test file and argument names."
+---
+
+::: {.callout-warning}
+## Draft
+Nothing here is agreed with the DataSHIELD developers yet. Where a rule
+lists several options, it is still open: the first one is used for now,
+and renames that depend on it are marked `rule_open: true`.
+:::
+
+The rules are in two files of this repository, used by the
+[naming workflows](ds-naming.qmd):
+
+| File | Rules for |
+|---|---|
+| `config/ds-package-rules.yml` | Packages in general: package names, `DESCRIPTION` fields, function names, server methods, test file names |
+| `config/ds-argument-rules.yml` | Function arguments: style, classes, roles and order |
+
+## Package rules
+
+These are reported by the check; the apply workflow doesn't change them.
+
+### Package names
+
+A pair is called `ds<name>` (server) and `ds<name>Client` (client), where
+`<name>` is camelCase and starts with a capital letter: `dsBase` and
+`dsBaseClient`.
+
+Exceptions are listed in the rules:
+
+- **Client only:** dsHelper, dsSyntheticClient;
+- **Server only:** dsResource, dsMeta;
+- **Pairs named differently:** dsMTLClient and dsMTLBase.
+
+A package that isn't listed, and is checked without its counterpart, is
+reported.
+
+### `DESCRIPTION`
+
+Every package has the fields `License`, `Authors@R`, `URL` and
+`BugReports`. What they say is up to the package, so any licence is fine.
+
+Open, not checked yet: the version format (`x.y.z`), how development
+versions are marked (`x.y.z.9000`), and whether a client and server pair
+always has the same version.
+
+### Required files
+
+Every package has `README.md` and `tests/testthat/`. Open: whether these
+are mandatory, and whether `NEWS.md` joins them.
+
+### Dependencies (guidance)
+
+This is advice, not a rule, and the check doesn't look at it. It follows
+what dsBase, dsBaseClient, dsSurvival and dsTidyverse do today.
+
+| Field | Client package | Server package |
+|---|---|---|
+| `Depends` | `R` and `DSI`: analysts need `DSI` attached, e.g. for `datashield.login()` | `R` |
+| `Imports` | What the code uses. Add-on packages also import `dsBaseClient` | What the code uses. Add-on packages also import `dsBase` |
+| `Suggests` | What only the tests or vignettes use, see below | `testthat`, and what its tests use |
+
+**`Suggests` matters for testing with DSLite.** DSLite runs the server
+functions in-process, from the **installed** server packages, so a client
+package lists them here, together with `DSLite` and `testthat`:
+
+```
+Suggests:
+    testthat,
+    DSLite,
+    dsBase
+```
+
+Without them, the tests can't run on a fresh machine or in CI. If the tests
+connect in other ways, `DSOpal` and `DSMolgenisArmadillo` belong here too.
+A server package that tests itself through DSLite lists `DSLite`, `DSI`
+and `dsBaseClient`, as dsTidyverse does.
+
+- **A client's own server package only ever goes under `Suggests`:** the two
+  run on different machines, so analysts must not have to install it.
+- **Server packages stay light:** every entry under `Imports` has to be
+  installed on every study's server.
+- **`Imports` rather than `Depends`,** except for `DSI` on the client.
+
+### Function names
+
+| Side | Rule | Example |
+|---|---|---|
+| Client | `ds.` + camelCase | `ds.mean` |
+| Server | ends in `DS`, digits go before it | `meanDS`, `glm1DS` |
+
+Open: the prefixes `dh.` and `dss`, and the forms `ds.vert.` and
+`ds.imaging.`, count as following the rules for now.
+
+### Function files
+
+- **One function per file,** for all functions of a package.
+- **The file is named after the function:** `ds.mean` is in `R/ds.mean.R`,
+  and `meanDS` in `R/meanDS.R`. This applies to user-facing functions.
+
+### Roxygen tags
+
+Every user-facing function has `@title`, `@description`, `@details`,
+`@param` for each argument except `...` (or `@inheritParams` or
+`@template`), `@return`
+and `@author`. Client functions also have `@examples`. A title or
+description written without its tag is reported.
+
+`@export` and `@import` aren't required: whether they fit depends on the
+function, and `R CMD check` already looks after them.
+
+### Server methods
+
+A server package declares its Aggregate and Assign methods in
+`inst/DATASHIELD`, not in `DESCRIPTION`, as packages on CRAN do:
+
+```
+AssignMethods:
+    selectDS,
+    renameDS
+AggregateMethods:
+    groupKeysDS
+```
+
+Every declared method has a function behind it, unless it points to
+another package (`asChar=base::as.character`).
+
+### Disclosure settings
+
+Open, not checked yet. Server functions read the study's disclosure
+settings instead of hard-coding thresholds, because an administrator can
+change them. The settings are:
+`datashield.privacyLevel`, `datashield.privacyControlLevel`, `nfilter.tab`,
+`nfilter.subset`, `nfilter.glm`, `nfilter.kNN`, `nfilter.string`,
+`nfilter.stringShort`, `nfilter.noise`, `nfilter.levels.density` and
+`nfilter.levels.max`.
+
+### Client and server
+
+These go by the calls a client package actually makes, not by comparing
+names: one client function can call several server functions, and some
+call none.
+
+- Every server method a client function calls is declared by the server
+  package.
+- Every declared method is called by a client function.
+
+Client calls are recognised in `call("meanDS", …)`,
+`paste0("meanDS(", …)` and strings passed directly to `datashield.aggregate()`
+or `datashield.assign()`. A method called in another way is listed as not
+called.
+
+### Test file names {#test-files}
+
+Test files in `tests/testthat/` follow the template
+
+```
+^test-(<category>-)?<function>(-<variant>)?\.R$
+```
+
+where `(…)?` means optional. For
+`test-smk_expt-ds.mean-factor_missing.R`:
+
+| Template part | Matches | Meaning |
+|---|---|---|
+| `^test-` | `test-` | fixed start |
+| `(<category>-)?` | `smk_expt-` | categories `smk` and `expt`, joined by `_`; optional |
+| `<function>` | `ds.mean` | the function being tested, following the [function name](#function-names) rule of the package's side |
+| `(-<variant>)?` | `-factor_missing` | free-text variant; optional |
+| `\.R$` | `.R` | fixed end |
+
+The categories are `smk`, `arg`, `perf`, `disc`, `discctrl`, `datachk`,
+`expt`, `math` and `dgr`. The qualifier `bug` can follow a category.
+
+These names also pass:
+
+| File name | Category | Function | Variant |
+|---|---|---|---|
+| `test-ds.mean.R` | none | `ds.mean` | none |
+| `test-smk-ds.mean.R` | `smk` | `ds.mean` | none |
+| `test-expt_bug-ds.table.R` | `expt` + qualifier `bug` | `ds.table` | none |
+| `test-ds.mean-factor_missing.R` | none | `ds.mean` | `factor_missing` |
+
+These fail:
+
+| File name | Why |
+|---|---|
+| `test-bug-ds.mean.R` | `bug` is a qualifier, so it can only follow a category |
+| `test-ds.mean.r` | the ending must be `.R` |
+| `test-smk-ds.mean-Factor.R` | a variant can only use lowercase letters, digits and `_` |
+| `ds.mean.R` | the `test-` start is missing |
+
+The template only checks the shape of the name. A second step checks that
+it names a function of the package: `test-smk-ds.typo.R` matches the
+template but is reported if `ds.typo` doesn't exist. Test files of internal
+functions, or of functions under the open prefixes, are reported too.
+`setup.R`, `teardown.R` and
+`helper-*.R` are exempt.
+
+## Argument rules
+
+An argument's name depends on what it is. Client arguments usually hold
+the *name* of something on the server, so a name says what it refers to,
+without a `.name` suffix: `df`, not `df.name`.
+
+### Roles
+
+Roles apply whatever the argument's class is.
+
+| Role | Name | Holds |
+|---|---|---|
+| Connection | `datasources` | The connections from `datashield.login()` |
+| New object | `newobj` | The name for the result on the server |
+| Output type | `type` | `split`, `combine` or `both` |
+| Checks | `checks` or `classConsistencyCheck` (open) | The switch for optional pre-checks |
+| Method | `method` | The choice of algorithm or variant |
+| Seed | `seed` | The seed for random numbers on the server |
+
+### Object classes
+
+For an argument naming an object on the server:
+
+| Class | Name |
+|---|---|
+| Vector | `x` |
+| Data frame | `df` |
+| Matrix | `mat` |
+| Tibble | `tbl` |
+| Model | `model` |
+| Formula | `formula` |
+| List | `lst` |
+| Assay object (`ExpressionSet`, `SummarizedExperiment`) | `set` or `eset` (open) |
+| Genotype object (`GenotypeData`, `GdsGenotypeReader`) | `geno` |
+| Exposome object (`ExposomeSet`) | `exposome` |
+| Resource | `resource` or `res` (open) |
+
+### Columns and values
+
+- **A column inside a data frame** and **a plain value** sent from the
+  client, such as a threshold, keep their name in the general style:
+  `idCol` → `id.col`, and `outcome` stays `outcome`.
+
+### Style
+
+- **Words** are separated by `.` or `_` (open), in lower case.
+- **Too generic names** go to Claude for a closer look, as they say little
+  about the argument: `matrix`, `tibble`, `data`, `object`, `what`, `input`.
+- **R conventions** keep their name: `...`, `formula`, `family`, `weights`,
+  `offset`, `na.rm`, `subset`.
+
+### Several inputs of the same class
+
+Two vectors in one function are `x` and `y`. Otherwise, numbered (`df1`,
+`df2`) or distinct is open; numbered is used for now.
+Descriptive names such as `sex` are kept.
+
+### Order
+
+`datasources` comes last; only `...` may follow it. This is reported by
+the check; the apply workflow doesn't reorder arguments.
+
+### Exceptions
+
+- **dsTidyverse and dsTidyverseClient** mirror dplyr's argument names.
+- **The server suffix `.transmit`** stays on arguments that have it (open).

@@ -1,0 +1,145 @@
+# DataSHIELD naming rules for function arguments, by what they refer to,
+# their class and role. Packages in general: ds-package-rules.yml.
+# A list under `name` (or another rule) = still open, the first one is
+# used and marked in the review file. Quote y and n (YAML reads them as
+# booleans). A project's own copy is merged over this file key by key.
+
+meta:
+  version: 0.1.0
+  status: draft
+
+style:
+  separator: [".", "_"] # discussion: necessary to define or not?
+  case: lowercase # discussion: what about common abbreviations?
+  max_words: 3
+  abbreviations:
+    number: "n"
+    variable: var
+    column: col
+    object: obj
+  forbidden_names: # information: either unspecific or the name is a common R function
+    - matrix
+    - tibble
+    - data
+    - object
+    - what
+    - input
+  allowed_r_conventions:
+    - "..."
+    - formula
+    - family
+    - weights
+    - offset
+    - na.rm
+    - subset
+
+# aliases are currently used words for specific arguments
+classes:
+  vector:
+    description: 'A one-dimensional server-side object: numeric, integer, character, logical or factor, usually a single variable such as D$age.'
+    param_doc: 'a character string naming a vector on the server, e.g. "D$age".'
+    name: x
+    aliases: [xvect, var, variable, vec, input.var.name, x.name, objs]
+  data.frame:
+    description: 'A server-side data frame: rows are individuals, columns are variables.'
+    param_doc: 'a character string naming a data frame on the server.'
+    name: df
+    aliases: [df.name, dataName, data_name, dataframe, data.frame, dataset, dataset.name, table, table.name, data_table]
+  matrix:
+    description: 'A server-side numeric matrix, e.g. a design matrix or a correlation matrix.'
+    param_doc: 'a character string naming a matrix on the server.'
+    name: mat
+    aliases: [X, M1, M1.name, m, matrix]
+  tibble:
+    description: 'A server-side tibble (tidyverse data frame). Kept apart from data.frame because dsTidyverse functions require one.'
+    param_doc: 'a character string naming a tibble on the server.'
+    name: tbl
+    aliases: []
+  model:
+    description: 'A fitted model object on the server (glm, lmer, coxph, survfit), as created by an earlier assign function.'
+    param_doc: 'a character string naming a fitted model object on the server.'
+    name: model
+    aliases: [fit, glm.obj, glmname]
+  formula:
+    description: 'A model formula, passed as a string or formula object from the client, e.g. "y ~ x1 + x2".'
+    param_doc: 'a formula, or a character string coercible to one, describing the model.'
+    name: formula
+    aliases: [form, fml]
+  list:
+    description: 'A server-side list of objects.'
+    param_doc: 'a character string naming a list on the server.'
+    name: lst
+    aliases: [x]
+  eset:
+    description: 'A server-side assay object: a feature by sample matrix with sample and feature tables, i.e. ExpressionSet, SummarizedExperiment or RangedSummarizedExperiment.'
+    param_doc: 'a character string naming an ExpressionSet or SummarizedExperiment on the server.'
+    name: [set, eset]
+    aliases: [Set, eSet, x]
+  genotype:
+    description: 'A server-side reader on genotype data in a GDS file: GenotypeData or GdsGenotypeReader.'
+    param_doc: 'a character string naming a GenotypeData or GdsGenotypeReader object on the server.'
+    name: geno
+    aliases: [genoData, gds, x]
+  exposome:
+    description: 'A server-side ExposomeSet: exposures per sample, with phenotypes and a description of each exposure.'
+    param_doc: 'a character string naming an ExposomeSet on the server.'
+    name: exposome
+    aliases: [exposomeSet, Set, x]
+  resource:
+    description: 'A DataSHIELD resource (resourcer ResourceClient) or an object derived from one, e.g. a database or NetCDF connection.'
+    param_doc: 'a character string naming a resource or resource client on the server.'
+    name: [resource, res]
+    aliases: [res, nc, client]
+
+roles:
+  connection:
+    description: 'The list of DSConnection objects returned by datashield.login(); decides which servers the call goes to.'
+    param_doc: 'a list of DSConnection-class objects obtained after login. If not specified, the default set of connections is used: see datashield.connections_default.'
+    name: datasources
+    aliases: [conns, datasourceTest]
+  new_object:
+    description: 'The name under which the function stores its result on the server (assign functions only).'
+    param_doc: 'a character string giving the name of the new object created on the server. Default "<function>.newobj".'
+    name: newobj
+    aliases: [newobj.name, new.obj, new_obj, newobject, new.name, output.name, objectname, new_df_name, symbol, output_asset]
+    default_pattern: "<function>.newobj"
+  output_type:
+    description: 'Whether results are returned per server ("split"), pooled across servers ("combine") or both.'
+    param_doc: 'a character string: "split" (results per server), "combine" (pooled across servers) or "both".'
+    name: type
+    values: [split, combine, both]
+    reserved: true
+  checks: # discussion: with the changes to dsBase(Client), I don't know if this is still necessary
+    description: 'Switches on optional pre-checks on the server (object exists, same class on every server) before the main call; slower, so off by default.'
+    param_doc: 'logical. If TRUE, checks that the input exists and has the same class on all servers. Default FALSE.'
+    name: [checks, classConsistencyCheck]
+    aliases: [do.checks, DataSHIELD.checks]
+  method:
+    description: 'Selects one of several algorithms or variants the function offers, e.g. "pearson"/"spearman" or "deterministic"/"probabilistic".'
+    param_doc: 'a character string selecting the method; one of <options>.'
+    name: method
+    aliases: [algorithm, option, method.indicator, method.type, approach]
+    exceptions: [family, test, alternative, FUN.name]
+  seed:
+    description: 'Seed for the server-side random number generator, so random results can be reproduced.'
+    param_doc: 'an integer seed for the random number generator on the server.'
+    name: seed
+    aliases: [seed.as.integer, seedtext, shared.seedval]
+
+multiple_inputs:
+  scheme: [numbered, distinct] # discussion: distinct could also be defined as single letters
+  pair:
+    vector: ["x", "y"]
+  vector_of_names: [x.names, x_names]
+
+order:
+  datasources_last: true
+  dots_after_datasources: true
+
+exceptions:
+  packages:
+    dsTidyverse:
+      reason: mirrors dplyr argument names
+    dsTidyverseClient:
+      reason: mirrors dplyr argument names
+  server_transmit_suffix: ".transmit"
