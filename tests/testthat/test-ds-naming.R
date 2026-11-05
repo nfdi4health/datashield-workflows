@@ -2,7 +2,7 @@
 # rename machinery, and check + apply end to end on the made-up
 # client/server pair (tests/fixtures/ds-client, ds-server).
 
-rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-argument-rules.yml"))
+rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-argument-rules.yml"))
 
 test_that("the rules file reads one-letter values as text, not booleans", {
   expect_equal(rules$style$abbreviations$number, "n")

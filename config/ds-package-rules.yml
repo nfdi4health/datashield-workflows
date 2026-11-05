@@ -1,5 +1,5 @@
 # DataSHIELD naming rules for packages in general: function names and test
-# file names. Function arguments: ds-naming-argument-rules.yml.
+# file names. Function arguments: ds-argument-rules.yml.
 # A list of candidates under a rule = still open, the first one is used.
 # A project's own copy is merged over this file key by key.
 

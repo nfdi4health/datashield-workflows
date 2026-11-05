@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Checks a DataSHIELD package's argument names against the naming rules
-# (config/ds-naming-argument-rules.yml, config/ds-package-rules.yml,
+# (config/ds-argument-rules.yml, config/ds-package-rules.yml,
 # a repository's own copies merged over them) and
 # writes the transformation file people approve renames in:
 #   1. read the package (the caller) and, if given, its server package
@@ -31,7 +31,7 @@ functions_dir <- if (dir.exists("R/functions/ds-naming")) {
 }
 walk(list.files(file.path(functions_dir, c("shared", "ds-naming")), pattern = "\\.R$", full.names = TRUE), source)
 
-rules <- read_config_yaml("config/ds-naming-argument-rules.yml")
+rules <- read_config_yaml("config/ds-argument-rules.yml")
 package_rules <- read_config_yaml("config/ds-package-rules.yml")
 transformation_file <- Sys.getenv("TRANSFORMATION_FILE", ".github/ds-naming/transformations.yml")
 previous_file <- Sys.getenv("PREVIOUS_FILE", transformation_file)
