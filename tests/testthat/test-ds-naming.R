@@ -23,7 +23,7 @@ test_that("check_package_names() checks names and pairs, with the listed excepti
   expect_match(check_package_names(client("dsFooClient"), NULL, package_rules), "No paired package")
 })
 
-test_that("check_package_licence() compares the License field with the allowed ones", {
+test_that("check_package_licence() wants a licence, whichever it is", {
   package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
   dir <- withr::local_tempdir()
   licence <- function(lines) {
@@ -31,8 +31,7 @@ test_that("check_package_licence() compares the License field with the allowed o
     check_package_licence(list(dir = dir), package_rules)
   }
   expect_length(licence("License: GPL-3"), 0)
-  expect_length(licence("License: LGPL (>= 3)"), 0)
-  expect_match(licence("License: MIT + file LICENSE"), "isn't one of")
+  expect_length(licence("License: MIT + file LICENSE"), 0)
   expect_match(licence(character(0)), "No License field")
 })
 

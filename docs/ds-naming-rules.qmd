@@ -39,8 +39,8 @@ reported.
 
 ### Licence
 
-`License` in `DESCRIPTION` is `GPL-3` or `LGPL (>= 3)`, which dsTidyverse
-and its client use.
+Every package declares a licence in `DESCRIPTION`. Which one is up to the
+package.
 
 ### Function names
 
