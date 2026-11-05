@@ -1,9 +1,9 @@
 # The check's report in Markdown: how many user-facing arguments already
 # follow the rules, the proposed renames per package (from `entries`,
 # after merging decisions), what needs a person (unresolved, conflicts),
-# and the report-only findings in `checks` (package names, server methods,
-# client/server calls, function names, argument order, test file names;
-# one element per package). Returns list(full,
+# and the report-only findings in `checks` (package, server methods,
+# client/server calls, function names and files, roxygen tags, argument
+# order, test file names; one element per package). Returns list(full,
 # summary): the full report is committed next to the transformation file,
 # the summary (no tables) goes into the PR description, which GitHub caps
 # in length.
@@ -95,6 +95,12 @@ format_naming_report <- function(rows, entries, checks, file_path, rules_version
     }
     if (length(ch$pairing) > 0) {
       full <- c(full, "**Client and server:**", "", bullets(ch$pairing), "")
+    }
+    if (length(ch$function_files) > 0) {
+      full <- c(full, "**Function files:**", "", bullets(ch$function_files), "")
+    }
+    if (length(ch$roxygen) > 0) {
+      full <- c(full, "**Roxygen tags:**", "", bullets(ch$roxygen), "")
     }
     full <- c(full,
               paste0("**Function names not following the pattern:** ", code_list(ch$function_names)), "",

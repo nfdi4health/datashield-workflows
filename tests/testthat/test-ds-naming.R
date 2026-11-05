@@ -34,6 +34,34 @@ test_that("check_description_fields() names what's missing, not what it says", {
   expect_identical(fields("License: GPL-3"), "Missing in `DESCRIPTION`: `Authors@R`, `URL`, `BugReports`.")
 })
 
+test_that("check_function_files() wants one function per file, named after it", {
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  defs <- list(list(name = "ds.mean", file = "R/ds.mean.R"), list(name = "ds.sum", file = "R/utils.R"), list(name = "helper", file = "R/utils.R"))
+  found <- check_function_files(list(defs = defs, user_facing = c("ds.mean", "ds.sum")), package_rules)
+  expect_identical(found, c("`utils.R` holds several functions: `ds.sum`, `helper`.", "`ds.sum` is in `utils.R`, expected `ds.sum.R`."))
+})
+
+test_that("check_roxygen_tags() names missing tags of user-facing functions", {
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  defs <- list(
+    list(name = "ds.ok", args = c("x", "..."), param_docs = list(x = "a"), tags = c("title", "param", "return")),
+    list(name = "ds.bad", args = c("x", "y"), param_docs = list(x = "a"), tags = c("param")),
+    list(name = "ds.inherit", args = "x", param_docs = list(), tags = c("title", "return", "inheritParams")),
+    list(name = "helper", args = "x", param_docs = list(), tags = character(0))
+  )
+  found <- check_roxygen_tags(list(defs = defs, user_facing = c("ds.ok", "ds.bad", "ds.inherit")), package_rules)
+  expect_identical(found, "`ds.bad`: missing title, return, param (y).")
+})
+
+test_that("check_required_files() names what a package lacks", {
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  dir <- withr::local_tempdir()
+  expect_identical(check_required_files(list(dir = dir), package_rules), "Missing: `README.md`, `tests/testthat`.")
+  dir.create(file.path(dir, "tests", "testthat"), recursive = TRUE)
+  writeLines("# dsFoo", file.path(dir, "README.md"))
+  expect_length(check_required_files(list(dir = dir), package_rules), 0)
+})
+
 test_that("check_server_methods() wants inst/DATASHIELD and a function behind each method", {
   package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
   dir <- withr::local_tempdir()

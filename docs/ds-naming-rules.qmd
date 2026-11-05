@@ -46,6 +46,11 @@ Open, not checked yet: the version format (`x.y.z`), how development
 versions are marked (`x.y.z.9000`), and whether a client and server pair
 always has the same version.
 
+### Required files
+
+Every package has `README.md` and `tests/testthat/`. Open: whether these
+are mandatory, and whether `NEWS.md` joins them.
+
 ### Dependencies (guidance)
 
 This is advice, not a rule, and the check doesn't look at it. It follows
@@ -88,6 +93,19 @@ and `dsBaseClient`, as dsTidyverse does.
 
 Open: the prefixes `dh.` and `dss`, and the forms `ds.vert.` and
 `ds.imaging.`, count as following the rules for now.
+
+### Function files
+
+- **One function per file,** for all functions of a package.
+- **The file is named after the function:** `ds.mean` is in `R/ds.mean.R`,
+  and `meanDS` in `R/meanDS.R`. This applies to user-facing functions.
+
+### Roxygen tags
+
+Every user-facing function has `@title`, `@param` for each argument except
+`...` (or `@inheritParams`), and `@return`. This is a first list and can
+grow, e.g. with `@examples`, which server functions usually don't have.
+A title without the `@title` tag is reported.
 
 ### Server methods
 

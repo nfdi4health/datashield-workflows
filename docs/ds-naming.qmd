@@ -56,8 +56,9 @@ The results go into a pull request on `bot-suggest/ds-naming/<branch>`:
 - **`.github/ds-naming/transformations.yml`**: one entry per function and
   argument that would change or needs a decision;
 - **`.github/ds-naming/report.md`**: the overview per package, plus what
-  breaks the rules for package names, server methods, client and server
-  calls, function names, argument order and test file names. Those are
+  breaks the rules for packages (names, `DESCRIPTION`, required files),
+  server methods, client and server calls, function names and files,
+  roxygen tags, argument order and test file names. Those are
   reported only; the apply workflow doesn't change them.
 
 ## Reviewing

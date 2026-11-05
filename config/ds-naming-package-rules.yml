@@ -12,10 +12,11 @@ package:
   client: "ds<name>Client"
   server: "ds<name>"
   name: "[A-Z][A-Za-z0-9]*"
+  required_files: [README.md, tests/testthat] # discussion: mandatory? NEWS.md too?
   description:
     required_fields: [License, Authors@R, URL, BugReports]
     version:
-      format: "x.y.z" # discussion: is this relevant?
+      format: "x.y.z" # discussion: is this relevant to define at all (could be made flexibe for "v" prefix?
       development: "x.y.z.9000" # discussion: R convention, or only a -dev branch?
       client_server_match: true # discussion: must a pair always have the same version?
   exceptions:
@@ -38,6 +39,8 @@ function:
     prefix: [".", "int."] # discussion: only "." sometimes caused problems
   one_function_per_file: true
   file_name: "<function>.R"
+  roxygen:
+    required_tags: [title, param, return]
 
 tests:
   pattern: "^test-(<category>-)?<function>(-<variant>)?\\.R$"

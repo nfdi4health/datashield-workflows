@@ -15,8 +15,9 @@
 #      server in lockstep;
 #   5. merge with the decisions in the previous file (PREVIOUS_FILE, the
 #      open bot PR's or the branch's own), write file, report and PR text.
-# Report-only checks: package names, server methods, client/server calls,
-# function names, argument order, test file names.
+# Report-only checks: package names, DESCRIPTION fields, required files,
+# server methods, client/server calls, function names and files, roxygen
+# tags, argument order, test file names.
 # Design: dev-notes/datashield-naming/README.md.
 
 library(httr2)
@@ -152,10 +153,13 @@ checks <- lapply(pkgs, function(p) {
   }
   list(
     package = p$name,
-    package_names = c(check_package_names(p, other_side(p), package_rules), check_description_fields(p, package_rules)),
+    package_names = c(check_package_names(p, other_side(p), package_rules), check_description_fields(p, package_rules),
+                      check_required_files(p, package_rules)),
     methods = methods,
     pairing = pairing,
     function_names = check_function_names(p, package_rules),
+    function_files = check_function_files(p, package_rules),
+    roxygen = check_roxygen_tags(p, package_rules),
     order = check_argument_order(rows[rows$package == p$name, ], rules),
     tests = check_test_file_names(p, package_rules)
   )
