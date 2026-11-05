@@ -1,5 +1,5 @@
 # DataSHIELD naming rules for function arguments, by what they refer to,
-# their class and role. Packages in general: ds-naming-package-rules.yml.
+# their class and role. Packages in general: ds-package-rules.yml.
 # A list under `name` (or another rule) = still open, the first one is
 # used and marked in the review file. Quote y and n (YAML reads them as
 # booleans). A project's own copy is merged over this file key by key.

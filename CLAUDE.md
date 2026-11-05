@@ -110,7 +110,7 @@ the live caller used to validate changes before wider rollout.
     naming harmonisation (rules not agreed yet; draft pages
     `docs/ds-naming.qmd`, `docs/ds-naming-rules.qmd` since 2026-11-05). Run from a client package, which checks out its server
     package. Check: rules (`config/ds-naming-argument-rules.yml` for arguments,
-    `config/ds-naming-package-rules.yml` for package, function and test file
+    `config/ds-package-rules.yml` for package, function and test file
     names, function files, roxygen tags, required `DESCRIPTION` fields and
     files, and server methods, each merged key by key via `read_config_yaml()`,
     now in `shared/`) + Claude for unclear

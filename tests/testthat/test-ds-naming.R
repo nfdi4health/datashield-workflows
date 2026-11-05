@@ -10,7 +10,7 @@ test_that("the rules file reads one-letter values as text, not booleans", {
 })
 
 test_that("check_package_names() checks names and pairs, with the listed exceptions", {
-  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-package-rules.yml"))
   client <- function(name) list(name = name, side = "client")
   server <- function(name) list(name = name, side = "server")
   expect_length(check_package_names(client("dsFooClient"), server("dsFoo"), package_rules), 0)
@@ -24,7 +24,7 @@ test_that("check_package_names() checks names and pairs, with the listed excepti
 })
 
 test_that("check_description_fields() names what's missing, not what it says", {
-  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-package-rules.yml"))
   dir <- withr::local_tempdir()
   fields <- function(lines) {
     writeLines(c("Package: dsFoo", lines), file.path(dir, "DESCRIPTION"))
@@ -35,14 +35,14 @@ test_that("check_description_fields() names what's missing, not what it says", {
 })
 
 test_that("check_function_files() wants one function per file, named after it", {
-  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-package-rules.yml"))
   defs <- list(list(name = "ds.mean", file = "R/ds.mean.R"), list(name = "ds.sum", file = "R/utils.R"), list(name = "helper", file = "R/utils.R"))
   found <- check_function_files(list(defs = defs, user_facing = c("ds.mean", "ds.sum")), package_rules)
   expect_identical(found, c("`utils.R` holds several functions: `ds.sum`, `helper`.", "`ds.sum` is in `utils.R`, expected `ds.sum.R`."))
 })
 
 test_that("check_roxygen_tags() names missing tags of user-facing functions", {
-  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-package-rules.yml"))
   common <- c("title", "description", "details", "return", "author")
   defs <- list(
     list(name = "ds.ok", args = c("x", "..."), param_docs = list(x = "a"), tags = c(common, "param", "examples")),
@@ -59,7 +59,7 @@ test_that("check_roxygen_tags() names missing tags of user-facing functions", {
 })
 
 test_that("check_required_files() names what a package lacks", {
-  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-package-rules.yml"))
   dir <- withr::local_tempdir()
   expect_identical(check_required_files(list(dir = dir), package_rules), "Missing: `README.md`, `tests/testthat`.")
   dir.create(file.path(dir, "tests", "testthat"), recursive = TRUE)
@@ -68,7 +68,7 @@ test_that("check_required_files() names what a package lacks", {
 })
 
 test_that("check_server_methods() wants inst/DATASHIELD and a function behind each method", {
-  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-package-rules.yml"))
   dir <- withr::local_tempdir()
   dir.create(file.path(dir, "inst"))
   dir.create(file.path(dir, "R"))
@@ -105,7 +105,7 @@ test_that("check_client_server_pairing() goes by the calls, not by comparing nam
 })
 
 test_that("test_file_pattern() builds the test file name regex from its parts", {
-  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-package-rules.yml"))
   pattern <- test_file_pattern(package_rules, "client")
   server <- test_file_pattern(package_rules, "server")
   expect_true(all(grepl(pattern, unlist(package_rules$tests$examples), perl = TRUE)))

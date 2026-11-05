@@ -15,7 +15,7 @@ The rules are in two files of this repository, used by the
 
 | File | Rules for |
 |---|---|
-| `config/ds-naming-package-rules.yml` | Packages in general: package names, `DESCRIPTION` fields, function names, server methods, test file names |
+| `config/ds-package-rules.yml` | Packages in general: package names, `DESCRIPTION` fields, function names, server methods, test file names |
 | `config/ds-naming-argument-rules.yml` | Function arguments: style, classes, roles and order |
 
 ## Package rules

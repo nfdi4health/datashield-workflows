@@ -19,7 +19,7 @@ merging.
 | File | Format | Read by | A project's own copy |
 |---|---|---|---|
 | `claude.yml` | YAML, `config` profiles | `config::get()` | replaces the file |
-| `analysis-suggest.yml`, `analysis-texts.yml`, `ds-naming-argument-rules.yml`, `ds-naming-package-rules.yml` | YAML | `read_config_yaml()` | **merged** key by key |
+| `analysis-suggest.yml`, `analysis-texts.yml`, `ds-naming-argument-rules.yml`, `ds-package-rules.yml` | YAML | `read_config_yaml()` | **merged** key by key |
 | `report-style.yml` | YAML | `report_style()` | replaces |
 | `workflow-outcomes.yml` | YAML | `workflow_graphs.R` | replaces |
 | `roxygen-style.json`, `test-role-guidance.json`, `datashield-role-guidance.json`, `test-categories.json`, `datashield-example-env.json`, `dslite-canned-datasets.json` | JSON | `read_json_config()` | replaces |
