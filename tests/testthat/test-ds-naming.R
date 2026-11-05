@@ -132,6 +132,17 @@ test_that("classify_ds_argument() recognises roles and classes from docs and nam
   expect_equal(classify_ds_argument("extra", "NULL", "")$role, "unknown")
 })
 
+test_that("ds_object_class() tells the three omics families apart", {
+  expect_equal(ds_object_class("a character string naming an ExpressionSet")$class, "eset")
+  expect_equal(ds_object_class("the name of a RangedSummarizedExperiment")$class, "eset")
+  expect_equal(ds_object_class("the name of a GenotypeData object")$class, "genotype")
+  expect_equal(ds_object_class("the name of a GDS file connection")$class, "genotype")
+  expect_equal(ds_object_class("the name of an ExposomeSet")$class, "exposome")
+  expect_identical(ds_object_class("an image asset")$class, "")
+  expect_equal(propose_ds_name("genoData", "object", "genotype", "pkg", rules)$match, "alias")
+  expect_equal(propose_ds_name("x", "object", "exposome", "pkg", rules)$proposed, "exposome")
+})
+
 test_that("to_naming_style() splits camelCase and keeps acronym plurals together", {
   expect_equal(to_naming_style("idCol", ".", "lowercase"), "id.col")
   expect_equal(to_naming_style("nBreaks", ".", "lowercase"), "n.breaks")

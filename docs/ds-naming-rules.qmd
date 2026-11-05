@@ -230,7 +230,9 @@ For an argument naming an object on the server:
 | Model | `model` |
 | Formula | `formula` |
 | List | `lst` |
-| Omics object | `set` or `eset` (open) |
+| Assay object (`ExpressionSet`, `SummarizedExperiment`) | `set` or `eset` (open) |
+| Genotype object (`GenotypeData`, `GdsGenotypeReader`) | `geno` |
+| Exposome object (`ExposomeSet`) | `exposome` |
 | Resource | `resource` or `res` (open) |
 
 ### Columns and values

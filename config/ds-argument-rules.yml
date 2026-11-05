@@ -70,11 +70,21 @@ classes:
     param_doc: 'a character string naming a list on the server.'
     name: lst
     aliases: [x]
-  omics:
-    description: 'A Bioconductor-style container on the server: ExpressionSet, RangedSummarizedExperiment, GDS/GenotypeData, ExposomeSet.'
-    param_doc: 'a character string naming an omics object (e.g. ExpressionSet) on the server.'
+  eset:
+    description: 'A server-side assay object: a feature by sample matrix with sample and feature tables, i.e. ExpressionSet, SummarizedExperiment or RangedSummarizedExperiment.'
+    param_doc: 'a character string naming an ExpressionSet or SummarizedExperiment on the server.'
     name: [set, eset]
-    aliases: [Set, eSet, genoData, gds, exposomeSet, x]
+    aliases: [Set, eSet, x]
+  genotype:
+    description: 'A server-side reader on genotype data in a GDS file: GenotypeData or GdsGenotypeReader.'
+    param_doc: 'a character string naming a GenotypeData or GdsGenotypeReader object on the server.'
+    name: geno
+    aliases: [genoData, gds, x]
+  exposome:
+    description: 'A server-side ExposomeSet: exposures per sample, with phenotypes and a description of each exposure.'
+    param_doc: 'a character string naming an ExposomeSet on the server.'
+    name: exposome
+    aliases: [exposomeSet, Set, x]
   resource:
     description: 'A DataSHIELD resource (resourcer ResourceClient) or an object derived from one, e.g. a database or NetCDF connection.'
     param_doc: 'a character string naming a resource or resource client on the server.'

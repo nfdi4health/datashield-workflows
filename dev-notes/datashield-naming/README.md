@@ -249,8 +249,10 @@ other packages that call the renamed functions.
 
 - `checks` vs v7.0-dev's `classConsistencyCheck` — same flag or separate?
 - Separator for multi-word names: dot.case or snake_case?
-- matrix (`mat`/`matrix`), list, omics, resource names; factor separate
-  from vector?
+- Resource name; factor separate from vector? The class `omics` was split
+  into `eset`, `genotype` and `exposome` on 2026-11-05 (user): 9 dsOmics
+  functions take ExpressionSet and SummarizedExperiment in one argument,
+  so they stay one class; its name `set` or `eset` is open.
 - ~~Column-name args: suffix `.col`/`_col`?~~ Dropped 2026-11-05: 138 column
   args of 4,868, only 17 of them with `col` in the name, and the group is
   noisy (`weights`, `sep`). Columns get style only.

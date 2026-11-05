@@ -14,7 +14,9 @@ ds_object_class <- function(doc) {
     factor     = "\\bfactors?\\b|categorical",
     vector     = "\\bvectors?\\b|\\bvariables?\\b|\\bcolumns?\\b|\\bcovariates?\\b",
     resource   = "\\bresources?\\b",
-    omics      = "ExpressionSet|SummarizedExperiment|ExposomeSet|\\bGDS\\b|\\bVCF\\b|eSet|SNP|genotype|imaging|image"
+    eset       = "ExpressionSet|SummarizedExperiment|\\beSet\\b",
+    genotype   = "\\bGDS\\b|\\bVCF\\b|\\bSNPs?\\b|genotype",
+    exposome   = "\\bexposome"
   )
   pos <- vapply(patterns, function(p) {
     m <- regexpr(p, doc, perl = TRUE, ignore.case = TRUE)
