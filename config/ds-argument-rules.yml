@@ -119,7 +119,7 @@ roles:
     name: type
     values: [split, combine, both]
     reserved: true
-  checks:
+  checks: # discussion: with the changes to dsBase(Client), I don't know if this is still necessary
     description: 'Switches on optional pre-checks on the server (object exists, same class on every server) before the main call; slower, so off by default.'
     param_doc: 'logical. If TRUE, checks that the input exists and has the same class on all servers. Default FALSE.'
     name: [checks, classConsistencyCheck]
@@ -138,8 +138,10 @@ roles:
 
 exceptions:
   packages:
-    dsTidyverse:       { reason: "mirrors dplyr argument names (.data, .by, .keep, tidy_expr)" }
-    dsTidyverseClient: { reason: "mirrors dplyr argument names" }
+    dsTidyverse:
+      reason: mirrors dplyr argument names
+    dsTidyverseClient:
+      reason: mirrors dplyr argument names
   argument_patterns:
     - "session_id"
     - "_json$"
