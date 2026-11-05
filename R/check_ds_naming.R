@@ -41,9 +41,10 @@ use_claude <- max_calls > 0 && tolower(Sys.getenv("USE_CLAUDE", "true")) == "tru
 
 # --- 1. Packages and links ------------------------------------------------------
 
-own <- read_ds_package(".", package_side)
+method_types <- unlist(package_rules$`function`$server$method_types)
+own <- read_ds_package(".", package_side, method_types)
 server <- if (package_side == "client" && nzchar(server_dir) && dir.exists(server_dir)) {
-  read_ds_package(server_dir, "server")
+  read_ds_package(server_dir, "server", method_types)
 } else {
   NULL
 }
@@ -151,7 +152,7 @@ checks <- lapply(pkgs, function(p) {
   }
   list(
     package = p$name,
-    package_names = check_package_names(p, other_side(p), package_rules),
+    package_names = c(check_package_names(p, other_side(p), package_rules), check_package_licence(p, package_rules)),
     methods = methods,
     pairing = pairing,
     function_names = check_function_names(p, package_rules),

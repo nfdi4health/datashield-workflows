@@ -15,7 +15,7 @@ The rules are in two files of this repository, used by the
 
 | File | Rules for |
 |---|---|
-| `config/ds-naming-package-rules.yml` | Packages in general: package names, function names, server methods, test file names |
+| `config/ds-naming-package-rules.yml` | Packages in general: package names, licence, function names, server methods, test file names |
 | `config/ds-naming-argument-rules.yml` | Function arguments: style, classes, roles and order |
 
 ## Package rules
@@ -36,6 +36,11 @@ Exceptions are listed in the rules:
 
 A package that isn't listed, and is checked without its counterpart, is
 reported.
+
+### Licence
+
+`License` in `DESCRIPTION` is `GPL-3` or `LGPL (>= 3)`, which dsTidyverse
+and its client use.
 
 ### Function names
 

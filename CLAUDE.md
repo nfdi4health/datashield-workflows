@@ -111,7 +111,7 @@ the live caller used to validate changes before wider rollout.
     `docs/ds-naming.qmd`, `docs/ds-naming-rules.qmd` since 2026-11-05). Run from a client package, which checks out its server
     package. Check: rules (`config/ds-naming-argument-rules.yml` for arguments,
     `config/ds-naming-package-rules.yml` for package, function and test file
-    names and server methods, each merged key by key via `read_config_yaml()`,
+    names, licence and server methods, each merged key by key via `read_config_yaml()`,
     now in `shared/`) + Claude for unclear
     arguments → `.github/ds-naming/transformations.yml` in a review PR,
     people set `status: approved|skip`. Apply (on push of that file):

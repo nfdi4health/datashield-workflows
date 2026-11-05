@@ -23,6 +23,19 @@ test_that("check_package_names() checks names and pairs, with the listed excepti
   expect_match(check_package_names(client("dsFooClient"), NULL, package_rules), "No paired package")
 })
 
+test_that("check_package_licence() compares the License field with the allowed ones", {
+  package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  dir <- withr::local_tempdir()
+  licence <- function(lines) {
+    writeLines(c("Package: dsFoo", lines), file.path(dir, "DESCRIPTION"))
+    check_package_licence(list(dir = dir), package_rules)
+  }
+  expect_length(licence("License: GPL-3"), 0)
+  expect_length(licence("License: LGPL (>= 3)"), 0)
+  expect_match(licence("License: MIT + file LICENSE"), "isn't one of")
+  expect_match(licence(character(0)), "No License field")
+})
+
 test_that("check_server_methods() wants inst/DATASHIELD and a function behind each method", {
   package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
   dir <- withr::local_tempdir()
@@ -31,11 +44,11 @@ test_that("check_server_methods() wants inst/DATASHIELD and a function behind ea
   writeLines("Package: dsFoo", file.path(dir, "DESCRIPTION"))
   writeLines(c("AggregateMethods:", "    meanDS,", "    goneDS,", "    asChar=base::as.character"), file.path(dir, "inst", "DATASHIELD"))
   writeLines("meanDS <- function(x) x", file.path(dir, "R", "meanDS.R"))
-  expect_identical(check_server_methods(read_ds_package(dir, "server"), package_rules), "Declared without a function: `goneDS`.")
+  expect_identical(check_server_methods(read_ds_package(dir, "server", unlist(package_rules$`function`$server$method_types)), package_rules), "Declared without a function: `goneDS`.")
 
   file.remove(file.path(dir, "inst", "DATASHIELD"))
   writeLines(c("Package: dsFoo", "AggregateMethods: meanDS"), file.path(dir, "DESCRIPTION"))
-  found <- check_server_methods(read_ds_package(dir, "server"), package_rules)
+  found <- check_server_methods(read_ds_package(dir, "server", unlist(package_rules$`function`$server$method_types)), package_rules)
   expect_match(found[1], "No `inst/DATASHIELD`")
   expect_match(found[2], "declared in `DESCRIPTION`")
 })
@@ -49,7 +62,7 @@ test_that("check_client_server_pairing() goes by the calls, not by comparing nam
                "  helper(x)", "}"), file.path(dir, "R", "ds.glm.R"))
   writeLines(c("helper <- function(x) call(\"helperDS\", x)"), file.path(dir, "R", "helper.R"))
   writeLines(c("ds.local <- function(x) stop(paste0(\"sum(\", x))"), file.path(dir, "R", "ds.local.R"))
-  client <- read_ds_package(dir, "client")
+  client <- read_ds_package(dir, "client", character(0))
   expect_setequal(client_server_calls(client)$method, c("glm1DS", "glm2DS", "lsDS", "helperDS"))
 
   server <- list(name = "dsFoo", methods = c(glm1DS = "glm1DS", glm2DS = "glm2DS", lsDS = "lsDS", helperDS = "helperDS"))

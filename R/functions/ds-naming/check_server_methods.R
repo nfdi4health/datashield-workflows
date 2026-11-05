@@ -9,7 +9,7 @@ check_server_methods <- function(pkg, package_rules) {
   if (!file.exists(file.path(pkg$dir, methods_file))) {
     problems <- c(problems, sprintf("No `%s`.", methods_file))
   }
-  in_description <- intersect(c("AggregateMethods", "AssignMethods"), colnames(read.dcf(file.path(pkg$dir, "DESCRIPTION"))))
+  in_description <- intersect(unlist(package_rules$`function`$server$method_types), colnames(read.dcf(file.path(pkg$dir, "DESCRIPTION"))))
   if (length(in_description) > 0) {
     problems <- c(problems, sprintf("Methods are declared in `DESCRIPTION` (%s), not in `%s`.", paste(in_description, collapse = ", "), methods_file))
   }

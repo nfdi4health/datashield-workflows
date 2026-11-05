@@ -89,7 +89,7 @@ format_naming_report <- function(rows, entries, checks, file_path, rules_version
       paste0("- ", x)
     }
     full <- c(full, sprintf("## %s: other findings (report only)", ch$package), "",
-              "**Package name:**", "", bullets(ch$package_names), "")
+              "**Package:**", "", bullets(ch$package_names), "")
     if (length(ch$methods) > 0) {
       full <- c(full, "**Server methods:**", "", bullets(ch$methods), "")
     }

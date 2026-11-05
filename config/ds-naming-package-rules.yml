@@ -12,9 +12,10 @@ package:
   client: "ds<name>Client"
   server: "ds<name>"
   name: "[A-Z][A-Za-z0-9]*"
+  allowed_licences: ["GPL-3", "LGPL (>= 3)"]
   exceptions:
     client_only: [dsHelper, dsSyntheticClient, dsSupportClient] # discussion: dsHelperClient?
-    server_only: [dsResource, dsMeta] # discussion: are these still mainained?
+    server_only: [dsResource, dsMeta] # discussion: are these still maintained?
     pairs:
       - { client: dsMTLClient, server: dsMTLBase } # discussion: rename?
 
@@ -27,6 +28,7 @@ function:
   server:
     pattern: "^[a-z][A-Za-z0-9]*DS$"
     methods_file: inst/DATASHIELD
+    method_types: [AggregateMethods, AssignMethods]
   internal:
     prefix: [".", "int."] # discussion: only "." sometimes caused problems
   one_function_per_file: true
@@ -49,6 +51,6 @@ tests:
     math: mathematical correctness
     dgr: degraded or unusual input (missing values, edge cases)
   qualifier:
-    bug: regression test for a reported bug
+    bug: regression test for a reported bug # discussion: should be a category?
   variant: "[a-z0-9_]+"
   helpers_allowed: ["setup.R", "teardown.R", "^helper-.*\\.R$"]
