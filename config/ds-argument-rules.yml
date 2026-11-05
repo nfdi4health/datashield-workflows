@@ -17,7 +17,7 @@ style:
     variable: var
     column: col
     object: obj
-  forbidden_names:
+  forbidden_names: # information: either unspecific or the name is a common R function
     - matrix
     - tibble
     - data
@@ -33,6 +33,7 @@ style:
     - na.rm
     - subset
 
+# aliases are currently used words for specific arguments
 classes:
   vector:
     description: 'A one-dimensional server-side object: numeric, integer, character, logical or factor, usually a single variable such as D$age.'
@@ -47,8 +48,8 @@ classes:
   matrix:
     description: 'A server-side numeric matrix, e.g. a design matrix or a correlation matrix.'
     param_doc: 'a character string naming a matrix on the server.'
-    name: [mat, matrix]
-    aliases: [X, M1, M1.name, m]
+    name: mat
+    aliases: [X, M1, M1.name, m, matrix]
   tibble:
     description: 'A server-side tibble (tidyverse data frame). Kept apart from data.frame because dsTidyverse functions require one.'
     param_doc: 'a character string naming a tibble on the server.'
@@ -67,13 +68,13 @@ classes:
   list:
     description: 'A server-side list of objects.'
     param_doc: 'a character string naming a list on the server.'
-    name: [lst, x]
-    aliases: []
+    name: lst
+    aliases: [x]
   omics:
     description: 'A Bioconductor-style container on the server: ExpressionSet, RangedSummarizedExperiment, GDS/GenotypeData, ExposomeSet.'
     param_doc: 'a character string naming an omics object (e.g. ExpressionSet) on the server.'
-    name: [set, eset, x]
-    aliases: [Set, eSet, genoData, gds, exposomeSet]
+    name: [set, eset]
+    aliases: [Set, eSet, genoData, gds, exposomeSet, x]
   resource:
     description: 'A DataSHIELD resource (resourcer ResourceClient) or an object derived from one, e.g. a database or NetCDF connection.'
     param_doc: 'a character string naming a resource or resource client on the server.'

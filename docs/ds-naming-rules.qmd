@@ -225,12 +225,12 @@ For an argument naming an object on the server:
 |---|---|
 | Vector | `x` |
 | Data frame | `df` |
-| Matrix | `mat` or `matrix` (open) |
+| Matrix | `mat` |
 | Tibble | `tbl` |
 | Model | `model` |
 | Formula | `formula` |
-| List | `lst` or `x` (open) |
-| Omics object | `set`, `eset` or `x` (open) |
+| List | `lst` |
+| Omics object | `set` or `eset` (open) |
 | Resource | `resource` or `res` (open) |
 
 ### Columns and values
