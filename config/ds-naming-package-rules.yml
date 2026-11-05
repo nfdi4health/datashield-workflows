@@ -29,6 +29,8 @@ function:
   case: camelCase
   client:
     pattern: "^ds\\.[a-z][A-Za-z0-9]*$"
+    roxygen:
+      required_tags: [examples]
     allowed_prefixes: [dh., dss] # discussion: should be removed
     namespaced: ["ds.vert.", "ds.imaging."] # discussion: should be removed
   server:
@@ -40,7 +42,7 @@ function:
   one_function_per_file: true
   file_name: "<function>.R"
   roxygen:
-    required_tags: [title, param, return]
+    required_tags: [title, description, details, param, return, author]
 
 tests:
   pattern: "^test-(<category>-)?<function>(-<variant>)?\\.R$"

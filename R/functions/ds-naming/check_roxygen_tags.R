@@ -1,9 +1,11 @@
-# Which of `function$roxygen$required_tags` in the package rules each
-# user-facing function's roxygen block lacks. `param` means every argument
+# Which of `function$roxygen$required_tags` in the package rules, plus
+# those of the package's side (e.g. `function$client$roxygen$required_tags`),
+# each user-facing function's roxygen block lacks. `param` means every argument
 # but `...` is documented, or the block has @inheritParams. Returns the
 # problems as sentences, one per function. Report only.
 check_roxygen_tags <- function(pkg, package_rules) {
-  required <- unlist(package_rules$`function`$roxygen$required_tags)
+  rules <- package_rules$`function`
+  required <- c(unlist(rules$roxygen$required_tags), unlist(rules[[pkg$side]]$roxygen$required_tags))
   problems <- character(0)
   for (d in pkg$defs) {
     if (!d$name %in% pkg$user_facing) {

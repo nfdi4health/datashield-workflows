@@ -102,10 +102,13 @@ Open: the prefixes `dh.` and `dss`, and the forms `ds.vert.` and
 
 ### Roxygen tags
 
-Every user-facing function has `@title`, `@param` for each argument except
-`...` (or `@inheritParams`), and `@return`. This is a first list and can
-grow, e.g. with `@examples`, which server functions usually don't have.
-A title without the `@title` tag is reported.
+Every user-facing function has `@title`, `@description`, `@details`,
+`@param` for each argument except `...` (or `@inheritParams`), `@return`
+and `@author`. Client functions also have `@examples`. A title or
+description written without its tag is reported.
+
+`@export` and `@import` aren't required: whether they fit depends on the
+function, and `R CMD check` already looks after them.
 
 ### Server methods
 

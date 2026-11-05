@@ -43,14 +43,19 @@ test_that("check_function_files() wants one function per file, named after it", 
 
 test_that("check_roxygen_tags() names missing tags of user-facing functions", {
   package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
+  common <- c("title", "description", "details", "return", "author")
   defs <- list(
-    list(name = "ds.ok", args = c("x", "..."), param_docs = list(x = "a"), tags = c("title", "param", "return")),
+    list(name = "ds.ok", args = c("x", "..."), param_docs = list(x = "a"), tags = c(common, "param", "examples")),
     list(name = "ds.bad", args = c("x", "y"), param_docs = list(x = "a"), tags = c("param")),
-    list(name = "ds.inherit", args = "x", param_docs = list(), tags = c("title", "return", "inheritParams")),
+    list(name = "ds.inherit", args = "x", param_docs = list(), tags = c(common, "examples", "inheritParams")),
     list(name = "helper", args = "x", param_docs = list(), tags = character(0))
   )
-  found <- check_roxygen_tags(list(defs = defs, user_facing = c("ds.ok", "ds.bad", "ds.inherit")), package_rules)
-  expect_identical(found, "`ds.bad`: missing title, return, param (y).")
+  pkg <- list(side = "client", defs = defs, user_facing = c("ds.ok", "ds.bad", "ds.inherit"))
+  expect_identical(check_roxygen_tags(pkg, package_rules), "`ds.bad`: missing title, description, details, return, author, examples, param (y).")
+  pkg$side <- "server"                                           # examples: client only
+  pkg$defs[[1]]$tags <- setdiff(pkg$defs[[1]]$tags, "examples")
+  pkg$user_facing <- "ds.ok"
+  expect_length(check_roxygen_tags(pkg, package_rules), 0)
 })
 
 test_that("check_required_files() names what a package lacks", {
