@@ -48,14 +48,36 @@ always has the same version.
 
 ### Dependencies (guidance)
 
-This is advice, not a rule, and the check doesn't look at it:
+This is advice, not a rule, and the check doesn't look at it. It follows
+what dsBase, dsBaseClient, dsSurvival and dsTidyverse do today.
 
-- A client package imports `DSI`, which is how it talks to the servers.
-- A client package doesn't depend on its own server package: they run on
-  different machines.
-- Server packages stay light, because each dependency has to be installed
-  on every study's server.
-- Use `Imports` rather than `Depends` where that works.
+| Field | Client package | Server package |
+|---|---|---|
+| `Depends` | `R` and `DSI`: analysts need `DSI` attached, e.g. for `datashield.login()` | `R` |
+| `Imports` | What the code uses. Add-on packages also import `dsBaseClient` | What the code uses. Add-on packages also import `dsBase` |
+| `Suggests` | What only the tests or vignettes use, see below | `testthat`, and what its tests use |
+
+**`Suggests` matters for testing with DSLite.** DSLite runs the server
+functions in-process, from the **installed** server packages, so a client
+package lists them here, together with `DSLite` and `testthat`:
+
+```
+Suggests:
+    testthat,
+    DSLite,
+    dsBase
+```
+
+Without them, the tests can't run on a fresh machine or in CI. If the tests
+connect in other ways, `DSOpal` and `DSMolgenisArmadillo` belong here too.
+A server package that tests itself through DSLite lists `DSLite`, `DSI`
+and `dsBaseClient`, as dsTidyverse does.
+
+- **A client's own server package only ever goes under `Suggests`:** the two
+  run on different machines, so analysts must not have to install it.
+- **Server packages stay light:** every entry under `Imports` has to be
+  installed on every study's server.
+- **`Imports` rather than `Depends`,** except for `DSI` on the client.
 
 ### Function names
 
