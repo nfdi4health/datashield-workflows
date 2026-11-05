@@ -52,7 +52,7 @@ propose_ds_name <- function(arg, role, class, package, rules) {
     }
     r <- rules$classes[[class]]
     n <- rule_name(r$name)
-    return(result(n$name, paste0("classes.", class), n$open || identical(r$status, "open"), unlist(r$aliases)))
+    return(result(n$name, paste0("classes.", class), n$open, unlist(r$aliases)))
   }
   if (role %in% c("column", "value", "plumbing")) {
     styled <- to_naming_style(arg, sep$name, rules$style$case)

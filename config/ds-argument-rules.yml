@@ -39,55 +39,46 @@ classes:
     param_doc: 'a character string naming a vector on the server, e.g. "D$age".'
     name: x
     aliases: [xvect, var, variable, vec, input.var.name, x.name, objs]
-    status: proposed
   data.frame:
     description: 'A server-side data frame: rows are individuals, columns are variables.'
     param_doc: 'a character string naming a data frame on the server.'
     name: df
     aliases: [df.name, dataName, data_name, dataframe, data.frame, dataset, dataset.name, table, table.name, data_table]
-    status: decided
   matrix:
     description: 'A server-side numeric matrix, e.g. a design matrix or a correlation matrix.'
     param_doc: 'a character string naming a matrix on the server.'
     name: [mat, matrix]
     aliases: [X, M1, M1.name, m]
-    status: open
   tibble:
     description: 'A server-side tibble (tidyverse data frame). Kept apart from data.frame because dsTidyverse functions require one.'
     param_doc: 'a character string naming a tibble on the server.'
     name: tbl
     aliases: []
-    status: proposed
   model:
     description: 'A fitted model object on the server (glm, lmer, coxph, survfit), as created by an earlier assign function.'
     param_doc: 'a character string naming a fitted model object on the server.'
     name: model
     aliases: [fit, glm.obj, glmname]
-    status: proposed
   formula:
     description: 'A model formula, passed as a string or formula object from the client, e.g. "y ~ x1 + x2".'
     param_doc: 'a formula, or a character string coercible to one, describing the model.'
     name: formula
     aliases: [form, fml]
-    status: proposed
   list:
     description: 'A server-side list of objects.'
     param_doc: 'a character string naming a list on the server.'
     name: [lst, x]
     aliases: []
-    status: open
   omics:
     description: 'A Bioconductor-style container on the server: ExpressionSet, RangedSummarizedExperiment, GDS/GenotypeData, ExposomeSet.'
     param_doc: 'a character string naming an omics object (e.g. ExpressionSet) on the server.'
     name: [set, eset, x]
     aliases: [Set, eSet, genoData, gds, exposomeSet]
-    status: open
   resource:
     description: 'A DataSHIELD resource (resourcer ResourceClient) or an object derived from one, e.g. a database or NetCDF connection.'
     param_doc: 'a character string naming a resource or resource client on the server.'
     name: [resource, res]
     aliases: [res, nc, client]
-    status: open
 
 multiple_inputs:
   scheme: [numbered, distinct]
@@ -107,40 +98,34 @@ roles:
     param_doc: 'a list of DSConnection-class objects obtained after login. If not specified, the default set of connections is used: see datashield.connections_default.'
     name: datasources
     aliases: [conns, datasourceTest]
-    status: decided
   new_object:
     description: 'The name under which the function stores its result on the server (assign functions only).'
     param_doc: 'a character string giving the name of the new object created on the server. Default "<function>.newobj".'
     name: newobj
     aliases: [newobj.name, new.obj, new_obj, newobject, new.name, output.name, objectname, new_df_name, symbol, output_asset]
     default_pattern: "<function>.newobj"
-    status: decided
   output_type:
     description: 'Whether results are returned per server ("split"), pooled across servers ("combine") or both.'
     param_doc: 'a character string: "split" (results per server), "combine" (pooled across servers) or "both".'
     name: type
     values: [split, combine, both]
     reserved: true
-    status: decided
   checks:
     description: 'Switches on optional pre-checks on the server (object exists, same class on every server) before the main call; slower, so off by default.'
     param_doc: 'logical. If TRUE, checks that the input exists and has the same class on all servers. Default FALSE.'
     name: [checks, classConsistencyCheck]
     aliases: [do.checks, DataSHIELD.checks]
-    status: open
   method:
     description: 'Selects one of several algorithms or variants the function offers, e.g. "pearson"/"spearman" or "deterministic"/"probabilistic".'
     param_doc: 'a character string selecting the method; one of <options>.'
     name: method
     aliases: [algorithm, option, method.indicator, method.type, approach]
     exceptions: [family, test, alternative, FUN.name]
-    status: decided
   seed:
     description: 'Seed for the server-side random number generator, so random results can be reproduced.'
     param_doc: 'an integer seed for the random number generator on the server.'
     name: seed
     aliases: [seed.as.integer, seedtext, shared.seedval]
-    status: proposed
 
 exceptions:
   packages:
