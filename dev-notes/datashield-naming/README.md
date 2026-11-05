@@ -99,7 +99,7 @@ medium / 18% low.
 
 ## Workflow design (agreed shape, not built)
 
-1. **Rules config** (`ds-naming-rules.yaml`) — names, aliases, style,
+1. **Rules config** (`config/ds-package-rules.yml`, `config/ds-argument-rules.yml`) — names, aliases, style,
    order, function/test file patterns, exceptions.
 2. **Detect — deterministic.** Parse formals/docs/file names, match the
    rules → (a) a report per package and aggregated (dashboard input),
