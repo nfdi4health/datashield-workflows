@@ -12,7 +12,8 @@ package:
   client: "ds<name>Client"
   server: "ds<name>"
   name: "[A-Z][A-Za-z0-9]*"
-  licence_required: true
+  description:
+    licence_required: true
   exceptions:
     client_only: [dsHelper, dsSyntheticClient, dsSupportClient] # discussion: dsHelperClient?
     server_only: [dsResource, dsMeta] # discussion: are these still maintained?
