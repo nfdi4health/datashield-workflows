@@ -100,8 +100,6 @@ multiple_inputs:
 order:
   datasources_last: true
   dots_after_datasources: true
-  primary_input_first: true
-  newobj_after_inputs: true
 
 roles:
   connection:
