@@ -91,16 +91,6 @@ classes:
     name: [resource, res]
     aliases: [res, nc, client]
 
-multiple_inputs:
-  scheme: [numbered, distinct] # discussion: distinct could also be defined as single letters
-  pair:
-    vector: ["x", "y"]
-  vector_of_names: [x.names, x_names]
-
-order:
-  datasources_last: true
-  dots_after_datasources: true
-
 roles:
   connection:
     description: 'The list of DSConnection objects returned by datashield.login(); decides which servers the call goes to.'
@@ -135,6 +125,16 @@ roles:
     param_doc: 'an integer seed for the random number generator on the server.'
     name: seed
     aliases: [seed.as.integer, seedtext, shared.seedval]
+
+multiple_inputs:
+  scheme: [numbered, distinct] # discussion: distinct could also be defined as single letters
+  pair:
+    vector: ["x", "y"]
+  vector_of_names: [x.names, x_names]
+
+order:
+  datasources_last: true
+  dots_after_datasources: true
 
 exceptions:
   packages:
