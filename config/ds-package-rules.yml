@@ -38,7 +38,6 @@ function:
     methods_file: inst/DATASHIELD
     method_types: [AggregateMethods, AssignMethods]
     disclosure: # discussion: which should a server package use or declare?
-      at_least_one_in: [AggregateMethods] # discussion: every aggregate function? also assign functions?
       settings:
         - datashield.privacyLevel
         - datashield.privacyControlLevel

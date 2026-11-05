@@ -136,9 +136,6 @@ change them. The settings are:
 `nfilter.stringShort`, `nfilter.noise`, `nfilter.levels.density` and
 `nfilter.levels.max`.
 
-The idea under discussion: every aggregate function uses at least one of
-them.
-
 ### Client and server
 
 These go by the calls a client package actually makes, not by comparing
