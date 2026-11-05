@@ -14,6 +14,10 @@ package:
   name: "[A-Z][A-Za-z0-9]*"
   description:
     required_fields: [License, Authors@R, URL, BugReports]
+    version:
+      format: "x.y.z" # discussion: is this relevant?
+      development: "x.y.z.9000" # discussion: R convention, or only a -dev branch?
+      client_server_match: true # discussion: must a pair always have the same version?
   exceptions:
     client_only: [dsHelper, dsSyntheticClient, dsSupportClient] # discussion: dsHelperClient?
     server_only: [dsResource, dsMeta] # discussion: are these still maintained?

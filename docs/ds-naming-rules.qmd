@@ -42,6 +42,21 @@ reported.
 Every package has the fields `License`, `Authors@R`, `URL` and
 `BugReports`. What they say is up to the package, so any licence is fine.
 
+Open, not checked yet: the version format (`x.y.z`), how development
+versions are marked (`x.y.z.9000`), and whether a client and server pair
+always has the same version.
+
+### Dependencies (guidance)
+
+This is advice, not a rule, and the check doesn't look at it:
+
+- A client package imports `DSI`, which is how it talks to the servers.
+- A client package doesn't depend on its own server package: they run on
+  different machines.
+- Server packages stay light, because each dependency has to be installed
+  on every study's server.
+- Use `Imports` rather than `Depends` where that works.
+
 ### Function names
 
 | Side | Rule | Example |
