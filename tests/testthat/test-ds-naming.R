@@ -23,16 +23,15 @@ test_that("check_package_names() checks names and pairs, with the listed excepti
   expect_match(check_package_names(client("dsFooClient"), NULL, package_rules), "No paired package")
 })
 
-test_that("check_package_licence() wants a licence, whichever it is", {
+test_that("check_description_fields() names what's missing, not what it says", {
   package_rules <- yaml::read_yaml(file.path(repo_root, "config", "ds-naming-package-rules.yml"))
   dir <- withr::local_tempdir()
-  licence <- function(lines) {
+  fields <- function(lines) {
     writeLines(c("Package: dsFoo", lines), file.path(dir, "DESCRIPTION"))
-    check_package_licence(list(dir = dir), package_rules)
+    check_description_fields(list(dir = dir), package_rules)
   }
-  expect_length(licence("License: GPL-3"), 0)
-  expect_length(licence("License: MIT + file LICENSE"), 0)
-  expect_match(licence(character(0)), "No License field")
+  expect_length(fields(c("License: MIT + file LICENSE", "Authors@R: person('A', 'B')", "URL: https://x.org", "BugReports: https://x.org/i")), 0)
+  expect_identical(fields("License: GPL-3"), "Missing in `DESCRIPTION`: `Authors@R`, `URL`, `BugReports`.")
 })
 
 test_that("check_server_methods() wants inst/DATASHIELD and a function behind each method", {

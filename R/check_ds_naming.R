@@ -152,7 +152,7 @@ checks <- lapply(pkgs, function(p) {
   }
   list(
     package = p$name,
-    package_names = c(check_package_names(p, other_side(p), package_rules), check_package_licence(p, package_rules)),
+    package_names = c(check_package_names(p, other_side(p), package_rules), check_description_fields(p, package_rules)),
     methods = methods,
     pairing = pairing,
     function_names = check_function_names(p, package_rules),

@@ -13,7 +13,7 @@ package:
   server: "ds<name>"
   name: "[A-Z][A-Za-z0-9]*"
   description:
-    licence_required: true
+    required_fields: [License, Authors@R, URL, BugReports]
   exceptions:
     client_only: [dsHelper, dsSyntheticClient, dsSupportClient] # discussion: dsHelperClient?
     server_only: [dsResource, dsMeta] # discussion: are these still maintained?

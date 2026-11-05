@@ -15,7 +15,7 @@ The rules are in two files of this repository, used by the
 
 | File | Rules for |
 |---|---|
-| `config/ds-naming-package-rules.yml` | Packages in general: package names, licence, function names, server methods, test file names |
+| `config/ds-naming-package-rules.yml` | Packages in general: package names, `DESCRIPTION` fields, function names, server methods, test file names |
 | `config/ds-naming-argument-rules.yml` | Function arguments: style, classes, roles and order |
 
 ## Package rules
@@ -37,10 +37,10 @@ Exceptions are listed in the rules:
 A package that isn't listed, and is checked without its counterpart, is
 reported.
 
-### Licence
+### `DESCRIPTION`
 
-Every package declares a licence in `DESCRIPTION`. Which one is up to the
-package.
+Every package has the fields `License`, `Authors@R`, `URL` and
+`BugReports`. What they say is up to the package, so any licence is fine.
 
 ### Function names
 
