@@ -225,14 +225,14 @@ test_that("a category without a label sets none", {
 gh_comment <- function(login, body, type = "User") list(user = list(login = login, type = type), body = body)
 bot_says <- function(category) gh_comment("github-actions[bot]", sprintf("<!-- bot-triage: %s -->\n**Triage**", category), "Bot")
 
-test_that("the history is the last triage and what people wrote since", {
+test_that("the history is the last triage and everything people wrote, oldest first", {
   history <- triage_history(list(
     gh_comment("a", "early"), bot_says("needs-info"), gh_comment("a", "more"),
     bot_says("duplicate"), gh_comment("label-bot", "noise", "Bot"), gh_comment("a", "It differs"), gh_comment("b", "Agreed")
   ))
   expect_equal(history$category, "duplicate")
   expect_match(history$comment, "bot-triage: duplicate", fixed = TRUE)
-  expect_equal(vapply(history$replies, function(x) x$body, ""), c("It differs", "Agreed"))
+  expect_equal(vapply(history$replies, function(x) x$body, ""), c("early", "more", "It differs", "Agreed"))
 })
 
 test_that("a copied marker is no triage, before a first triage all comments are read", {
@@ -263,7 +263,7 @@ test_that("replies are cut, which bounds the cost", {
   issue$replies <- list(list(author = "a", body = strrep("x", settings$max_reply_chars * 2)))
   text <- format_triage_history(issue, settings)
   expect_lt(nchar(text), settings$max_reply_chars + 200)
-  expect_match(text, "[... rest cut]", fixed = TRUE)
+  expect_match(text, "[... earlier comments cut]", fixed = TRUE)
 })
 
 test_that("the last verdict's label goes when the verdict changes", {
@@ -464,4 +464,29 @@ test_that("the prompt tells Claude not to invent or name files", {
   prompt <- paste(readLines(file.path(repo_root, "prompts", "issue-triage-prompt.md")), collapse = " ")
   expect_match(prompt, "invent nothing", fixed = TRUE)
   expect_match(prompt, "don't name files", fixed = TRUE)
+})
+
+test_that("a repeat still sees a comment from before the last triage", {
+  history <- triage_history(list(gh_comment("a", "Concrete case: NA for the median"), bot_says("bug")))
+  expect_equal(history$category, "bug")
+  expect_equal(history$replies[[1]]$body, "Concrete case: NA for the median")
+  issue <- triage_issue_data()
+  issue$author <- "a"
+  issue$previous_category <- history$category
+  issue$previous_comment <- history$comment
+  issue$replies <- history$replies
+  text <- format_triage_history(issue, triage_settings())
+  expect_match(text, "Concrete case: NA for the median", fixed = TRUE)
+  expect_match(text, "The comments people wrote on this issue, oldest first:", fixed = TRUE)
+})
+
+test_that("past the limit the newest comments are kept", {
+  settings <- triage_settings()
+  issue <- triage_issue_data()
+  issue$author <- "a"
+  issue$replies <- list(list(author = "a", body = paste0("OLDEST", strrep("x", settings$max_reply_chars))),
+                        list(author = "a", body = "NEWEST"))
+  text <- format_triage_history(issue, settings)
+  expect_match(text, "NEWEST", fixed = TRUE)
+  expect_no_match(text, "OLDEST", fixed = TRUE)
 })

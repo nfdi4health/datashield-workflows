@@ -36,7 +36,7 @@ categories:
     meaning: Advertising, nonsense or anything else that is not a real issue.
 
 max_body_chars: 20000    # of the issue body, sent to Claude
-max_reply_chars: 8000    # of all comments since the last triage, sent to Claude
+max_reply_chars: 8000    # of all comments, the newest kept, sent to Claude
 max_open_issue_chars: 2000     # of each other open issue, sent to Claude
 max_open_issues_chars: 30000   # of all of them; the rest get their title only
 max_text_chars: 400      # of each text field in the comment
