@@ -28,23 +28,26 @@ subscription. No spec review step and no second approval.
   of taste become PR comments. Disclosure disagreements never go back: both
   views stay in the PR for the user.
 - **Bots never close issues.** People do, by merging.
-- **What is approved is the conversation at the moment of the label:** title,
-  body and every comment up to `bot-proceed`, the bot's included. That is what
-  the implementer works from, and it is how the user reads an issue.
-  - Later comments don't count: the implementer ignores them, and the label
-    stays. To include one, the user sets the label again.
-  - Changing approved text invalidates the approval: the title, the body, or
-    editing or deleting any comment from before the label. The runner checks
-    this right before it starts and refuses to run, from each comment's edit
-    time. The label check could also drop the label, so it shows at once.
-  - Hidden text is removed first. Markdown can hide text from the page
-    (`<!-- ... -->`) that the implementer would read, so the user could approve
-    what they never saw. Strip it, or stop the run.
-  - Replaces the runner's marked spec comment (`<!-- agent-spec -->`), which
-    nothing would write now. The implementer so reads outsiders' text, which
-    the runner avoided on purpose; accepted, because the user has read and
-    approved it, `implement` can't write, `publish` refuses `.github/`, and
-    the result is a draft PR the user reviews.
+- **The implementer's only source is the bot's last triage comment**, as a
+  spec of the conversation. The user reads the whole conversation and what the
+  bot made of it, and approves that with `bot-proceed`. Outsiders' text never
+  reaches the agent that runs commands: triage reads it but can only fill in
+  fields, and what it writes goes through `plain_comment_text()`, so hidden
+  text doesn't survive either. Decided after first choosing the whole
+  conversation as the source, the same day: that handed outsiders' text to an
+  agent with commands, on a machine holding the subscription token.
+  - **Triage writes a spec section** for `bug` and `idea`: goal, what was
+    reported, acceptance criteria, open questions. Not `likely files`: triage
+    doesn't read the code. Its text limits have to grow for this.
+  - **Flow:** after a discussion, `bot-triage` refreshes the spec, the user
+    reads it, then sets `bot-proceed`.
+  - **The runner** accepts the bot as `spec_authors` and its marker instead of
+    `<!-- agent-spec -->`, and keeps checking that the comment is unchanged
+    since the label. Later comments and edits of other comments don't matter
+    to it.
+  - **Limits:** what the bot's spec misses, the implementer doesn't know, so
+    the user has to catch it before approving. An issue can still steer what
+    the bot writes, but only into plain text the user reads first.
 
 ## Agreed, to build in the runner
 
@@ -85,7 +88,10 @@ separate job with the App's token, before and after Claude.
 2. **Trigger:** dispatch from the target repository or polling from the runner.
 3. **Terms and account:** repeat the terms check of 2026-10-16, and check what
    the team organization means for the subscription.
-4. **Bypass:** if the runner's GitHub App is not App `5023737`, add it to
+4. **Network:** limit what the `implement` job can reach, since it holds the
+   subscription token. Whether claude-code-action and the runners support that
+   is unchecked.
+5. **Bypass:** if the runner's GitHub App is not App `5023737`, add it to
    `protect-bot-branches` in repo-governance.
 
 ## Triage, follow-ups
