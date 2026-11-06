@@ -475,7 +475,9 @@ test_that("a repeat still sees a comment from before the last triage", {
   issue$previous_category <- history$category
   issue$previous_comment <- history$comment
   issue$replies <- history$replies
-  expect_match(format_triage_history(issue, triage_settings()), "Concrete case: NA for the median", fixed = TRUE)
+  text <- format_triage_history(issue, triage_settings())
+  expect_match(text, "Concrete case: NA for the median", fixed = TRUE)
+  expect_match(text, "The comments people wrote on this issue, oldest first:", fixed = TRUE)
 })
 
 test_that("past the limit the newest comments are kept", {

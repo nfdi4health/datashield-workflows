@@ -36,7 +36,7 @@ format_triage_history <- function(issue, settings) {
     ))
   }
   if (nzchar(replies)) {
-    parts <- c(parts, sprintf("People wrote these comments since:\n\n%s", replies))
+    parts <- c(parts, sprintf("The comments people wrote on this issue, oldest first:\n\n%s", replies))
   }
   paste(c(parts, ""), collapse = "\n\n")
 }
