@@ -359,3 +359,42 @@ test_that("the duplicate line R writes itself stays a real link, and is what is 
   local_global_mock(get_github_json = function(path) list(title = "T", body = "B"))
   expect_equal(read_disputed_issue("duplicate", comment)$number, 4L)
 })
+
+open_list <- function(bodies) {
+  data.frame(number = seq_along(bodies), title = sprintf("Title %d", seq_along(bodies)), body = bodies)
+}
+
+test_that("other issues come with their text", {
+  text <- format_open_issues(open_list(c("Also the hardcoded path", "")), triage_settings())
+  expect_match(text, "- #1: Title 1\n<open_issue_text>\nAlso the hardcoded path\n</open_issue_text>", fixed = TRUE)
+  expect_match(text, "- #2: Title 2", fixed = TRUE)
+  expect_equal(format_open_issues(open_list(character(0)), triage_settings()), "(none)")
+})
+
+test_that("each issue's text is cut to its limit", {
+  settings <- triage_settings()
+  text <- format_open_issues(open_list(paste0(strrep("x", settings$max_open_issue_chars + 10), "THE END")), settings)
+  expect_match(text, "[... rest cut]", fixed = TRUE)
+  expect_no_match(text, "THE END", fixed = TRUE)
+})
+
+test_that("past the total limit only titles are sent, newest first keeps its text", {
+  settings <- triage_settings()
+  settings$max_open_issue_chars <- 100
+  settings$max_open_issues_chars <- 250
+  text <- format_open_issues(open_list(strrep("x", c(100, 100, 100, 10))), settings)
+  expect_equal(lengths(regmatches(text, gregexpr("<open_issue_text>", text))), 3)
+  expect_match(text, "- #3: Title 3\n- #4", fixed = TRUE)
+  expect_match(text, paste0("- #4: Title 4\n<open_issue_text>\n", strrep("x", 10)), fixed = TRUE)
+})
+
+test_that("the prompt says other issues are untrusted too", {
+  prompt <- paste(readLines(file.path(repo_root, "prompts", "issue-triage-prompt.md")), collapse = " ")
+  expect_match(prompt, "The open issues above and the issue's title and body below were written by", fixed = TRUE)
+})
+
+test_that("the limits are in the config", {
+  settings <- triage_settings()
+  expect_gt(settings$max_open_issue_chars, 0)
+  expect_gt(settings$max_open_issues_chars, settings$max_open_issue_chars)
+})

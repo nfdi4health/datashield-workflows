@@ -1,6 +1,7 @@
 # The issue as it stands now, not as the event gave it: the run has waited,
 # and the text may have changed. With the repository's description, the
-# other open issues (for spotting duplicates; pull requests come in the
+# other open issues with their text (for spotting duplicates; pull
+# requests come in the
 # same list and are left out), and the last triage with what people have
 # written since (triage_history()). Without those the triage still works.
 read_issue_for_triage <- function(number) {
@@ -21,7 +22,8 @@ read_issue_for_triage <- function(number) {
     repository_description = get_github_json(sprintf("/repos/%s", repo))$description %||% "",
     open_issues = data.frame(
       number = vapply(open, function(x) as.integer(x$number), integer(1)),
-      title = vapply(open, function(x) x$title %||% "", character(1))
+      title = vapply(open, function(x) x$title %||% "", character(1)),
+      body = vapply(open, function(x) x$body %||% "", character(1))
     ),
     previous_category = history$category,
     previous_comment = history$comment,
