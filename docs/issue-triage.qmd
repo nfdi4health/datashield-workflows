@@ -19,15 +19,25 @@ You decide what happens next.
 | Out of scope | `out-of-scope` |
 | Spam | `invalid` |
 
-The labels are set in `config/issue-triage.yml`; `needs-info` goes again
-once a later triage finds another category.
+The labels are set in `config/issue-triage.yml`. When a later triage
+reaches another verdict, its label replaces the earlier one; labels people
+added stay.
 
 - **It waits for a quiet issue.** People often fix an issue just after
   posting it, so the run waits `wait-minutes` first. Each edit restarts
   the wait, and triage reads the text as it stands at the end.
-- **One triage per issue.** A later edit doesn't start another one. The
-  exception is when the bot asked for more information: the next edit is
-  triaged again, up to `max-triages` comments.
+- **One triage per issue, unless someone answers it.** A later triage
+  needs a reason, as below, and there are at most `max-triages` comments
+  per issue. Each one restarts the wait, so several replies give one
+  triage. It reads the earlier verdict and the comments since.
+
+  | Last verdict | Starts another triage |
+  |---|---|
+  | More information needed | An edit, or any person's comment |
+  | Duplicate, spam, out of scope | A comment by the issue's author, who may disagree |
+  | Bug, idea, question | Nothing |
+
+  Before the first triage, comments start nothing; it reads them anyway.
 - **What is left alone:** closed issues, issues written by a bot,
   `bot-created` issues, and issues that already carry `approval-label`.
 
@@ -35,9 +45,11 @@ once a later triage finds another category.
 
 {{< example issue-triage.yml >}}
 
-The caller has to be on the **default branch**, because `issues` events
-only start workflows from there. The job holds a runner during the wait,
-which counts as Actions minutes in private repositories.
+The caller has to be on the **default branch**, because `issues` and
+`issue_comment` events only start workflows from there. Every issue comment
+starts a short run, which ends in seconds if there's nothing to do. A real
+triage holds a runner during the wait, which counts as Actions minutes in
+private repositories.
 
 The workflow needs [Claude access](claude-setup.qmd): its own federation
 rule for `issue-triage.yml`, set up like the others. A separate workspace
@@ -46,8 +58,8 @@ an issue can start a run.
 
 ## Issue text is untrusted
 
-Anyone can write anything into an issue, including instructions aimed at
-Claude. So the issue only reaches Claude, Claude can only answer in fixed
+Anyone can write anything into an issue or comment, including instructions
+aimed at Claude. So the text only reaches Claude, Claude can only answer in fixed
 fields, and everything it writes is reduced to plain text before it is
 posted: no mentions, links, images or markup. A duplicate is only named if
 it is one of the open issues Claude was shown. Labels come from the fixed

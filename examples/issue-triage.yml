@@ -3,6 +3,8 @@ name: Issue Triage
 on:
   issues:
     types: [opened, edited]
+  issue_comment:
+    types: [created]   # an answer to the bot, or an objection to its verdict
 
 jobs:
   triage:

@@ -19,7 +19,8 @@ ask_claude_for_triage <- function(claude, issue, settings) {
     CATEGORIES = paste(sprintf("- `%s`: %s", names(meanings), meanings), collapse = "\n"),
     OPEN_ISSUES = open_issues,
     TITLE = issue$title,
-    BODY = if (nzchar(body)) body else "(empty)"
+    BODY = if (nzchar(body)) body else "(empty)",
+    HISTORY = format_triage_history(issue, settings)
   ))
   answer <- call_claude_tool(claude, build_triage_tool(settings), prompt)
   if (!answer$category %in% names(settings$categories)) {

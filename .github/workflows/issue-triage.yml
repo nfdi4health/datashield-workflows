@@ -3,10 +3,14 @@ name: Issue Triage
 # First look at a new issue (dev-notes/issue-agents.md): one Claude call
 # on the API, one comment with a category and a short reason, and the
 # category's label. It never closes an issue, and can't set the approval
-# label. It waits for a quiet issue: each edit cancels a
-# waiting run through `concurrency` and so restarts the wait. One triage
-# per issue, repeated on an edit only if the bot asked for more
-# information. No checkout of the calling repository.
+# label. It waits for a quiet issue: each edit or answering comment cancels
+# a waiting run through `concurrency` and so restarts the wait. One triage
+# per issue, repeated if someone answers it (the gate action has the rules).
+# No checkout of the calling repository.
+#
+# Two jobs, so that the concurrency group is only entered by a run that
+# will triage: every comment on an issue starts this workflow, and one that
+# is ignored must not cancel a triage waiting for its 10 minutes.
 on:
   workflow_call:
     inputs:
@@ -16,12 +20,12 @@ on:
         type: string
         default: 'bot-proceed'
       wait-minutes:
-        description: 'How long an issue has to stay unedited before it is triaged. The job holds a runner meanwhile.'
+        description: 'How long an issue has to stay unedited and unanswered before it is triaged. The job holds a runner meanwhile.'
         required: false
         type: number
         default: 10
       max-triages:
-        description: 'At most this many triage comments per issue, when the bot keeps asking for more information.'
+        description: 'At most this many triage comments per issue, when people keep answering.'
         required: false
         type: number
         default: 3
@@ -39,7 +43,25 @@ on:
 permissions: {}
 
 jobs:
+  # Before the wait, so an edit or comment that needs nothing holds no runner.
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - name: Does this issue need triage?
+        id: gate
+        uses: $/.github/actions/issue-triage-gate
+        with:
+          approval-label: ${{ inputs.approval-label }}
+          max-triages: ${{ inputs.max-triages }}
+          token: ${{ github.token }}
+
   triage:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     concurrency:
       group: issue-triage-${{ github.repository }}-${{ github.event.issue.number }}
@@ -48,17 +70,7 @@ jobs:
       issues: write
       id-token: write
     steps:
-      # Before the wait, so an edit of a finished issue holds no runner.
-      - name: Does this issue need triage?
-        id: before
-        uses: $/.github/actions/issue-triage-gate
-        with:
-          approval-label: ${{ inputs.approval-label }}
-          max-triages: ${{ inputs.max-triages }}
-          token: ${{ github.token }}
-
       - name: Wait for a quiet issue
-        if: steps.before.outputs.run == 'true'
         env:
           WAIT_MINUTES: ${{ inputs.wait-minutes }}
         run: sleep "$((WAIT_MINUTES * 60))"
@@ -66,7 +78,6 @@ jobs:
       # The issue may have been closed or approved during the wait.
       - name: Still needed after the wait?
         id: gate
-        if: steps.before.outputs.run == 'true'
         uses: $/.github/actions/issue-triage-gate
         with:
           approval-label: ${{ inputs.approval-label }}

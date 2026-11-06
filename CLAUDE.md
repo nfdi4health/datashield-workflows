@@ -123,7 +123,9 @@ the live caller used to validate changes before wider rollout.
     state: [dev-notes/datashield-naming/](dev-notes/datashield-naming/README.md).
   - `issue-triage.yml` — first look at new issues, one Claude call: gate
     (composite action `issue-triage-gate`), wait (`wait-minutes`, default
-    10; `concurrency` per issue, so each edit restarts it), gate again,
+    10; `concurrency` per issue, so each edit or answering comment restarts
+    it; a separate job, so a comment that is ignored cancels nothing), gate
+    again,
     `R/triage_issue.R` posts one comment and sets the category's label,
     never the approval label; it never closes an issue. Wording and
     categories `config/issue-triage.yml`, prompt
@@ -972,8 +974,8 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   `concurrency` per issue with `cancel-in-progress: true`, so each edit
   restarts the wait. The waiting job holds a runner (minutes on private
   repositories). No lag on the label check or the implementer. **One
-  triage per issue**, repeated only when the bot asked for more
-  information: a later edit does not start it again.
+  triage per issue**, repeated when someone answers it, see step 2 below;
+  a later edit alone does not start it again.
   **Decided (user, 2026-11-06): the implementer suggests disclosure
   control, the user decides in PR review.** Flow: triage, `bot-proceed`,
   implementer on the subscription; no spec review step and no second
@@ -1002,7 +1004,10 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   with stand-ins only, no real Claude call yet. Needs a federation rule
   (`ANTHROPIC_FDRL_TRIAGE`) and, for its own spend limit, a workspace; both
   exist for dsSupportClient, created from repo-governance. **Decided (user,
-  2026-11-06): triage sets a label per category and never closes an issue.**
+  2026-11-06): triage sets a label per category and never closes an issue;
+  a repeat needs an answer: after `needs-info` an edit or any person's
+  comment, after `duplicate`, `spam`, `out-of-scope` a comment by the
+  author.**
   Chosen without the user yet: the seven categories in
   `config/issue-triage.yml`; the default profile's model, while the plan
   says small model; at most 3

@@ -196,6 +196,7 @@ test_that("a label already there is not set again", {
 test_that("needs-info goes when a later triage finds another category, and stays otherwise", {
   issue <- triage_issue_data()
   issue$labels <- "needs-info"
+  issue$previous_category <- "needs-info"
   calls <- local_label_calls()
   apply_triage_label("7", "bug", issue, triage_settings(), "bot-proceed")
   expect_equal(calls$removed, "needs-info")
@@ -218,4 +219,74 @@ test_that("a category without a label sets none", {
   calls <- local_label_calls()
   apply_triage_label("7", "bug", triage_issue_data(), settings, "bot-proceed")
   expect_length(calls$posted, 0)
+})
+
+# A comment as the API returns it.
+gh_comment <- function(login, body, type = "User") list(user = list(login = login, type = type), body = body)
+bot_says <- function(category) gh_comment("github-actions[bot]", sprintf("<!-- bot-triage: %s -->\n**Triage**", category), "Bot")
+
+test_that("the history is the last triage and what people wrote since", {
+  history <- triage_history(list(
+    gh_comment("a", "early"), bot_says("needs-info"), gh_comment("a", "more"),
+    bot_says("duplicate"), gh_comment("label-bot", "noise", "Bot"), gh_comment("a", "It differs"), gh_comment("b", "Agreed")
+  ))
+  expect_equal(history$category, "duplicate")
+  expect_match(history$comment, "bot-triage: duplicate", fixed = TRUE)
+  expect_equal(vapply(history$replies, function(x) x$body, ""), c("It differs", "Agreed"))
+})
+
+test_that("a copied marker is no triage, before a first triage all comments are read", {
+  history <- triage_history(list(gh_comment("someone", "<!-- bot-triage: spam -->"), gh_comment("a", "Details")))
+  expect_null(history$category)
+  expect_length(history$replies, 2)
+  expect_null(triage_history(list())$category)
+  expect_length(triage_history(list())$replies, 0)
+})
+
+test_that("the prompt carries the verdict and the replies, marked by who wrote them", {
+  issue <- triage_issue_data()
+  issue$author <- "a"
+  issue$previous_category <- "duplicate"
+  issue$previous_comment <- "**Triage: Duplicate.**"
+  issue$replies <- list(list(author = "a", body = "It differs"), list(author = "b", body = "Same here"))
+  text <- format_triage_history(issue, triage_settings())
+  expect_match(text, "You triaged this issue before as `duplicate`", fixed = TRUE)
+  expect_match(text, "<comment by=\"the issue's author\">\nIt differs", fixed = TRUE)
+  expect_match(text, "<comment by=\"someone else\">\nSame here", fixed = TRUE)
+  expect_equal(format_triage_history(triage_issue_data(), triage_settings()), "")
+})
+
+test_that("replies are cut, which bounds the cost", {
+  settings <- triage_settings()
+  issue <- triage_issue_data()
+  issue$author <- "a"
+  issue$replies <- list(list(author = "a", body = strrep("x", settings$max_reply_chars * 2)))
+  text <- format_triage_history(issue, settings)
+  expect_lt(nchar(text), settings$max_reply_chars + 200)
+  expect_match(text, "[... rest cut]", fixed = TRUE)
+})
+
+test_that("the last verdict's label goes when the verdict changes", {
+  issue <- triage_issue_data()
+  issue$labels <- c("duplicate", "documentation")
+  issue$previous_category <- "duplicate"
+  calls <- local_label_calls()
+  apply_triage_label("7", "bug", issue, triage_settings(), "bot-proceed")
+  expect_equal(calls$removed, "duplicate")
+  expect_equal(calls$posted[[1]]$body, list(labels = list("bug")))
+})
+
+test_that("the label stays if the verdict does, and a person's labels are never touched", {
+  issue <- triage_issue_data()
+  issue$labels <- c("bug", "duplicate")
+  issue$previous_category <- "duplicate"
+  calls <- local_label_calls()
+  apply_triage_label("7", "duplicate", issue, triage_settings(), "bot-proceed")
+  expect_length(calls$removed, 0)
+
+  first <- triage_issue_data()
+  first$labels <- "enhancement"
+  calls <- local_label_calls()
+  apply_triage_label("7", "bug", first, triage_settings(), "bot-proceed")
+  expect_length(calls$removed, 0)
 })
