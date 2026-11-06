@@ -953,3 +953,10 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   a label puts it on issues without a `labeled` event. Not checked: which
   events an issue opened or transferred with the label already on it
   sends. `dev-notes/issue-agents.md` still has to say this step is built.
+  **Decided (user, 2026-11-06): triage waits for a quiet issue.** Triggers
+  `opened` and `edited`, 10 minutes' wait at the start of the job,
+  `concurrency` per issue with `cancel-in-progress: true`, so each edit
+  restarts the wait. The waiting job holds a runner (minutes on private
+  repositories). No lag on the label check or the implementer. Still open:
+  edits after triage has finished would run it again; proposed is one
+  triage per issue, repeated only when the bot asked for more information.
