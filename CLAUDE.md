@@ -970,5 +970,14 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   No fitting option means stop and ask, not improvise. A new function
   still stops at a design note, which carries the same section. A
   disclosure reviewer works out what the server returns from the code
-  first, so it does not inherit the suggestion's blind spots. Not decided
-  yet: how many reviewers, and what its findings block.
+  first, compares that with the suggestion, and the PR shows both views.
+  **Decided (user, 2026-11-06): one correction round.** Inside the run
+  `bot-proceed` started: the implementer writes the code and does its own
+  cleanup (no refactor stage), fixes failing deterministic checks, the
+  reviewers read the result, clear problems (bugs, code that differs from
+  its suggestion, real maintainability problems) go back once, the
+  reviewers check only those fixes, and the PR opens with what is still
+  open listed in it. A second failure stops there. Matters of taste become
+  PR comments. Disclosure disagreements never go back to the implementer:
+  both views stay in the PR for the user. Not decided yet: how many
+  reviewers.
