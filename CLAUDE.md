@@ -996,8 +996,10 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   both views stay in the PR for the user. Not decided yet: how many
   reviewers.
   A comment does not drop `bot-proceed`, so anyone can add text to an
-  approved issue: the implementer takes its task from the issue body and
-  the bot's triage comment only, never from other comments.
+  approved issue: the implementer never takes its task from other comments.
+  Where it does take it from is open, see
+  [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md), which has
+  all agreed and open points of the implementer.
 - **Issue flow, step 2 of 3:** `issue-triage.yml` built (2026-11-06), tested
   with stand-ins only, no real Claude call yet. Needs a federation rule
   (`ANTHROPIC_FDRL_TRIAGE`) and, for its own spend limit, a workspace; both
