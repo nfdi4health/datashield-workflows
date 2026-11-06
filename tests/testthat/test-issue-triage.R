@@ -398,3 +398,70 @@ test_that("the limits are in the config", {
   expect_gt(settings$max_open_issue_chars, 0)
   expect_gt(settings$max_open_issues_chars, settings$max_open_issue_chars)
 })
+
+spec_answer <- function(...) {
+  triage_answer(goal = "The median skips that study.", reported = list("NA for the median", "no warning"),
+                acceptance_criteria = list("a warning names the study"), open_questions = list("Is the limit nfilter.tab?"), ...)
+}
+
+test_that("a bug gets its spec, before the reason", {
+  comment <- format_triage_comment(spec_answer(), triage_issue_data(), triage_settings())
+  expect_match(comment, "**Goal:** The median skips that study.", fixed = TRUE)
+  expect_match(comment, "**What was reported:**\n- NA for the median\n- no warning", fixed = TRUE)
+  expect_match(comment, "**Acceptance criteria:**\n- a warning names the study", fixed = TRUE)
+  expect_match(comment, "**Open questions:**\n- Is the limit nfilter.tab?", fixed = TRUE)
+  expect_lt(regexpr("**Goal:**", comment, fixed = TRUE), regexpr("Why:", comment, fixed = TRUE))
+  expect_match(comment, "^<!-- bot-triage: bug -->\n")
+})
+
+test_that("an idea gets it too, other categories never", {
+  settings <- triage_settings()
+  answer <- spec_answer()
+  answer$category <- "idea"
+  expect_match(format_triage_comment(answer, triage_issue_data(), settings), "**Goal:**", fixed = TRUE)
+  for (category in c("question", "duplicate", "needs-info", "out-of-scope", "spam")) {
+    answer$category <- category
+    expect_no_match(format_triage_comment(answer, triage_issue_data(), settings), "**Goal:**", fixed = TRUE)
+  }
+})
+
+test_that("empty fields get no heading", {
+  answer <- spec_answer()
+  answer$open_questions <- list()
+  answer$goal <- ""
+  comment <- format_triage_comment(answer, triage_issue_data(), triage_settings())
+  expect_no_match(comment, "Open questions", fixed = TRUE)
+  expect_no_match(comment, "**Goal:**", fixed = TRUE)
+  expect_match(comment, "**What was reported:**", fixed = TRUE)
+})
+
+test_that("an answer without spec fields still gives a comment", {
+  comment <- format_triage_comment(triage_answer(), triage_issue_data(), triage_settings())
+  expect_match(comment, "Why: A clear report.", fixed = TRUE)
+})
+
+test_that("lists are cut, and the spec can't carry links or mentions", {
+  settings <- triage_settings()
+  answer <- spec_answer()
+  answer$reported <- as.list(paste("Point", seq_len(settings$max_spec_items + 3)))
+  answer$acceptance_criteria <- list("ask @alice at https://evil.example")
+  answer$goal <- "See ![x](http://y.example)"
+  comment <- format_triage_comment(answer, triage_issue_data(), settings)
+  expect_match(comment, sprintf("Point %d", settings$max_spec_items), fixed = TRUE)
+  expect_no_match(comment, sprintf("Point %d", settings$max_spec_items + 1), fixed = TRUE)
+  expect_no_match(comment, "@alice", fixed = TRUE)
+  expect_no_match(comment, "https://", fixed = TRUE)
+  expect_no_match(comment, "![", fixed = TRUE)
+})
+
+test_that("the spec fields are required, and strict mode accepts the tool", {
+  tool <- build_triage_tool(triage_settings())
+  expect_true(all(c("goal", "reported", "acceptance_criteria", "open_questions") %in% unlist(tool$input_schema$required)))
+  expect_true(strict_tool_schema(tool$input_schema)$ok)
+})
+
+test_that("the prompt tells Claude not to invent or name files", {
+  prompt <- paste(readLines(file.path(repo_root, "prompts", "issue-triage-prompt.md")), collapse = " ")
+  expect_match(prompt, "invent nothing", fixed = TRUE)
+  expect_match(prompt, "don't name files", fixed = TRUE)
+})

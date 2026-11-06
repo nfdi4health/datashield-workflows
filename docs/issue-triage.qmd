@@ -9,6 +9,11 @@ the workflow posts one comment with that category, a one-sentence summary
 and the reason, and sets the category's label. It never closes an issue.
 You decide what happens next.
 
+For a bug or an idea, the comment also has a short spec of the conversation:
+the goal, what was reported, acceptance criteria and open questions. The
+acceptance criteria are suggestions from the report, since triage doesn't
+read the code.
+
 | Category | Label |
 |---|---|
 | Bug | `bug` |
