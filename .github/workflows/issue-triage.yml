@@ -1,0 +1,118 @@
+name: Issue Triage
+
+# First look at a new issue (dev-notes/issue-agents.md): one Claude call
+# on the API, one comment with a category and a short reason, and the
+# category's label. It never closes an issue, and can't set the approval
+# label. It waits for a quiet issue: each edit cancels a
+# waiting run through `concurrency` and so restarts the wait. One triage
+# per issue, repeated on an edit only if the bot asked for more
+# information. No checkout of the calling repository.
+on:
+  workflow_call:
+    inputs:
+      approval-label:
+        description: 'An issue carrying this label is not triaged: it is already decided.'
+        required: false
+        type: string
+        default: 'bot-proceed'
+      wait-minutes:
+        description: 'How long an issue has to stay unedited before it is triaged. The job holds a runner meanwhile.'
+        required: false
+        type: number
+        default: 10
+      max-triages:
+        description: 'At most this many triage comments per issue, when the bot keeps asking for more information.'
+        required: false
+        type: number
+        default: 3
+    secrets:
+      anthropic-organization-id:
+        description: 'Anthropic organization ID.'
+        required: true
+      anthropic-service-account-id:
+        description: 'Anthropic service account ID, svac_...'
+        required: true
+      anthropic-federation-rule-id:
+        description: 'Federation rule ID for this workflow, fdrl_...'
+        required: true
+
+permissions: {}
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: issue-triage-${{ github.repository }}-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    permissions:
+      issues: write
+      id-token: write
+    steps:
+      # Before the wait, so an edit of a finished issue holds no runner.
+      - name: Does this issue need triage?
+        id: before
+        uses: $/.github/actions/issue-triage-gate
+        with:
+          approval-label: ${{ inputs.approval-label }}
+          max-triages: ${{ inputs.max-triages }}
+          token: ${{ github.token }}
+
+      - name: Wait for a quiet issue
+        if: steps.before.outputs.run == 'true'
+        env:
+          WAIT_MINUTES: ${{ inputs.wait-minutes }}
+        run: sleep "$((WAIT_MINUTES * 60))"
+
+      # The issue may have been closed or approved during the wait.
+      - name: Still needed after the wait?
+        id: gate
+        if: steps.before.outputs.run == 'true'
+        uses: $/.github/actions/issue-triage-gate
+        with:
+          approval-label: ${{ inputs.approval-label }}
+          max-triages: ${{ inputs.max-triages }}
+          token: ${{ github.token }}
+
+      - name: Shared scripts
+        if: steps.gate.outputs.run == 'true'
+        uses: $/.github/actions/shared-files
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        if: steps.gate.outputs.run == 'true'
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        if: steps.gate.outputs.run == 'true'
+        with:
+          packages: any::yaml, any::jsonlite, any::httr2, any::purrr
+
+      - name: Get Anthropic access token
+        id: anthropic_auth
+        if: steps.gate.outputs.run == 'true'
+        uses: $/.github/actions/anthropic-token
+        with:
+          organization-id: ${{ secrets.anthropic-organization-id }}
+          service-account-id: ${{ secrets.anthropic-service-account-id }}
+          federation-rule-id: ${{ secrets.anthropic-federation-rule-id }}
+
+      - name: Triage the issue
+        if: steps.gate.outputs.run == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.gate.outputs.number }}
+          APPROVAL_LABEL: ${{ inputs.approval-label }}
+        run: Rscript .shared-workflows/R/triage_issue.R
+
+      # Counts this run once, anonymously, by workflow, outcome and version
+      # (see docs: usage counting). Nothing about this repository is sent.
+      # Only runs that got as far as Claude: a run cancelled by an edit, or
+      # one with nothing to do, is not a triage.
+      - name: Count this run
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
+        continue-on-error: true
+        uses: $/.github/actions/count-run
+        with:
+          workflow: issue-triage
+          job-status: ${{ job.status }}

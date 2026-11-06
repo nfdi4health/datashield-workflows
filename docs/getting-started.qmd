@@ -56,7 +56,7 @@ as long as the caller maps them to the workflow's secret names.
 | `CODECOV_TOKEN` | R CMD check | Coverage upload; required for private repositories |
 | `ANTHROPIC_ORG_ID` | roxygen / test suggestions, analysis scripts | Anthropic organization ID — can be an organization-level secret |
 | `ANTHROPIC_SVAC_ID` | roxygen / test suggestions, analysis scripts | Service account of this repository |
-| `ANTHROPIC_FDRL_ROXYGEN`, `ANTHROPIC_FDRL_TESTS`, `ANTHROPIC_FDRL_ANALYSIS` | roxygen / test suggestions, analysis scripts | Federation rule per workflow |
+| `ANTHROPIC_FDRL_ROXYGEN`, `ANTHROPIC_FDRL_TESTS`, `ANTHROPIC_FDRL_ANALYSIS`, `ANTHROPIC_FDRL_TRIAGE` | roxygen / test suggestions, analysis scripts, issue triage | Federation rule per workflow |
 
 The three Anthropic IDs are set up in the Claude Console, see
 [Claude setup](claude-setup.qmd).

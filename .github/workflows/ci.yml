@@ -45,6 +45,7 @@ jobs:
         run: |
           bash tests/shell/test-scope.sh
           bash tests/shell/test-label-check.sh
+          bash tests/shell/test-triage-gate.sh
 
   lint:
     name: Static checks

@@ -1,0 +1,37 @@
+name: Issue triage gate
+description: >
+  Decides whether an issue gets triaged now, from the event and the issue
+  as it stands: open, written by a person, not yet decided, and no finished
+  triage. Reads the event file and the API, so no issue text is written
+  into a script.
+
+inputs:
+  approval-label:
+    description: 'An issue carrying this label is not triaged.'
+    required: true
+  max-triages:
+    description: 'At most this many triage comments per issue.'
+    required: true
+  token:
+    description: 'Token with issues: read.'
+    required: true
+
+outputs:
+  run:
+    description: '"true" if the issue is to be triaged.'
+    value: ${{ steps.gate.outputs.run }}
+  number:
+    description: 'The issue number.'
+    value: ${{ steps.gate.outputs.number }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check the issue
+      id: gate
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        APPROVAL_LABEL: ${{ inputs.approval-label }}
+        MAX_TRIAGES: ${{ inputs.max-triages }}
+      run: bash "$GITHUB_ACTION_PATH/issue-triage-gate.sh"
