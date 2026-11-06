@@ -1,5 +1,5 @@
 # The prompt's part on what came before: the last verdict, the issue it
-# called this a duplicate of, and the comments since, cut to
+# called this a duplicate of, and people's comments, oldest first, cut to
 # settings$max_body_chars and settings$max_reply_chars, which bounds what
 # one issue can cost. Empty on a first triage without comments.
 format_triage_history <- function(issue, settings) {
@@ -9,8 +9,10 @@ format_triage_history <- function(issue, settings) {
     replies <- paste(vapply(issue$replies, function(x) {
       sprintf("<comment by=\"%s\">\n%s\n</comment>", who(x), x$body)
     }, character(1)), collapse = "\n")
+    # The newest comments matter most: an answer or objection is at the end.
     if (nchar(replies) > settings$max_reply_chars) {
-      replies <- paste0(substr(replies, 1, settings$max_reply_chars), "\n[... rest cut]")
+      start <- nchar(replies) - settings$max_reply_chars + 1
+      replies <- paste0("[... earlier comments cut]\n", substr(replies, start, nchar(replies)))
     }
   }
   if (is.null(issue$previous_category) && !nzchar(replies)) {
