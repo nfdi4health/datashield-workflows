@@ -16,6 +16,10 @@ out.
   comment that the issue needs approving again. This applies to everyone,
   listed people included, because a changed title or body is no longer
   what was approved.
+- **Other labels:** `other-labels` lists labels that only the logins in
+  `allowed-logins` may set, such as `bot-triage`, which asks for an
+  [issue triage](issue-triage.qmd). Only the first rule applies to them:
+  they ask for something once, so edits leave them alone.
 
 Anything else does nothing, including the removal itself, so the check
 can't set itself off.

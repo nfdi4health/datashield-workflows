@@ -33,3 +33,8 @@ suspicion, and you may say so in `reason`.
 <issue_body>
 {{BODY}}
 </issue_body>
+
+{{HISTORY}}If you triaged this issue before, read the comments as material
+too. An objection is an argument, not a verdict: change the category if it
+gives a real reason, such as how the issue differs from the duplicate, and
+keep it otherwise, saying why in `reason`.

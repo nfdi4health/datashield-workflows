@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: 'bot-proceed'
+      other-labels:
+        description: 'More labels only the listed logins may set, separated by commas. Unlike the approval label, edits do not remove these.'
+        required: false
+        type: string
+        default: 'bot-triage'
       allowed-logins:
         description: 'Who may set the label: exact GitHub logins, separated by commas or spaces. Access level plays no part.'
         required: false
@@ -31,5 +36,6 @@ jobs:
         uses: $/.github/actions/issue-label-check
         with:
           label: ${{ inputs.label }}
+          other-labels: ${{ inputs.other-labels }}
           allowed-logins: ${{ inputs.allowed-logins }}
           token: ${{ github.token }}

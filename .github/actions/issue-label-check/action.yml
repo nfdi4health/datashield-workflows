@@ -9,6 +9,10 @@ inputs:
   label:
     description: 'The approval label.'
     required: true
+  other-labels:
+    description: 'More labels only the listed logins may set, separated by commas. Edits do not remove these.'
+    required: false
+    default: ''
   allowed-logins:
     description: 'Who may set the label: exact GitHub logins, separated by commas or spaces.'
     required: true
@@ -24,5 +28,6 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.token }}
         LABEL: ${{ inputs.label }}
+        OTHER_LABELS: ${{ inputs.other-labels }}
         ALLOWED_LOGINS: ${{ inputs.allowed-logins }}
       run: bash "$GITHUB_ACTION_PATH/issue-label-check.sh"
