@@ -34,7 +34,7 @@ added stay.
   | Last verdict | Starts another triage |
   |---|---|
   | More information needed | An edit, or any person's comment |
-  | Duplicate, spam, out of scope | A comment by the issue's author, who may disagree |
+  | Duplicate, spam, out of scope | A comment or edit by the issue's author, who may disagree |
   | Bug, idea, question | Nothing |
 
   Before the first triage, comments start nothing; it reads them anyway.

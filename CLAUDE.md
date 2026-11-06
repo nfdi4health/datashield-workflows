@@ -1008,7 +1008,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   a repeat needs an answer, or `bot-triage` set by a listed login (no wait,
   no limit, label removed afterwards, also for older issues): after
   `needs-info` an edit or any person's
-  comment, after `duplicate`, `spam`, `out-of-scope` a comment by the
+  comment, after `duplicate`, `spam`, `out-of-scope` a comment or edit by the
   author.**
   Chosen without the user yet: the seven categories in
   `config/issue-triage.yml`; the default profile's model, while the plan

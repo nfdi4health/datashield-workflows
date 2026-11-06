@@ -8,8 +8,8 @@
 # issue, repeated only if someone answers it, and at most MAX_TRIAGES:
 #   last verdict                  repeated on
 #   needs-info                    an edit, or any person's comment
-#   duplicate, spam, out-of-scope a comment by the issue's author, who may
-#                                 disagree
+#   duplicate, spam, out-of-scope a comment or edit by the issue's author,
+#                                 who may disagree
 #   anything else                 nothing
 # A comment before the first triage starts nothing: that triage reads it.
 #
@@ -94,7 +94,7 @@ if [ -z "$triages" ]; then
 else
   case "$trigger/$(tail -n 1 <<< "$triages")" in
     edit/needs-info|comment/needs-info) ;;
-    comment/duplicate|comment/spam|comment/out-of-scope)
+    edit/duplicate|edit/spam|edit/out-of-scope|comment/duplicate|comment/spam|comment/out-of-scope)
       [ "$(event .comment.user.login)" = "$(jq -r '.user.login' <<< "$issue")" ] \
         || skip "only the issue's author can object to this verdict"
       ;;

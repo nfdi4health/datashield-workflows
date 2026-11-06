@@ -115,7 +115,8 @@ for verdict in duplicate spam out-of-scope; do
   bot_triage "$verdict" > "$WORK/comments.json"
   COMMENTER=author comment; runs; check "$verdict: the author can object" $?
   comment; skips; check "$verdict: someone else cannot" $?
-  gate edited; skips; check "$verdict: an edit does not count" $?
+  SENDER=author gate edited; runs; check "$verdict: the author's edit counts too" $?
+  SENDER=someone gate edited; skips; check "$verdict: someone else's edit does not" $?
 done
 
 for verdict in bug idea question; do
