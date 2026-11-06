@@ -100,3 +100,12 @@ Noted while testing, none needed for the above: a "Related" line for similar
 issues (up to three, numbers checked), the start of each body besides the
 title, recently closed issues. The line could show an issue's state, such as
 "a PR is open".
+
+## For later: `client-server-pair` skill in `datashield-skills`
+
+A design rule from testing triage on #71, to add when there is time. A server
+function fails below a disclosure limit, and that stays. A client wrapper may
+catch that and carry on with the other studies: leaving out connections is
+normal for sub-analysis, so it adds nothing an analyst couldn't do by hand, and
+the failure already showed the study didn't pass. But the output has to say
+which studies were used; that is about a correct analysis, not disclosure.
