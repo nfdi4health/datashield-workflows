@@ -952,9 +952,10 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   implementer has to verify the approval itself when it starts (who set
   the label, from the issue's timeline, and no edit since): the check
   runs after the fact, so a wrong label stands for seconds, and renaming
-  a label puts it on issues without a `labeled` event. Not checked: which
-  events an issue opened or transferred with the label already on it
-  sends. `dev-notes/issue-agents.md` still has to say this step is built.
+  a label puts it on issues without a `labeled` event. An issue opened with
+  the label fires `labeled` too (tested). Not tested live: an edit by
+  someone without write access, and an issue transferred with the label.
+  `dev-notes/issue-agents.md` still has to say this step is built.
   **Decided (user, 2026-11-06): triage waits for a quiet issue.** Triggers
   `opened` and `edited`, 10 minutes' wait at the start of the job,
   `concurrency` per issue with `cancel-in-progress: true`, so each edit
