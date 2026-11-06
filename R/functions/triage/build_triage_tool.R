@@ -15,9 +15,26 @@ build_triage_tool <- function(settings) {
           description = "For needs-info: what is missing, as short questions. Otherwise empty.",
           items = list(type = "string")
         ),
-        duplicate_of = list(type = "integer", description = "For duplicate: the number of the open issue. Otherwise 0.")
+        duplicate_of = list(type = "integer", description = "For duplicate: the number of the open issue. Otherwise 0."),
+        goal = list(type = "string", description = "For bug and idea: one sentence, what should be true when this is done. Otherwise empty."),
+        reported = list(
+          type = "array",
+          description = "For bug and idea: what the issue and comments actually say, as short points. Otherwise empty.",
+          items = list(type = "string")
+        ),
+        acceptance_criteria = list(
+          type = "array",
+          description = "For bug and idea: how to tell it is done, as short checkable points. Otherwise empty.",
+          items = list(type = "string")
+        ),
+        open_questions = list(
+          type = "array",
+          description = "For bug and idea: what the conversation leaves open, as short questions. Otherwise empty.",
+          items = list(type = "string")
+        )
       ),
-      required = list("category", "summary", "reason", "missing_information", "duplicate_of")
+      required = list("category", "summary", "reason", "missing_information", "duplicate_of",
+                      "goal", "reported", "acceptance_criteria", "open_questions")
     )
   )
 }
