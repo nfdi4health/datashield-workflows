@@ -11,7 +11,9 @@
 #   duplicate, spam, out-of-scope a comment or edit by the issue's author,
 #                                 who may disagree
 #   anything else                 nothing
-# A comment before the first triage starts nothing: that triage reads it.
+# Before the first triage, the author's comment counts like an edit: they
+# are still writing, so the wait starts again. Anyone else's starts nothing,
+# and the triage reads it anyway.
 #
 # TRIAGE_LABEL set by an exact login in ALLOWED_LOGINS is a person's request:
 # it needs no reason and no wait, and works on issues from before triage
@@ -90,7 +92,8 @@ triages="$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$number/comments" 
   | .body | capture("^<!-- bot-triage: (?<category>[a-z-]+) -->") | .category')"
 
 if [ -z "$triages" ]; then
-  [ "$trigger" = edit ] || skip "no triage yet, the first one reads this comment"
+  [ "$trigger" = edit ] || [ "$(event .sender.login)" = "$(jq -r '.user.login' <<< "$issue")" ] \
+    || skip "no triage yet, the first one reads this comment"
 else
   case "$trigger/$(tail -n 1 <<< "$triages")" in
     edit/needs-info|comment/needs-info) ;;

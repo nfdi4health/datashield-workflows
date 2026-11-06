@@ -103,7 +103,10 @@ gate edited; runs; check "the label check's comment is no triage" $?
 comment() { EVENT_NAME=issue_comment gate "${1:-created}"; }
 
 echo '[]' > "$WORK/comments.json"
-comment; skips; check "comment before the first triage: nothing, it reads it" $?
+comment; skips; check "someone's comment before the first triage: nothing, it reads it" $?
+SENDER=author COMMENTER=author comment; runs; check "the author's comment before the first triage restarts the wait" $?
+! grep -qx 'request=true' "$WORK/out.txt"; check "that is no request: the wait applies" $?
+SENDER=author COMMENTER=author COMMENTER_TYPE=Bot comment; skips; check "a bot author's comment does not" $?
 bot_triage needs-info > "$WORK/comments.json"
 comment; runs; check "needs-info: any person's comment" $?
 COMMENTER=author comment; runs; check "needs-info: the author's comment" $?
