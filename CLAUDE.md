@@ -945,8 +945,10 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   callers use it (no direct `liskin` any more); it only runs on a
   scheduled trigger, so it is not yet confirmed in real CI.
 - **Issue flow, step 1 of 3:** `issue-label-check.yml` built (2026-11-05,
-  branch `feat/issue-label-check`), tested with a stand-in for `gh`, not
-  yet run from a caller. Next triage, then the implementer. The
+  branch `feat/issue-label-check`), tested with a stand-in for `gh` and live
+  (2026-11-06): dsSupportClient #63 (allowed user, edits, other label) and
+  a throwaway repository (login not listed, login in the wrong case); no
+  loop. Two edits at once not tried live. Next triage, then the implementer. The
   implementer has to verify the approval itself when it starts (who set
   the label, from the issue's timeline, and no edit since): the check
   runs after the fact, so a wrong label stands for seconds, and renaming
@@ -981,3 +983,6 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   PR comments. Disclosure disagreements never go back to the implementer:
   both views stay in the PR for the user. Not decided yet: how many
   reviewers.
+  A comment does not drop `bot-proceed`, so anyone can add text to an
+  approved issue: the implementer takes its task from the issue body and
+  the bot's triage comment only, never from other comments.
