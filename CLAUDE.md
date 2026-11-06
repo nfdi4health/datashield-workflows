@@ -960,3 +960,14 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   repositories). No lag on the label check or the implementer. **One
   triage per issue**, repeated only when the bot asked for more
   information: a later edit does not start it again.
+  **Decided (user, 2026-11-06): disclosure control is suggested before
+  the code.** A new function's design note, or for a change to an existing
+  function a short section in the spec comment, says what leaves the
+  server, the recommended options from the known list (the
+  `client-server-pair` and `design-note` skills of `datashield-skills`),
+  what happens below the threshold, rejected alternatives and open doubts.
+  No fitting option means stop and ask, not improvise. The user decides
+  with `bot-proceed`. A disclosure reviewer then checks the code against
+  that decision and works out what the server returns from the code
+  first, so it does not inherit the suggestion's blind spots. Not decided
+  yet: how many reviewers, and what its findings block.
