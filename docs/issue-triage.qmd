@@ -37,7 +37,9 @@ added stay.
   | Duplicate, spam, out of scope | A comment or edit by the issue's author, who may disagree |
   | Bug, idea, question | Nothing |
 
-  Before the first triage, comments start nothing; it reads them anyway.
+  Before the first triage, a comment by the issue's author restarts the wait
+  like an edit. Other comments start nothing, and the triage reads them
+  anyway.
 - **Asking for a triage.** `triage-label` (`bot-triage`) set by a login in
   `allowed-logins` starts one at once, with no wait and no limit, also on
   older issues that never had one. The label is removed afterwards, so it can
