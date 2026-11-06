@@ -13,12 +13,19 @@
 #   anything else                 nothing
 # A comment before the first triage starts nothing: that triage reads it.
 #
+# TRIAGE_LABEL set by an exact login in ALLOWED_LOGINS is a person's request:
+# it needs no reason and no wait, and works on issues from before triage
+# existed, whatever the earlier verdicts and however many. Writes
+# request=true then, so the workflow can take the label off again; who else
+# sets it is the label check's business.
+#
 # Earlier triages are the marker comments of format_triage_comment(), and
 # only github-actions[bot]'s count: anyone can write the same text in a
 # comment, which must not switch triage off.
 #
-# Reads the event file and the API; needs APPROVAL_LABEL, MAX_TRIAGES,
-# GH_TOKEN and the GITHUB_* variables of the runner.
+# Reads the event file and the API; needs APPROVAL_LABEL, TRIAGE_LABEL,
+# ALLOWED_LOGINS, MAX_TRIAGES, GH_TOKEN and the GITHUB_* variables of the
+# runner.
 set -euo pipefail
 
 skip() {
@@ -27,18 +34,35 @@ skip() {
   exit 0
 }
 event() { jq -r "$1 // \"\"" "$GITHUB_EVENT_PATH"; }
+lower() { tr '[:upper:]' '[:lower:]' <<< "$1"; }
+is_allowed() {  # exact and case-sensitive, one login at a time, no patterns
+  local logins login
+  read -r -a logins <<< "$(tr ',\n' '  ' <<< "$ALLOWED_LOGINS")"
+  for login in "${logins[@]}"; do
+    [ "$login" = "$1" ] && return 0
+  done
+  return 1
+}
 
 action="$(event .action)"
 case "${GITHUB_EVENT_NAME:-}/$action" in
   issues/opened|issues/edited) trigger=edit ;;
   issue_comment/created) trigger=comment ;;
-  *) skip "not a new or edited issue, or a new comment" ;;
+  issues/labeled)
+    trigger=request
+    [ "$(lower "$(event .label.name)")" = "$(lower "$TRIAGE_LABEL")" ] || skip "another label"
+    is_allowed "$(event .sender.login)" || skip "the label was set by a login not on the list"
+    ;;
+  *) skip "not a new or edited issue, a new comment or a triage request" ;;
 esac
 # issue_comment fires for pull requests too.
 [ -z "$(event .issue.pull_request)" ] || skip "a pull request"
 
 number="$(event .issue.number)"
 echo "number=$number" >> "$GITHUB_OUTPUT"
+if [ "$trigger" = request ]; then
+  echo "request=true" >> "$GITHUB_OUTPUT"
+fi
 
 if [ "$trigger" = comment ] && [ "$(event .comment.user.type)" = Bot ]; then
   skip "a bot's comment"
@@ -52,6 +76,12 @@ labels_match() {  # labels_match <label>: GitHub treats label names as equal wha
 }
 if labels_match bot-created; then skip "a bot-created issue"; fi
 if labels_match "$APPROVAL_LABEL"; then skip "already approved"; fi
+
+if [ "$trigger" = request ]; then
+  echo "Triage requested for issue $number."
+  echo "run=true" >> "$GITHUB_OUTPUT"
+  exit 0
+fi
 
 # --paginate gives one JSON array per page; a failed read fails the run.
 triages="$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$number/comments" | jq -rs '

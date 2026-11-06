@@ -1005,7 +1005,9 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   (`ANTHROPIC_FDRL_TRIAGE`) and, for its own spend limit, a workspace; both
   exist for dsSupportClient, created from repo-governance. **Decided (user,
   2026-11-06): triage sets a label per category and never closes an issue;
-  a repeat needs an answer: after `needs-info` an edit or any person's
+  a repeat needs an answer, or `bot-triage` set by a listed login (no wait,
+  no limit, label removed afterwards, also for older issues): after
+  `needs-info` an edit or any person's
   comment, after `duplicate`, `spam`, `out-of-scope` a comment by the
   author.**
   Chosen without the user yet: the seven categories in

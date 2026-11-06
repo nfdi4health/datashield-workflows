@@ -25,10 +25,20 @@ on:
         type: number
         default: 10
       max-triages:
-        description: 'At most this many triage comments per issue, when people keep answering.'
+        description: 'At most this many triage comments per issue, when people keep answering. A request by label is not limited.'
         required: false
         type: number
         default: 3
+      triage-label:
+        description: 'Set by a login in `allowed-logins`, this asks for a triage right now, also on old or already triaged issues. It is removed afterwards.'
+        required: false
+        type: string
+        default: 'bot-triage'
+      allowed-logins:
+        description: 'Who may ask for a triage by label: exact GitHub logins, separated by commas or spaces.'
+        required: false
+        type: string
+        default: 'FlorianSchw'
     secrets:
       anthropic-organization-id:
         description: 'Anthropic organization ID.'
@@ -50,12 +60,16 @@ jobs:
       issues: read
     outputs:
       run: ${{ steps.gate.outputs.run }}
+      request: ${{ steps.gate.outputs.request }}
+      number: ${{ steps.gate.outputs.number }}
     steps:
       - name: Does this issue need triage?
         id: gate
         uses: $/.github/actions/issue-triage-gate
         with:
           approval-label: ${{ inputs.approval-label }}
+          triage-label: ${{ inputs.triage-label }}
+          allowed-logins: ${{ inputs.allowed-logins }}
           max-triages: ${{ inputs.max-triages }}
           token: ${{ github.token }}
 
@@ -70,7 +84,9 @@ jobs:
       issues: write
       id-token: write
     steps:
+      # A person's request by label doesn't wait.
       - name: Wait for a quiet issue
+        if: needs.gate.outputs.request != 'true'
         env:
           WAIT_MINUTES: ${{ inputs.wait-minutes }}
         run: sleep "$((WAIT_MINUTES * 60))"
@@ -81,6 +97,8 @@ jobs:
         uses: $/.github/actions/issue-triage-gate
         with:
           approval-label: ${{ inputs.approval-label }}
+          triage-label: ${{ inputs.triage-label }}
+          allowed-logins: ${{ inputs.allowed-logins }}
           max-triages: ${{ inputs.max-triages }}
           token: ${{ github.token }}
 
@@ -127,3 +145,22 @@ jobs:
         with:
           workflow: issue-triage
           job-status: ${{ job.status }}
+
+  # A request's label comes off whatever happened, also if the gate refused
+  # or the run failed: it asks for one run, and can then be set again.
+  remove-request-label:
+    needs: [gate, triage]
+    if: ${{ always() && needs.gate.outputs.request == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Remove the label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: ${{ inputs.triage-label }}
+          NUMBER: ${{ needs.gate.outputs.number }}
+        run: |
+          encoded="$(jq -rn --arg label "$LABEL" '$label | @uri')"
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$NUMBER/labels/$encoded" > /dev/null \
+            || echo "The label is already gone."

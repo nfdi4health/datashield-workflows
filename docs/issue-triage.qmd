@@ -38,6 +38,11 @@ added stay.
   | Bug, idea, question | Nothing |
 
   Before the first triage, comments start nothing; it reads them anyway.
+- **Asking for a triage.** `triage-label` (`bot-triage`) set by a login in
+  `allowed-logins` starts one at once, with no wait and no limit, also on
+  older issues that never had one. The label is removed afterwards, so it can
+  be set again. Anyone else's is removed by the
+  [label check](issue-label-check.qmd).
 - **What is left alone:** closed issues, issues written by a bot,
   `bot-created` issues, and issues that already carry `approval-label`.
 
