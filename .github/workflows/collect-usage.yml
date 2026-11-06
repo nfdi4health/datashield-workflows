@@ -50,7 +50,7 @@ jobs:
           # .github/actions/count-run/count-run.sh.
           wanted=""
           for f in .github/workflows/*.yml; do
-            grep -qE '^ *uses: .*/actions/count-run@' "$f" || continue
+            grep -qE '^ *uses: .*/actions/count-run$' "$f" || continue
             workflow="$(basename "$f" .yml)"
             for outcome in proposed nothing failed; do
               for channel in release dev; do
