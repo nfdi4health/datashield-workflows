@@ -95,7 +95,8 @@ else
   case "$trigger/$(tail -n 1 <<< "$triages")" in
     edit/needs-info|comment/needs-info) ;;
     edit/duplicate|edit/spam|edit/out-of-scope|comment/duplicate|comment/spam|comment/out-of-scope)
-      [ "$(event .comment.user.login)" = "$(jq -r '.user.login' <<< "$issue")" ] \
+      actor="$(event .sender.login)"
+      [ "$actor" = "$(jq -r '.user.login' <<< "$issue")" ] \
         || skip "only the issue's author can object to this verdict"
       ;;
     *) skip "already triaged" ;;

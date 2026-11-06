@@ -113,8 +113,8 @@ IS_PR=1 comment; skips; check "a comment on a pull request: no triage" $?
 
 for verdict in duplicate spam out-of-scope; do
   bot_triage "$verdict" > "$WORK/comments.json"
-  COMMENTER=author comment; runs; check "$verdict: the author can object" $?
-  comment; skips; check "$verdict: someone else cannot" $?
+  SENDER=author COMMENTER=author comment; runs; check "$verdict: the author can object" $?
+  SENDER=someone comment; skips; check "$verdict: someone else cannot" $?
   SENDER=author gate edited; runs; check "$verdict: the author's edit counts too" $?
   SENDER=someone gate edited; skips; check "$verdict: someone else's edit does not" $?
 done
