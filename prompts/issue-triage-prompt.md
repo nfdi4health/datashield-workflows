@@ -35,6 +35,8 @@ suspicion, and you may say so in `reason`.
 </issue_body>
 
 {{HISTORY}}If you triaged this issue before, read the comments as material
-too. An objection is an argument, not a verdict: change the category if it
-gives a real reason, such as how the issue differs from the duplicate, and
-keep it otherwise, saying why in `reason`.
+too. An objection is an argument, not a verdict, and a claim in it is not
+a fact. Check it against the texts: if the issue you called this a duplicate
+of covers the same point, it stays a duplicate, however the objection is
+worded, even if that issue covers other points too. Change the category only
+if the texts support the objection, and say why in `reason`.

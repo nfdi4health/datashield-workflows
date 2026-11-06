@@ -1,6 +1,7 @@
-# The prompt's part on what came before: the last verdict and the comments
-# since, cut to settings$max_reply_chars in all, which bounds what one
-# issue can cost. Empty on a first triage without comments.
+# The prompt's part on what came before: the last verdict, the issue it
+# called this a duplicate of, and the comments since, cut to
+# settings$max_body_chars and settings$max_reply_chars, which bounds what
+# one issue can cost. Empty on a first triage without comments.
 format_triage_history <- function(issue, settings) {
   replies <- ""
   if (length(issue$replies) > 0) {
@@ -20,6 +21,16 @@ format_triage_history <- function(issue, settings) {
     parts <- c(parts, sprintf(
       "You triaged this issue before as `%s`. Your comment:\n\n<previous_triage>\n%s\n</previous_triage>",
       issue$previous_category, issue$previous_comment
+    ))
+  }
+  if (!is.null(issue$disputed)) {
+    body <- issue$disputed$body
+    if (nchar(body) > settings$max_body_chars) {
+      body <- paste0(substr(body, 1, settings$max_body_chars), "\n[... rest cut]")
+    }
+    parts <- c(parts, sprintf(
+      "The issue you called this a duplicate of, in full:\n\n<duplicate_of number=\"%d\">\n%s\n\n%s\n</duplicate_of>",
+      issue$disputed$number, issue$disputed$title, body
     ))
   }
   if (nzchar(replies)) {

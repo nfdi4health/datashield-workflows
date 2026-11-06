@@ -9,6 +9,8 @@ plain_comment_text <- function(x, max_chars) {
     x <- paste0(substr(x, 1, max_chars), "...")
   }
   x <- gsub("([\\\\`*_\\[\\]()!<>#~|])", "\\\\\\1", x, perl = TRUE)
+  # GitHub still links an escaped issue number.
+  x <- gsub("\\#", "#​", x, fixed = TRUE)
   x <- gsub("@", "@​", x, fixed = TRUE)
   x <- gsub("://", ":​//", x, fixed = TRUE)
   gsub("www.", "www​.", x, fixed = TRUE)

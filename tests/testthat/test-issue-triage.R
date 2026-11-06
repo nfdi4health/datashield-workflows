@@ -290,3 +290,72 @@ test_that("the label stays if the verdict does, and a person's labels are never 
   apply_triage_label("7", "bug", first, triage_settings(), "bot-proceed")
   expect_length(calls$removed, 0)
 })
+
+test_that("a disputed duplicate is read in full, through the line the comment has", {
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  paths <- character(0)
+  local_global_mock(get_github_json = function(path) {
+    paths <<- c(paths, path)
+    list(title = "ds.histAllVars", body = "Also the hardcoded path is not good.")
+  })
+  comment <- "<!-- bot-triage: duplicate -->\n**Triage**\n\nPossibly the same as #58.\n\n_Footer_"
+  disputed <- read_disputed_issue("duplicate", comment)
+  expect_equal(paths, "/repos/me/pkg/issues/58")
+  expect_equal(disputed, list(number = 58L, title = "ds.histAllVars", body = "Also the hardcoded path is not good."))
+})
+
+test_that("nothing is fetched for another verdict, or without a named issue", {
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  local_global_mock(get_github_json = function(path) stop("no request expected"))
+  expect_null(read_disputed_issue("bug", "Possibly the same as #58."))
+  expect_null(read_disputed_issue(NULL, NULL))
+  expect_null(read_disputed_issue("duplicate", "**Triage: Duplicate.** No number here."))
+})
+
+test_that("a disputed issue that can't be read doesn't stop the triage", {
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  local_global_mock(get_github_json = function(path) NULL)
+  expect_null(read_disputed_issue("duplicate", "Possibly the same as #58."))
+})
+
+test_that("the prompt carries the disputed issue's text, cut to the limit", {
+  settings <- triage_settings()
+  issue <- triage_issue_data()
+  issue$author <- "a"
+  issue$previous_category <- "duplicate"
+  issue$previous_comment <- "Possibly the same as #58."
+  issue$disputed <- list(number = 58L, title = "ds.histAllVars", body = "Also the hardcoded path.")
+  issue$replies <- list(list(author = "a", body = "It differs"))
+  text <- format_triage_history(issue, settings)
+  expect_match(text, "<duplicate_of number=\"58\">\nds.histAllVars\n\nAlso the hardcoded path.\n</duplicate_of>", fixed = TRUE)
+  expect_lt(regexpr("<duplicate_of", text, fixed = TRUE), regexpr("<comment", text, fixed = TRUE))
+
+  issue$disputed$body <- paste0(strrep("x", settings$max_body_chars + 100), "THE END")
+  long <- format_triage_history(issue, settings)
+  expect_match(long, "[... rest cut]", fixed = TRUE)
+  expect_no_match(long, "THE END", fixed = TRUE)
+})
+
+test_that("the prompt says a claim is not a fact", {
+  prompt <- paste(readLines(file.path(repo_root, "prompts", "issue-triage-prompt.md")), collapse = "\n")
+  expect_match(prompt, "a claim in it is not\na fact", fixed = TRUE)
+  expect_match(prompt, "it stays a duplicate", fixed = TRUE)
+})
+
+test_that("an issue number in Claude's text links nothing", {
+  x <- plain_comment_text("Covered in issue #58.", 400)
+  expect_no_match(x, "#58", fixed = TRUE)
+  expect_match(x, "58", fixed = TRUE)
+})
+
+test_that("the duplicate line R writes itself stays a real link, and is what is read back", {
+  comment <- format_triage_comment(triage_answer(category = "duplicate", duplicate_of = 4L), triage_issue_data(), triage_settings())
+  expect_match(comment, "Possibly the same as #4.", fixed = TRUE)
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  local_global_mock(get_github_json = function(path) list(title = "T", body = "B"))
+  expect_equal(read_disputed_issue("duplicate", comment)$number, 4L)
+})

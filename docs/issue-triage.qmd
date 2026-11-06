@@ -67,7 +67,9 @@ Anyone can write anything into an issue or comment, including instructions
 aimed at Claude. So the text only reaches Claude, Claude can only answer in fixed
 fields, and everything it writes is reduced to plain text before it is
 posted: no mentions, links, images or markup. A duplicate is only named if
-it is one of the open issues Claude was shown. Labels come from the fixed
+it is one of the open issues Claude was shown, and when an author disputes
+a duplicate, Claude compares against that issue's full text rather than
+taking the objection's word for it. Labels come from the fixed
 list above, and triage refuses to set `approval-label`. At worst, a crafted
 issue gets the wrong category and label.
 
