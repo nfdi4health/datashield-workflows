@@ -1,0 +1,40 @@
+# The prompt's part on what came before: the last verdict, the issue it
+# called this a duplicate of, and the comments since, cut to
+# settings$max_body_chars and settings$max_reply_chars, which bounds what
+# one issue can cost. Empty on a first triage without comments.
+format_triage_history <- function(issue, settings) {
+  replies <- ""
+  if (length(issue$replies) > 0) {
+    who <- function(x) if (identical(x$author, issue$author)) "the issue's author" else "someone else"
+    replies <- paste(vapply(issue$replies, function(x) {
+      sprintf("<comment by=\"%s\">\n%s\n</comment>", who(x), x$body)
+    }, character(1)), collapse = "\n")
+    if (nchar(replies) > settings$max_reply_chars) {
+      replies <- paste0(substr(replies, 1, settings$max_reply_chars), "\n[... rest cut]")
+    }
+  }
+  if (is.null(issue$previous_category) && !nzchar(replies)) {
+    return("")
+  }
+  parts <- character(0)
+  if (!is.null(issue$previous_category)) {
+    parts <- c(parts, sprintf(
+      "You triaged this issue before as `%s`. Your comment:\n\n<previous_triage>\n%s\n</previous_triage>",
+      issue$previous_category, issue$previous_comment
+    ))
+  }
+  if (!is.null(issue$disputed)) {
+    body <- issue$disputed$body
+    if (nchar(body) > settings$max_body_chars) {
+      body <- paste0(substr(body, 1, settings$max_body_chars), "\n[... rest cut]")
+    }
+    parts <- c(parts, sprintf(
+      "The issue you called this a duplicate of, in full:\n\n<duplicate_of number=\"%d\">\n%s\n\n%s\n</duplicate_of>",
+      issue$disputed$number, issue$disputed$title, body
+    ))
+  }
+  if (nzchar(replies)) {
+    parts <- c(parts, sprintf("People wrote these comments since:\n\n%s", replies))
+  }
+  paste(c(parts, ""), collapse = "\n\n")
+}

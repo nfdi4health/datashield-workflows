@@ -3,10 +3,14 @@ name: Issue Triage
 # First look at a new issue (dev-notes/issue-agents.md): one Claude call
 # on the API, one comment with a category and a short reason, and the
 # category's label. It never closes an issue, and can't set the approval
-# label. It waits for a quiet issue: each edit cancels a
-# waiting run through `concurrency` and so restarts the wait. One triage
-# per issue, repeated on an edit only if the bot asked for more
-# information. No checkout of the calling repository.
+# label. It waits for a quiet issue: each edit or answering comment cancels
+# a waiting run through `concurrency` and so restarts the wait. One triage
+# per issue, repeated if someone answers it (the gate action has the rules).
+# No checkout of the calling repository.
+#
+# Two jobs, so that the concurrency group is only entered by a run that
+# will triage: every comment on an issue starts this workflow, and one that
+# is ignored must not cancel a triage waiting for its 10 minutes.
 on:
   workflow_call:
     inputs:
@@ -16,15 +20,25 @@ on:
         type: string
         default: 'bot-proceed'
       wait-minutes:
-        description: 'How long an issue has to stay unedited before it is triaged. The job holds a runner meanwhile.'
+        description: 'How long an issue has to stay unedited and unanswered before it is triaged. The job holds a runner meanwhile.'
         required: false
         type: number
         default: 10
       max-triages:
-        description: 'At most this many triage comments per issue, when the bot keeps asking for more information.'
+        description: 'At most this many triage comments per issue, when people keep answering. A request by label is not limited.'
         required: false
         type: number
         default: 3
+      triage-label:
+        description: 'Set by a login in `allowed-logins`, this asks for a triage right now, also on old or already triaged issues. It is removed afterwards.'
+        required: false
+        type: string
+        default: 'bot-triage'
+      allowed-logins:
+        description: 'Who may ask for a triage by label: exact GitHub logins, separated by commas or spaces.'
+        required: false
+        type: string
+        default: 'FlorianSchw'
     secrets:
       anthropic-organization-id:
         description: 'Anthropic organization ID.'
@@ -39,7 +53,29 @@ on:
 permissions: {}
 
 jobs:
+  # Before the wait, so an edit or comment that needs nothing holds no runner.
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+      request: ${{ steps.gate.outputs.request }}
+      number: ${{ steps.gate.outputs.number }}
+    steps:
+      - name: Does this issue need triage?
+        id: gate
+        uses: $/.github/actions/issue-triage-gate
+        with:
+          approval-label: ${{ inputs.approval-label }}
+          triage-label: ${{ inputs.triage-label }}
+          allowed-logins: ${{ inputs.allowed-logins }}
+          max-triages: ${{ inputs.max-triages }}
+          token: ${{ github.token }}
+
   triage:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     concurrency:
       group: issue-triage-${{ github.repository }}-${{ github.event.issue.number }}
@@ -48,17 +84,9 @@ jobs:
       issues: write
       id-token: write
     steps:
-      # Before the wait, so an edit of a finished issue holds no runner.
-      - name: Does this issue need triage?
-        id: before
-        uses: $/.github/actions/issue-triage-gate
-        with:
-          approval-label: ${{ inputs.approval-label }}
-          max-triages: ${{ inputs.max-triages }}
-          token: ${{ github.token }}
-
+      # A person's request by label doesn't wait.
       - name: Wait for a quiet issue
-        if: steps.before.outputs.run == 'true'
+        if: needs.gate.outputs.request != 'true'
         env:
           WAIT_MINUTES: ${{ inputs.wait-minutes }}
         run: sleep "$((WAIT_MINUTES * 60))"
@@ -66,10 +94,11 @@ jobs:
       # The issue may have been closed or approved during the wait.
       - name: Still needed after the wait?
         id: gate
-        if: steps.before.outputs.run == 'true'
         uses: $/.github/actions/issue-triage-gate
         with:
           approval-label: ${{ inputs.approval-label }}
+          triage-label: ${{ inputs.triage-label }}
+          allowed-logins: ${{ inputs.allowed-logins }}
           max-triages: ${{ inputs.max-triages }}
           token: ${{ github.token }}
 
@@ -116,3 +145,22 @@ jobs:
         with:
           workflow: issue-triage
           job-status: ${{ job.status }}
+
+  # A request's label comes off whatever happened, also if the gate refused
+  # or the run failed: it asks for one run, and can then be set again.
+  remove-request-label:
+    needs: [gate, triage]
+    if: ${{ always() && needs.gate.outputs.request == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Remove the label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: ${{ inputs.triage-label }}
+          NUMBER: ${{ needs.gate.outputs.number }}
+        run: |
+          encoded="$(jq -rn --arg label "$LABEL" '$label | @uri')"
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$NUMBER/labels/$encoded" > /dev/null \
+            || echo "The label is already gone."

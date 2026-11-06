@@ -35,16 +35,23 @@ chmod +x "$BIN/gh"
 
 issue() {  # issue [state] [user type] [labels as a JSON array of names]
   jq -n --arg state "${1:-open}" --arg type "${2:-User}" --argjson labels "${3:-[]}" \
-    '{state: $state, user: {type: $type}, title: "$(touch pwned)", labels: ($labels | map({name: .}))}' > "$WORK/issue.json"
+    '{state: $state, user: {type: $type, login: "author"}, title: "$(touch pwned)", labels: ($labels | map({name: .}))}' > "$WORK/issue.json"
 }
 bot_triage() {  # bot_triage <category>: a page with the bot's comment for it
   printf '[{"user": {"login": "github-actions[bot]"}, "body": "<!-- bot-triage: %s -->\\n**Triage**"}]\n' "$1"
 }
-gate() {  # gate [action]; EVENT_NAME overrides `issues`
+# gate [action]; EVENT_NAME overrides `issues`, COMMENTER and COMMENTER_TYPE
+# the comment's author, IS_PR makes it a pull request, LABEL and SENDER the
+# label that was set and who set it.
+gate() {
   : > "$WORK/out.txt"
-  jq -n --arg action "${1:-opened}" '{action: $action, issue: {number: 7}}' > "$WORK/event.json"
+  jq -n --arg action "${1:-opened}" --arg who "${COMMENTER:-someone}" --arg type "${COMMENTER_TYPE:-User}" --arg pr "${IS_PR:-}" \
+    --arg label "${LABEL:-bug}" --arg sender "${SENDER:-someone}" \
+    '{action: $action, issue: ({number: 7} + (if $pr == "" then {} else {pull_request: {url: "x"}} end)),
+      comment: {user: {login: $who, type: $type}}, label: {name: $label}, sender: {login: $sender}}' > "$WORK/event.json"
   (cd "$WORK" && PATH="$BIN:$PATH" GITHUB_EVENT_NAME="${EVENT_NAME:-issues}" GITHUB_EVENT_PATH="$WORK/event.json" \
     GITHUB_OUTPUT="$WORK/out.txt" GITHUB_REPOSITORY=me/pkg APPROVAL_LABEL=bot-proceed MAX_TRIAGES=3 \
+    TRIAGE_LABEL=bot-triage ALLOWED_LOGINS=FlorianSchw \
     bash "$ACTION/issue-triage-gate.sh" > "$WORK/log.txt" 2>&1)
 }
 runs()  { grep -qx 'run=true' "$WORK/out.txt"; }
@@ -90,6 +97,63 @@ printf '[{"user": {"login": "someone"}, "body": "<!-- bot-triage: bug -->"}]\n' 
 gate opened; runs; check "a person's copy of the marker does not count" $?
 printf '[{"user": {"login": "github-actions[bot]"}, "body": "Removed `bot-proceed`: the title changed."}]\n' > "$WORK/comments.json"
 gate edited; runs; check "the label check's comment is no triage" $?
+
+# --- comments ----------------------------------------------------------------
+
+comment() { EVENT_NAME=issue_comment gate "${1:-created}"; }
+
+echo '[]' > "$WORK/comments.json"
+comment; skips; check "someone's comment before the first triage: nothing, it reads it" $?
+SENDER=author COMMENTER=author comment; runs; check "the author's comment before the first triage restarts the wait" $?
+! grep -qx 'request=true' "$WORK/out.txt"; check "that is no request: the wait applies" $?
+SENDER=author COMMENTER=author COMMENTER_TYPE=Bot comment; skips; check "a bot author's comment does not" $?
+bot_triage needs-info > "$WORK/comments.json"
+comment; runs; check "needs-info: any person's comment" $?
+COMMENTER=author comment; runs; check "needs-info: the author's comment" $?
+COMMENTER_TYPE=Bot COMMENTER='github-actions[bot]' comment; skips; check "needs-info: a bot's comment does not count" $?
+comment edited; skips; check "an edited comment is no new answer" $?
+IS_PR=1 comment; skips; check "a comment on a pull request: no triage" $?
+
+for verdict in duplicate spam out-of-scope; do
+  bot_triage "$verdict" > "$WORK/comments.json"
+  SENDER=author COMMENTER=author comment; runs; check "$verdict: the author can object" $?
+  SENDER=someone comment; skips; check "$verdict: someone else cannot" $?
+  SENDER=author gate edited; runs; check "$verdict: the author's edit counts too" $?
+  SENDER=someone gate edited; skips; check "$verdict: someone else's edit does not" $?
+done
+
+for verdict in bug idea question; do
+  bot_triage "$verdict" > "$WORK/comments.json"
+  COMMENTER=author comment; skips; check "$verdict: a comment starts nothing" $?
+done
+
+{ bot_triage needs-info; bot_triage duplicate; bot_triage duplicate; } > "$WORK/comments.json"
+COMMENTER=author comment; skips; check "the most triages reached: an objection starts nothing" $?
+issue open User '["bot-proceed"]'
+bot_triage needs-info > "$WORK/comments.json"
+comment; skips; check "approved: a comment starts nothing" $?
+issue
+
+# --- a request by label --------------------------------------------------------
+
+request() { LABEL="${1:-bot-triage}" SENDER="${2:-FlorianSchw}" gate labeled; }
+requested() { grep -qx 'request=true' "$WORK/out.txt"; }
+
+echo '[]' > "$WORK/comments.json"
+request; runs && requested; check "request: an old issue gets its first triage" $?
+{ bot_triage bug; } > "$WORK/comments.json"
+request; runs; check "request: repeats a finished triage" $?
+{ bot_triage needs-info; bot_triage needs-info; bot_triage duplicate; } > "$WORK/comments.json"
+request; runs; check "request: not limited by the most triages" $?
+request Bot-Triage; runs; check "request: the label in another case" $?
+request bot-triage florianschw; skips; check "request: exact login only" $?
+request bot-triage someone; skips && ! requested; check "request: another login, nothing to clean up" $?
+request bug FlorianSchw; skips; check "request: another label is none" $?
+gate edited; ! requested; check "an edit is no request" $?
+issue closed; request; skips && requested; check "request on a closed issue: no triage, the label still goes" $?
+issue open User '["bot-proceed"]'; request; skips && requested; check "request on an approved issue: no triage, the label still goes" $?
+issue
+echo '[]' > "$WORK/comments.json"
 
 # --- failures ----------------------------------------------------------------
 

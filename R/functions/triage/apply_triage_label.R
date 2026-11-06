@@ -1,6 +1,6 @@
 # Sets the GitHub label of a triage's category (config/issue-triage.yml)
-# on the issue. An earlier "needs more information" label goes when the
-# answer is another category. This is the only change triage makes to an
+# on the issue. The label of the last triage goes when the verdict changes;
+# labels people added stay. This is the only change triage makes to an
 # issue besides its comment; it never closes one.
 #
 # The category comes from Claude reading untrusted text, so the label must
@@ -16,9 +16,10 @@ apply_triage_label <- function(number, category, issue, settings, approval_label
   if (identical(tolower(label), tolower(approval_label))) {
     stop(sprintf("Triage must not set the approval label %s.", approval_label), call. = FALSE)
   }
-  asked <- settings$categories[["needs-info"]]$github_label
-  if (!identical(category, "needs-info") && !is.null(asked) && asked %in% issue$labels) {
-    remove_issue_label(number, asked)
+  previous <- issue$previous_category
+  old <- if (is.null(previous)) NULL else settings$categories[[previous]]$github_label
+  if (!is.null(old) && !identical(old, label) && old %in% issue$labels) {
+    remove_issue_label(number, old)
   }
   if (!label %in% issue$labels) {
     post_github_json(sprintf("/repos/%s/issues/%s/labels", repo, number), list(labels = list(label)), "triage label")

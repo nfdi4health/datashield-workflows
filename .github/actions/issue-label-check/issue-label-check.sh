@@ -2,13 +2,15 @@
 # Keeps the approval label of the issue flow honest (dev-notes/issue-agents.md):
 #   labeled: the label set by anyone not in ALLOWED_LOGINS is removed;
 #   edited:  the label is removed from an issue whose title or body changed.
+# OTHER_LABELS (optional, separated by commas) get the first rule only: they
+# ask for something once, and no edit changes who asked.
 # Every other event does nothing, so removing the label cannot start a
 # loop: `unlabeled` is ignored, and neither a removal nor a comment is an
 # edit. A run that finds the label already gone stays silent, which keeps
 # it to one comment when two events arrive together.
 #
 # Reads the event file; needs LABEL, ALLOWED_LOGINS, GH_TOKEN and the
-# GITHUB_* variables of the runner.
+# GITHUB_* variables of the runner; OTHER_LABELS is optional.
 set -euo pipefail
 
 : "${LABEL:?the label input is empty}"
@@ -23,8 +25,18 @@ number="$(event_field .issue.number)"
 
 # GitHub treats label names as equal whatever their case, and so does `==`
 # in workflow expressions: `Bot-Proceed` has to count here too.
-is_approval_label() {
-  [ "$(tr '[:upper:]' '[:lower:]' <<< "$1")" = "$(tr '[:upper:]' '[:lower:]' <<< "$LABEL")" ]
+same_label() {
+  [ "$(tr '[:upper:]' '[:lower:]' <<< "$1")" = "$(tr '[:upper:]' '[:lower:]' <<< "$2")" ]
+}
+is_approval_label() { same_label "$1" "$LABEL"; }
+is_guarded_label() {
+  local other
+  is_approval_label "$1" && return 0
+  while IFS= read -r other; do
+    other="$(sed 's/^ *//; s/ *$//' <<< "$other")"
+    [ -n "$other" ] && same_label "$1" "$other" && return 0
+  done < <(tr ',' '\n' <<< "${OTHER_LABELS:-}")
+  return 1
 }
 
 # Exact, case-sensitive comparison, one login at a time: no patterns (bot
@@ -56,7 +68,7 @@ remove_label() {
 case "$(event_field .action)" in
   labeled)
     name="$(event_field .label.name)"
-    if ! is_approval_label "$name"; then
+    if ! is_guarded_label "$name"; then
       echo "Another label, nothing to check."
     elif is_allowed "$(event_field .sender.login)"; then
       echo "Set by an allowed login."

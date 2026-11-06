@@ -1,6 +1,6 @@
-# Settings of issue-triage.yml. `needs-info` is known to the gate
-# (.github/actions/issue-triage-gate): it is the category that lets an edit
-# start another triage, so keep that key.
+# Settings of issue-triage.yml. The gate (.github/actions/issue-triage-gate)
+# knows the keys `needs-info`, `duplicate`, `spam` and `out-of-scope`: they
+# decide who can start another triage, so keep them.
 
 # Category -> label: its name in the comment; github_label: the label set
 # on the issue (empty: none; a label the repository lacks is created by
@@ -36,6 +36,9 @@ categories:
     meaning: Advertising, nonsense or anything else that is not a real issue.
 
 max_body_chars: 20000    # of the issue body, sent to Claude
+max_reply_chars: 8000    # of all comments since the last triage, sent to Claude
+max_open_issue_chars: 2000     # of each other open issue, sent to Claude
+max_open_issues_chars: 30000   # of all of them; the rest get their title only
 max_text_chars: 400      # of each text field in the comment
 max_missing_items: 3
 

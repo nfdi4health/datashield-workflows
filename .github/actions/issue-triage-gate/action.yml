@@ -9,6 +9,12 @@ inputs:
   approval-label:
     description: 'An issue carrying this label is not triaged.'
     required: true
+  triage-label:
+    description: 'Set by a login in allowed-logins, this asks for a triage right now.'
+    required: true
+  allowed-logins:
+    description: 'Who may ask for a triage by label: exact GitHub logins.'
+    required: true
   max-triages:
     description: 'At most this many triage comments per issue.'
     required: true
@@ -17,6 +23,9 @@ inputs:
     required: true
 
 outputs:
+  request:
+    description: '"true" if a person asked for this triage by label.'
+    value: ${{ steps.gate.outputs.request }}
   run:
     description: '"true" if the issue is to be triaged.'
     value: ${{ steps.gate.outputs.run }}
@@ -33,5 +42,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.token }}
         APPROVAL_LABEL: ${{ inputs.approval-label }}
+        TRIAGE_LABEL: ${{ inputs.triage-label }}
+        ALLOWED_LOGINS: ${{ inputs.allowed-logins }}
         MAX_TRIAGES: ${{ inputs.max-triages }}
       run: bash "$GITHUB_ACTION_PATH/issue-triage-gate.sh"

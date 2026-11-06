@@ -42,7 +42,7 @@ run_check() {
     '{action: $action, sender: {login: $sender}, label: {name: $label},
       issue: {number: 7, title: "$(touch pwned-title)"}}' > "$WORK/event.json"
   (cd "$WORK" && PATH="$BIN:$PATH" GITHUB_EVENT_NAME="${EVENT_NAME:-issues}" GITHUB_EVENT_PATH="$WORK/event.json" \
-    GITHUB_REPOSITORY=me/pkg LABEL="${5:-bot-proceed}" ALLOWED_LOGINS="${4-FlorianSchw}" \
+    GITHUB_REPOSITORY=me/pkg LABEL="${5:-bot-proceed}" ALLOWED_LOGINS="${4-FlorianSchw}" OTHER_LABELS="${OTHER:-}" \
     bash "$ACTION/issue-label-check.sh" > "$WORK/out.txt" 2>&1)
 }
 no_writes() { ! grep -Eq 'DELETE|comments' "$WORK/calls"; }
@@ -95,6 +95,25 @@ removed 'needs%20approval'; check "own label name, encoded in the path" $?
 
 run_check labeled someone '$(touch pwned-label)' FlorianSchw '$(touch pwned-label)'
 [ ! -e "$WORK/pwned-label" ] && [ ! -e "$WORK/pwned-title" ]; check "event text is not run as code" $?
+
+# --- other labels ------------------------------------------------------------
+
+OTHER='bot-triage, other thing' run_check labeled someone bot-triage
+removed bot-triage && [ "$(comments)" = 1 ]; check "other label, other user: removed, one comment" $?
+OTHER=bot-triage run_check labeled FlorianSchw bot-triage
+no_calls; check "other label, allowed user: stays" $?
+OTHER='bot-triage, other thing' run_check labeled someone 'other thing'
+removed 'other%20thing'; check "other labels: a list, with spaces in a name" $?
+OTHER=bot-triage run_check labeled someone Bot-Triage
+removed Bot-Triage; check "other label in another case: removed" $?
+OTHER=bot-triage run_check labeled someone bug
+no_calls; check "not listed: nothing" $?
+echo bot-triage > "$WORK/labels"
+OTHER=bot-triage run_check edited someone ''
+no_writes; check "an edit leaves other labels alone" $?
+: > "$WORK/labels"
+run_check labeled someone bot-triage
+no_calls; check "no other labels set: nothing" $?
 
 # --- edited ------------------------------------------------------------------
 
