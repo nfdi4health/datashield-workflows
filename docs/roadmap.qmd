@@ -71,6 +71,9 @@ after that, breaking changes only come with a new major version.
 - **[Issue label check](issue-label-check.qmd):** first step of a planned
   issue flow. Removes the approval label if someone not on the list set
   it, or if the issue was edited afterwards. No Claude involved.
+- **[Issue triage](issue-triage.qmd):** a first look at new issues, with
+  one category and a short reason as a comment, once the issue has been
+  quiet for 10 minutes. Comments only; you decide what happens next.
 - **One report per suggestion PR**, rebuilt on every run: findings with
   the commit they came from, outdated ones crossed out, a "Latest review"
   line. With a suggestion PR open, the bots build on what it proposes.

@@ -121,6 +121,14 @@ the live caller used to validate changes before wider rollout.
     `R/check_ds_naming.R`, `R/apply_ds_naming.R`, functions in
     `R/functions/ds-naming/`; generic `propose-branch` action. Design and
     state: [dev-notes/datashield-naming/](dev-notes/datashield-naming/README.md).
+  - `issue-triage.yml` — first look at new issues, one Claude call: gate
+    (composite action `issue-triage-gate`), wait (`wait-minutes`, default
+    10; `concurrency` per issue, so each edit restarts it), gate again,
+    `R/triage_issue.R` posts one comment. Comments only. Wording and
+    categories `config/issue-triage.yml`, prompt
+    `prompts/issue-triage-prompt.md`, functions `R/functions/triage/`. No
+    checkout; `issues: write`, `id-token: write`. Claude's fields pass
+    `plain_comment_text()`.
   - `issue-label-check.yml` — first step of the issue flow
     ([dev-notes/issue-agents.md](dev-notes/issue-agents.md)), no Claude:
     on `issues: labeled` removes the approval label (input `label`,
@@ -151,18 +159,19 @@ the live caller used to validate changes before wider rollout.
   (plain commit to the current branch, commit message as input;
   `workflow-graphs.yml`, meant for future generated-file workflows too),
   `issue-label-check` (the logic of the workflow of that name),
+  `issue-triage-gate` (whether an issue gets triaged),
   `propose-branch` (commit a manifest on top of the checkout, force-push
   a fixed branch, open or update its PR; any checkout incl. a second
   repository; the ds-naming workflows). `resolve-push-token` takes
   `repositories` for a token reaching more repositories of the owner.
 - `R/` — entry scripts `suggest_roxygen.R`, `suggest_tests.R`,
   `suggest_authors.R`, `workflow_graphs.R`, `suggest_datashield_analysis.R`,
-  `check_ds_naming.R`, `apply_ds_naming.R`
+  `check_ds_naming.R`, `apply_ds_naming.R`, `triage_issue.R`
   (env/config wiring + main loop only) and `R/functions/` (all logic, one
   function per file), split into `shared/` (config/prompt files, GitHub
   API, report layout, reading R files, the Claude call) and one folder per
   workflow: `roxygen/`, `tests/`, `authors/`, `workflow-graphs/`,
-  `analysis/`, `ds-naming/`. Each entry script loads only
+  `analysis/`, `ds-naming/`, `triage/`. Each entry script loads only
   `shared/` plus its own folder (`purrr::walk()`), so a function used by
   two workflows must move to `shared/` — no calls across workflow
   folders (checked on the 2026-09-26 split, again 2026-10-04). **One
@@ -180,10 +189,11 @@ the live caller used to validate changes before wider rollout.
   `run_entry_script_mocked()` with recorded answers from
   `fixtures/claude-answers/`), `shell/test-scope.sh` (stand-ins for
   `gh`/`jq`), `fixtures/` (made-up packages only: `r-package`,
-  `ds-client` + `ds-server`), `shell/test-label-check.sh` (stand-in for
+  `ds-client` + `ds-server`), `shell/test-label-check.sh` and
+  `shell/test-triage-gate.sh` (stand-in for
   `gh`, needs `jq`). Run by `ci.yml` with the static checks;
   locally `Rscript tests/testthat.R`, `bash tests/shell/test-scope.sh` and
-  `bash tests/shell/test-label-check.sh`.
+  `bash tests/shell/test-label-check.sh` and `test-triage-gate.sh`.
   `self-test.yml` (not reusable) runs `roxygen-suggest.yml` and
   `test-suggest.yml` and `authors-suggest.yml` themselves with the input `self-test-fixture:
   r-package` (fixture instead of the caller checkout via
@@ -944,8 +954,8 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   `workflow-keepalive.yml`. dsSupportClient's R-CMD-Check, docs and test
   callers use it (no direct `liskin` any more); it only runs on a
   scheduled trigger, so it is not yet confirmed in real CI.
-- **Issue flow, step 1 of 3:** `issue-label-check.yml` built (2026-11-05,
-  branch `feat/issue-label-check`), tested with a stand-in for `gh` and live
+- **Issue flow, step 1 of 3:** `issue-label-check.yml` on `main` (2026-11-06,
+  PR #9), tested with a stand-in for `gh` and live
   (2026-11-06): dsSupportClient #63 (allowed user, edits, other label) and
   a throwaway repository (login not listed, login in the wrong case); no
   loop. Two edits at once not tried live. Next triage, then the implementer. The
@@ -987,3 +997,10 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   A comment does not drop `bot-proceed`, so anyone can add text to an
   approved issue: the implementer takes its task from the issue body and
   the bot's triage comment only, never from other comments.
+- **Issue flow, step 2 of 3:** `issue-triage.yml` built (2026-11-06), tested
+  with stand-ins only, no real Claude call yet. Needs a federation rule
+  (`ANTHROPIC_FDRL_TRIAGE`) and, for its own spend limit, a workspace.
+  Chosen without the user yet: comments only, no labels (a later step could
+  act on categories); the seven categories in `config/issue-triage.yml`;
+  the default profile's model, while the plan says small model; at most 3
+  triages per issue. No own self-test (`self-test.yml`): no fixture run.

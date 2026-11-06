@@ -70,6 +70,7 @@ website:
       - section: "Issue flow"
         contents:
           - issue-label-check.qmd
+          - issue-triage.qmd
       - section: "Workflow upkeep"
         contents:
           - workflow-keepalive.qmd

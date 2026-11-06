@@ -1,0 +1,56 @@
+---
+title: "Issue triage"
+description: "A first look at new issues: one category and a short reason, as a comment."
+---
+
+`issue-triage.yml` takes a first look at each new issue, so you can see at
+a glance what it is. Claude reads the issue once and picks a category;
+the workflow posts one comment with that category, a one-sentence summary
+and the reason. It adds no labels and closes nothing. You decide what
+happens next.
+
+Categories: bug, idea, question, duplicate, more information needed, out
+of scope, spam.
+
+- **It waits for a quiet issue.** People often fix an issue just after
+  posting it, so the run waits `wait-minutes` first. Each edit restarts
+  the wait, and triage reads the text as it stands at the end.
+- **One triage per issue.** A later edit doesn't start another one. The
+  exception is when the bot asked for more information: the next edit is
+  triaged again, up to `max-triages` comments.
+- **What is left alone:** closed issues, issues written by a bot,
+  `bot-created` issues, and issues that already carry `approval-label`.
+
+## Example
+
+{{< example issue-triage.yml >}}
+
+The caller has to be on the **default branch**, because `issues` events
+only start workflows from there. The job holds a runner during the wait,
+which counts as Actions minutes in private repositories.
+
+The workflow needs [Claude access](claude-setup.qmd): its own federation
+rule for `issue-triage.yml`, set up like the others. A separate workspace
+gives triage its own spend limit, which helps because anyone who can open
+an issue can start a run.
+
+## Issue text is untrusted
+
+Anyone can write anything into an issue, including instructions aimed at
+Claude. So the issue only reaches Claude, Claude can only answer in fixed
+fields, and everything it writes is reduced to plain text before it is
+posted: no mentions, links, images or markup. A duplicate is only named if
+it is one of the open issues Claude was shown. At worst, a crafted issue
+gets the wrong category.
+
+## Secrets
+
+{{< wf-secrets issue-triage.yml >}}
+
+## Inputs
+
+{{< wf-inputs issue-triage.yml >}}
+
+## Permissions
+
+{{< wf-permissions issue-triage.yml >}}

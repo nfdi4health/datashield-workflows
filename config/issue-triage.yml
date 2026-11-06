@@ -1,0 +1,33 @@
+# Settings of issue-triage.yml. `needs-info` is known to the gate
+# (.github/actions/issue-triage-gate): it is the category that lets an edit
+# start another triage, so keep that key.
+
+# Category -> label in the comment, and what it means for Claude.
+categories:
+  bug:
+    label: Bug
+    meaning: Something that exists does not work as documented or expected, and the report says enough to look into it.
+  idea:
+    label: Idea
+    meaning: A request for something new or for a change, plausible for this repository.
+  question:
+    label: Question
+    meaning: Someone wants to know how something works; nothing has to change.
+  duplicate:
+    label: Duplicate
+    meaning: One of the listed open issues asks for the same thing.
+  needs-info:
+    label: More information needed
+    meaning: It may be a real bug or idea, but it cannot be judged without more detail.
+  out-of-scope:
+    label: Out of scope
+    meaning: A real request, but it does not belong in this repository.
+  spam:
+    label: Spam
+    meaning: Advertising, nonsense or anything else that is not a real issue.
+
+max_body_chars: 20000    # of the issue body, sent to Claude
+max_text_chars: 400      # of each text field in the comment
+max_missing_items: 3
+
+footer: Automatic first look. Nothing has been decided, and no change was made to this issue.

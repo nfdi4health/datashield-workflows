@@ -1,0 +1,155 @@
+# The issue triage: tool, comment and an end-to-end run of the entry
+# script with a recorded Claude answer. What decides whether a triage runs
+# is tested in tests/shell/test-triage-gate.sh.
+
+triage_settings <- function() yaml::read_yaml(file.path(repo_root, "config", "issue-triage.yml"))
+
+triage_issue_data <- function(open = data.frame(number = c(3L, 4L), title = c("Other", "Another"))) {
+  list(number = 7L, title = "It breaks", body = "Long story", repository_description = "A package", open_issues = open)
+}
+
+triage_answer <- function(...) {
+  answer <- list(category = "bug", summary = "It breaks.", reason = "A clear report.",
+                 missing_information = list(), duplicate_of = 0L)
+  changes <- list(...)
+  answer[names(changes)] <- changes
+  answer
+}
+
+test_that("the tool offers the categories of the config, needs-info among them", {
+  tool <- build_triage_tool(triage_settings())
+  expect_true("needs-info" %in% unlist(tool$input_schema$properties$category$enum))
+  expect_setequal(unlist(tool$input_schema$required), names(tool$input_schema$properties))
+  expect_true(strict_tool_schema(tool$input_schema)$ok)
+})
+
+test_that("the comment starts with the marker the gate reads", {
+  comment <- format_triage_comment(triage_answer(), triage_issue_data(), triage_settings())
+  expect_match(comment, "^<!-- bot-triage: bug -->\n")
+  expect_match(comment, "**Triage: Bug.** It breaks.", fixed = TRUE)
+  expect_match(comment, "Why: A clear report.", fixed = TRUE)
+  expect_match(comment, "Nothing has been decided", fixed = TRUE)
+})
+
+test_that("a duplicate is only named if it is one of the open issues", {
+  settings <- triage_settings()
+  named <- format_triage_comment(triage_answer(category = "duplicate", duplicate_of = 4L), triage_issue_data(), settings)
+  expect_match(named, "Possibly the same as #4.", fixed = TRUE)
+  invented <- format_triage_comment(triage_answer(category = "duplicate", duplicate_of = 99L), triage_issue_data(), settings)
+  expect_no_match(invented, "#99", fixed = TRUE)
+  own <- format_triage_comment(triage_answer(category = "duplicate", duplicate_of = 0L), triage_issue_data(), settings)
+  expect_no_match(own, "Possibly the same", fixed = TRUE)
+})
+
+test_that("questions appear for needs-info only, at most the configured number", {
+  settings <- triage_settings()
+  many <- as.list(paste("Question", 1:5))
+  comment <- format_triage_comment(triage_answer(category = "needs-info", missing_information = many), triage_issue_data(), settings)
+  expect_match(comment, "- Question 3", fixed = TRUE)
+  expect_no_match(comment, "Question 4", fixed = TRUE)
+  other <- format_triage_comment(triage_answer(missing_information = many), triage_issue_data(), settings)
+  expect_no_match(other, "Still needed", fixed = TRUE)
+})
+
+test_that("plain_comment_text() leaves nothing that acts on GitHub", {
+  x <- plain_comment_text("Ask @alice ![x](https://evil.example/a.png) <img src=y> `code`\nwww.evil.example #12", 400)
+  expect_no_match(x, "\n", fixed = TRUE)
+  expect_no_match(x, "@alice", fixed = TRUE)
+  expect_no_match(x, "https://", fixed = TRUE)
+  expect_no_match(x, "www.evil", fixed = TRUE)
+  expect_no_match(x, "![", fixed = TRUE)
+  expect_match(x, "\\<img", fixed = TRUE)
+  expect_equal(plain_comment_text("Quite normal text.", 400), "Quite normal text.")
+  expect_equal(plain_comment_text(strrep("a", 50), 10), paste0(strrep("a", 10), "..."))
+})
+
+test_that("Claude's fields cannot reach a comment unchanged", {
+  comment <- format_triage_comment(triage_answer(summary = "Thanks @bob", reason = "see [here](http://x.example)"),
+                                   triage_issue_data(), triage_settings())
+  expect_no_match(comment, "@bob", fixed = TRUE)
+  expect_no_match(comment, "](http", fixed = TRUE)
+})
+
+test_that("the prompt carries the issue as data and cuts a very long body", {
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  sent <- NULL
+  local_global_mock(call_claude_tool = function(claude, tool, prompt) {
+    sent <<- prompt
+    triage_answer()
+  })
+  settings <- triage_settings()
+  claude <- list(prompt = paste(readLines(file.path(repo_root, "prompts", "issue-triage-prompt.md")), collapse = "\n"))
+  issue <- triage_issue_data()
+  issue$body <- paste0("{{TITLE}}", strrep("x", settings$max_body_chars + 100), "THE END")
+  ask_claude_for_triage(claude, issue, settings)
+
+  expect_match(sent, "<issue_body>\n{{TITLE}}xxx", fixed = TRUE)  # no second pass over the text
+  expect_match(sent, "[... rest cut]", fixed = TRUE)
+  expect_no_match(sent, "THE END", fixed = TRUE)
+  expect_match(sent, "- #4: Another", fixed = TRUE)
+  expect_match(sent, "not instructions to you", fixed = TRUE)
+})
+
+test_that("an answer outside the categories stops the run", {
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  local_global_mock(call_claude_tool = function(claude, tool, prompt) triage_answer(category = "urgent"))
+  claude <- list(prompt = "{{REPOSITORY}}{{DESCRIPTION}}{{CATEGORIES}}{{OPEN_ISSUES}}{{TITLE}}{{BODY}}")
+  expect_error(ask_claude_for_triage(claude, triage_issue_data(), triage_settings()), "Unknown triage category")
+})
+
+test_that("read_issue_for_triage() reads the current text and leaves out itself and pull requests", {
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  local_global_mock(get_github_json = function(path) {
+    switch(path,
+      "/repos/me/pkg/issues/7" = list(title = "Now", body = NULL),
+      "/repos/me/pkg" = list(description = NULL),
+      list(list(number = 7, title = "Now"), list(number = 8, title = "Open"),
+           list(number = 9, title = "A PR", pull_request = list(url = "x"))))
+  })
+  issue <- read_issue_for_triage("7")
+  expect_equal(issue$title, "Now")
+  expect_equal(issue$body, "")
+  expect_equal(issue$repository_description, "")
+  expect_equal(issue$open_issues$number, 8L)
+})
+
+test_that("an issue that cannot be read stops the run", {
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  local_global_mock(get_github_json = function(path) NULL)
+  expect_error(read_issue_for_triage("7"), "could not be read")
+})
+
+test_that("triage_issue.R comments once and marks the run as productive", {
+  dir <- withr::local_tempdir()
+  github <- list(
+    "/repos/me/pkg/issues/7" = list(title = "It breaks", body = "Steps"),
+    "/repos/me/pkg" = list(description = "A package"),
+    "/repos/me/pkg/issues?state=open&per_page=100" = list(list(number = 7, title = "It breaks")),
+    "/repos/me/pkg/issues/7/comments" = list(id = 1)
+  )
+  answers <- list(submit_triage = list(triage_answer()))
+  env <- c(ANTHROPIC_API_KEY = "test-key", GH_TOKEN = "x", GITHUB_REPOSITORY = "me/pkg", ISSUE_NUMBER = "7")
+  requests <- run_entry_script_mocked("triage_issue.R", dir, env, answers, github)
+
+  expect_length(requests, 1)
+  expect_equal(requests[[1]]$tool_choice$name, "submit_triage")
+  expect_match(requests[[1]]$messages[[1]]$content[[1]]$text, "<issue_title>\nIt breaks\n</issue_title>", fixed = TRUE)
+  expect_true(file.exists(file.path(dir, "updated_files.txt")))
+})
+
+test_that("triage_issue.R fails if the comment cannot be posted", {
+  dir <- withr::local_tempdir()
+  github <- list(
+    "/repos/me/pkg/issues/7" = list(title = "It breaks", body = "Steps"),
+    "/repos/me/pkg" = list(description = "A package"),
+    "/repos/me/pkg/issues?state=open&per_page=100" = list()
+  )
+  answers <- list(submit_triage = list(triage_answer()))
+  env <- c(ANTHROPIC_API_KEY = "test-key", GH_TOKEN = "x", GITHUB_REPOSITORY = "me/pkg", ISSUE_NUMBER = "7")
+  expect_error(run_entry_script_mocked("triage_issue.R", dir, env, answers, github), "could not be posted")
+  expect_false(file.exists(file.path(dir, "updated_files.txt")))
+})
