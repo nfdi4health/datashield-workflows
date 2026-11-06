@@ -1,0 +1,28 @@
+name: Issue label check
+description: >
+  On an `issues` event: removes the approval label, with one short comment,
+  if someone not on the list set it, or if the title or body of an issue
+  carrying it was edited. Everything it needs comes from the event file, so
+  nothing from the issue is written into a script.
+
+inputs:
+  label:
+    description: 'The approval label.'
+    required: true
+  allowed-logins:
+    description: 'Who may set the label: exact GitHub logins, separated by commas or spaces.'
+    required: true
+  token:
+    description: 'Token with issues: write.'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check the approval label
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        LABEL: ${{ inputs.label }}
+        ALLOWED_LOGINS: ${{ inputs.allowed-logins }}
+      run: bash "$GITHUB_ACTION_PATH/issue-label-check.sh"

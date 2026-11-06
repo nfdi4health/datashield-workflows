@@ -121,6 +121,15 @@ the live caller used to validate changes before wider rollout.
     `R/check_ds_naming.R`, `R/apply_ds_naming.R`, functions in
     `R/functions/ds-naming/`; generic `propose-branch` action. Design and
     state: [dev-notes/datashield-naming/](dev-notes/datashield-naming/README.md).
+  - `issue-label-check.yml` — first step of the issue flow
+    ([dev-notes/issue-agents.md](dev-notes/issue-agents.md)), no Claude:
+    on `issues: labeled` removes the approval label (input `label`,
+    default `bot-proceed`) set by anyone not in `allowed-logins` (exact
+    logins, default `FlorianSchw`, access level plays no part); on
+    `issues: edited` removes it from an issue carrying it, whoever
+    edited. One short comment each time. All logic in the composite
+    action `issue-label-check`, which reads the event file: no checkout,
+    only `issues: write`.
 - This repository's own, non-reusable workflows (besides `ci.yml`,
   `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `pr-checks.yml`
   (commit messages on PRs into dev/main, only `dev` into `main`) and
@@ -141,6 +150,7 @@ the live caller used to validate changes before wider rollout.
   `commit-updated-files` (also `authors-suggest.yml`), `commit-and-push`
   (plain commit to the current branch, commit message as input;
   `workflow-graphs.yml`, meant for future generated-file workflows too),
+  `issue-label-check` (the logic of the workflow of that name),
   `propose-branch` (commit a manifest on top of the checkout, force-push
   a fixed branch, open or update its PR; any checkout incl. a second
   repository; the ds-naming workflows). `resolve-push-token` takes
@@ -170,8 +180,10 @@ the live caller used to validate changes before wider rollout.
   `run_entry_script_mocked()` with recorded answers from
   `fixtures/claude-answers/`), `shell/test-scope.sh` (stand-ins for
   `gh`/`jq`), `fixtures/` (made-up packages only: `r-package`,
-  `ds-client` + `ds-server`). Run by `ci.yml` with the static checks;
-  locally `Rscript tests/testthat.R` and `bash tests/shell/test-scope.sh`.
+  `ds-client` + `ds-server`), `shell/test-label-check.sh` (stand-in for
+  `gh`, needs `jq`). Run by `ci.yml` with the static checks;
+  locally `Rscript tests/testthat.R`, `bash tests/shell/test-scope.sh` and
+  `bash tests/shell/test-label-check.sh`.
   `self-test.yml` (not reusable) runs `roxygen-suggest.yml` and
   `test-suggest.yml` and `authors-suggest.yml` themselves with the input `self-test-fixture:
   r-package` (fixture instead of the caller checkout via
@@ -205,7 +217,7 @@ the live caller used to validate changes before wider rollout.
 - `docs/` — Quarto site, published to GitHub Pages by `publish-docs.yml`
   (non-reusable, like `collect-usage.yml`). One page per workflow, grouped in the
   sidebar via `docs/_quarto.yml` (sections: Getting started, Pull request
-  checks, Release, Bot suggestions, Analysis projects, Workflow upkeep;
+  checks, Release, Bot suggestions, Analysis projects, Issue flow, Workflow upkeep;
   Roadmap last, whose "Recent changes" section serves as release notes).
   A long
   page gets sub-pages as a nested sidebar section whose `href` is the main
@@ -932,3 +944,46 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   `workflow-keepalive.yml`. dsSupportClient's R-CMD-Check, docs and test
   callers use it (no direct `liskin` any more); it only runs on a
   scheduled trigger, so it is not yet confirmed in real CI.
+- **Issue flow, step 1 of 3:** `issue-label-check.yml` built (2026-11-05,
+  branch `feat/issue-label-check`), tested with a stand-in for `gh` and live
+  (2026-11-06): dsSupportClient #63 (allowed user, edits, other label) and
+  a throwaway repository (login not listed, login in the wrong case); no
+  loop. Two edits at once not tried live. Next triage, then the implementer. The
+  implementer has to verify the approval itself when it starts (who set
+  the label, from the issue's timeline, and no edit since): the check
+  runs after the fact, so a wrong label stands for seconds, and renaming
+  a label puts it on issues without a `labeled` event. An issue opened with
+  the label fires `labeled` too (tested). Not tested live: an edit by
+  someone without write access, and an issue transferred with the label.
+  `dev-notes/issue-agents.md` still has to say this step is built.
+  **Decided (user, 2026-11-06): triage waits for a quiet issue.** Triggers
+  `opened` and `edited`, 10 minutes' wait at the start of the job,
+  `concurrency` per issue with `cancel-in-progress: true`, so each edit
+  restarts the wait. The waiting job holds a runner (minutes on private
+  repositories). No lag on the label check or the implementer. **One
+  triage per issue**, repeated only when the bot asked for more
+  information: a later edit does not start it again.
+  **Decided (user, 2026-11-06): the implementer suggests disclosure
+  control, the user decides in PR review.** Flow: triage, `bot-proceed`,
+  implementer on the subscription; no spec review step and no second
+  approval. The PR description has a disclosure section: what leaves the
+  server, the recommended options from the known list (the
+  `client-server-pair` and `design-note` skills of `datashield-skills`),
+  what happens below the threshold, rejected alternatives and open doubts.
+  No fitting option means stop and ask, not improvise. A new function
+  still stops at a design note, which carries the same section. A
+  disclosure reviewer works out what the server returns from the code
+  first, compares that with the suggestion, and the PR shows both views.
+  **Decided (user, 2026-11-06): one correction round.** Inside the run
+  `bot-proceed` started: the implementer writes the code and does its own
+  cleanup (no refactor stage), fixes failing deterministic checks, the
+  reviewers read the result, clear problems (bugs, code that differs from
+  its suggestion, real maintainability problems) go back once, the
+  reviewers check only those fixes, and the PR opens with what is still
+  open listed in it. A second failure stops there. Matters of taste become
+  PR comments. Disclosure disagreements never go back to the implementer:
+  both views stay in the PR for the user. Not decided yet: how many
+  reviewers.
+  A comment does not drop `bot-proceed`, so anyone can add text to an
+  approved issue: the implementer takes its task from the issue body and
+  the bot's triage comment only, never from other comments.

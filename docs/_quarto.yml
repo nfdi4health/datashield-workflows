@@ -67,6 +67,9 @@ website:
         href: ds-naming.qmd
         contents:
           - ds-naming-rules.qmd
+      - section: "Issue flow"
+        contents:
+          - issue-label-check.qmd
       - section: "Workflow upkeep"
         contents:
           - workflow-keepalive.qmd

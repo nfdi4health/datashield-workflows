@@ -42,7 +42,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Run the tests
-        run: bash tests/shell/test-scope.sh
+        run: |
+          bash tests/shell/test-scope.sh
+          bash tests/shell/test-label-check.sh
 
   lint:
     name: Static checks

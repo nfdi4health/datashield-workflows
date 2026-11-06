@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2319  # `[ ... ]; check ... $?` is the style of this file
 # Checks what the self-test runs of the bot workflows produced on the
 # fixture r-package with its recorded answers
 # (tests/fixtures/claude-answers/r-package.json) — the same expectations

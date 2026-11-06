@@ -39,6 +39,7 @@ workflows:
   nfdi4health/datashield-workflows/.github/workflows/package-release.yml: [release]
   nfdi4health/datashield-workflows/.github/workflows/workflow-keepalive.yml: [keepalive]
   nfdi4health/datashield-workflows/.github/workflows/suggestion-choices.yml: ["Bot branch matches the checkboxes"]
+  nfdi4health/datashield-workflows/.github/workflows/issue-label-check.yml: ["Approval label removed, with a comment"]
   nfdi4health/datashield-workflows/.github/workflows/datashield-analysis-suggest.yml: [suggestion-pr]
   nfdi4health/datashield-workflows/.github/workflows/workflow-graphs.yml:
     - {outcome: commit, only-on: push}

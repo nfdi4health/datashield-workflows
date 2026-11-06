@@ -1,0 +1,35 @@
+name: Issue Label Check
+
+# First step of the issue flow (dev-notes/issue-agents.md): keeps the
+# approval label honest, so it only stays on an issue if the right person
+# set it and the text has not changed since. No Claude, no checkout of the
+# calling repository; the logic is in the composite action, which reads
+# the event itself, so no issue text passes through an expression.
+on:
+  workflow_call:
+    inputs:
+      label:
+        description: 'The approval label.'
+        required: false
+        type: string
+        default: 'bot-proceed'
+      allowed-logins:
+        description: 'Who may set the label: exact GitHub logins, separated by commas or spaces. Access level plays no part.'
+        required: false
+        type: string
+        default: 'FlorianSchw'
+
+permissions: {}
+
+jobs:
+  check-label:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Check the approval label
+        uses: $/.github/actions/issue-label-check
+        with:
+          label: ${{ inputs.label }}
+          allowed-logins: ${{ inputs.allowed-logins }}
+          token: ${{ github.token }}
