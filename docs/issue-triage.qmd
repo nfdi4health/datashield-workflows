@@ -6,11 +6,21 @@ description: "A first look at new issues: one category and a short reason, as a 
 `issue-triage.yml` takes a first look at each new issue, so you can see at
 a glance what it is. Claude reads the issue once and picks a category;
 the workflow posts one comment with that category, a one-sentence summary
-and the reason. It adds no labels and closes nothing. You decide what
-happens next.
+and the reason, and sets the category's label. It never closes an issue.
+You decide what happens next.
 
-Categories: bug, idea, question, duplicate, more information needed, out
-of scope, spam.
+| Category | Label |
+|---|---|
+| Bug | `bug` |
+| Idea | `enhancement` |
+| Question | `question` |
+| Duplicate | `duplicate` |
+| More information needed | `needs-info` |
+| Out of scope | `out-of-scope` |
+| Spam | `invalid` |
+
+The labels are set in `config/issue-triage.yml`; `needs-info` goes again
+once a later triage finds another category.
 
 - **It waits for a quiet issue.** People often fix an issue just after
   posting it, so the run waits `wait-minutes` first. Each edit restarts
@@ -40,8 +50,9 @@ Anyone can write anything into an issue, including instructions aimed at
 Claude. So the issue only reaches Claude, Claude can only answer in fixed
 fields, and everything it writes is reduced to plain text before it is
 posted: no mentions, links, images or markup. A duplicate is only named if
-it is one of the open issues Claude was shown. At worst, a crafted issue
-gets the wrong category.
+it is one of the open issues Claude was shown. Labels come from the fixed
+list above, and triage refuses to set `approval-label`. At worst, a crafted
+issue gets the wrong category and label.
 
 ## Secrets
 

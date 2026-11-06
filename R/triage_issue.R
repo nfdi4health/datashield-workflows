@@ -4,7 +4,8 @@
 #   1. read the issue as it stands now, the repository's description and
 #      the titles of the other open issues;
 #   2. Claude answers through a forced tool: a category and short fields;
-#   3. R writes the comment, with the marker the gate looks for.
+#   3. R writes the comment, with the marker the gate looks for, and sets
+#      the category's label. It never closes an issue.
 # The issue's text is untrusted: it only reaches Claude, and what Claude
 # says about it is cut down to plain text before it is posted.
 # Design: dev-notes/issue-agents.md.
@@ -37,6 +38,7 @@ posted <- post_github_json(
 if (!inherits(posted, "httr2_response")) {
   stop("The triage comment could not be posted.", call. = FALSE)
 }
+apply_triage_label(number, answer$category, issue, settings, Sys.getenv("APPROVAL_LABEL", "bot-proceed"))
 message(sprintf("Issue #%s triaged as %s.", number, answer$category))
 
 # What count-run reads as "this run produced something".

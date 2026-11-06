@@ -124,7 +124,8 @@ the live caller used to validate changes before wider rollout.
   - `issue-triage.yml` — first look at new issues, one Claude call: gate
     (composite action `issue-triage-gate`), wait (`wait-minutes`, default
     10; `concurrency` per issue, so each edit restarts it), gate again,
-    `R/triage_issue.R` posts one comment. Comments only. Wording and
+    `R/triage_issue.R` posts one comment and sets the category's label,
+    never the approval label; it never closes an issue. Wording and
     categories `config/issue-triage.yml`, prompt
     `prompts/issue-triage-prompt.md`, functions `R/functions/triage/`. No
     checkout; `issues: write`, `id-token: write`. Claude's fields pass
@@ -999,8 +1000,10 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   the bot's triage comment only, never from other comments.
 - **Issue flow, step 2 of 3:** `issue-triage.yml` built (2026-11-06), tested
   with stand-ins only, no real Claude call yet. Needs a federation rule
-  (`ANTHROPIC_FDRL_TRIAGE`) and, for its own spend limit, a workspace.
-  Chosen without the user yet: comments only, no labels (a later step could
-  act on categories); the seven categories in `config/issue-triage.yml`;
-  the default profile's model, while the plan says small model; at most 3
+  (`ANTHROPIC_FDRL_TRIAGE`) and, for its own spend limit, a workspace; both
+  exist for dsSupportClient, created from repo-governance. **Decided (user,
+  2026-11-06): triage sets a label per category and never closes an issue.**
+  Chosen without the user yet: the seven categories in
+  `config/issue-triage.yml`; the default profile's model, while the plan
+  says small model; at most 3
   triages per issue. No own self-test (`self-test.yml`): no fixture run.

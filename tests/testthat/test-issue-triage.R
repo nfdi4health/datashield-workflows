@@ -5,7 +5,7 @@
 triage_settings <- function() yaml::read_yaml(file.path(repo_root, "config", "issue-triage.yml"))
 
 triage_issue_data <- function(open = data.frame(number = c(3L, 4L), title = c("Other", "Another"))) {
-  list(number = 7L, title = "It breaks", body = "Long story", repository_description = "A package", open_issues = open)
+  list(number = 7L, title = "It breaks", body = "Long story", labels = character(0), repository_description = "A package", open_issues = open)
 }
 
 triage_answer <- function(...) {
@@ -104,7 +104,7 @@ test_that("read_issue_for_triage() reads the current text and leaves out itself 
   withr::defer(rm("repo", envir = globalenv()))
   local_global_mock(get_github_json = function(path) {
     switch(path,
-      "/repos/me/pkg/issues/7" = list(title = "Now", body = NULL),
+      "/repos/me/pkg/issues/7" = list(title = "Now", body = NULL, labels = list(list(name = "needs-info"))),
       "/repos/me/pkg" = list(description = NULL),
       list(list(number = 7, title = "Now"), list(number = 8, title = "Open"),
            list(number = 9, title = "A PR", pull_request = list(url = "x"))))
@@ -114,6 +114,7 @@ test_that("read_issue_for_triage() reads the current text and leaves out itself 
   expect_equal(issue$body, "")
   expect_equal(issue$repository_description, "")
   expect_equal(issue$open_issues$number, 8L)
+  expect_equal(issue$labels, "needs-info")
 })
 
 test_that("an issue that cannot be read stops the run", {
@@ -129,7 +130,8 @@ test_that("triage_issue.R comments once and marks the run as productive", {
     "/repos/me/pkg/issues/7" = list(title = "It breaks", body = "Steps"),
     "/repos/me/pkg" = list(description = "A package"),
     "/repos/me/pkg/issues?state=open&per_page=100" = list(list(number = 7, title = "It breaks")),
-    "/repos/me/pkg/issues/7/comments" = list(id = 1)
+    "/repos/me/pkg/issues/7/comments" = list(id = 1),
+    "/repos/me/pkg/issues/7/labels" = list(list(name = "bug"))
   )
   answers <- list(submit_triage = list(triage_answer()))
   env <- c(ANTHROPIC_API_KEY = "test-key", GH_TOKEN = "x", GITHUB_REPOSITORY = "me/pkg", ISSUE_NUMBER = "7")
@@ -152,4 +154,68 @@ test_that("triage_issue.R fails if the comment cannot be posted", {
   env <- c(ANTHROPIC_API_KEY = "test-key", GH_TOKEN = "x", GITHUB_REPOSITORY = "me/pkg", ISSUE_NUMBER = "7")
   expect_error(run_entry_script_mocked("triage_issue.R", dir, env, answers, github), "could not be posted")
   expect_false(file.exists(file.path(dir, "updated_files.txt")))
+})
+
+# The labels' GitHub calls, for apply_triage_label().
+local_label_calls <- function(env = parent.frame()) {
+  calls <- new.env()
+  calls$posted <- list()
+  calls$removed <- character(0)
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(if (exists("repo", envir = globalenv())) rm("repo", envir = globalenv()), envir = env)
+  local_global_mock(
+    post_github_json = function(path, body, context) calls$posted[[length(calls$posted) + 1]] <- list(path = path, body = body),
+    remove_issue_label = function(number, label) calls$removed <- c(calls$removed, label),
+    env = env
+  )
+  calls
+}
+
+test_that("each category has its own label, none of them the approval label", {
+  labels <- vapply(triage_settings()$categories, function(x) x$github_label, character(1))
+  expect_false(any(duplicated(labels)))
+  expect_false("bot-proceed" %in% tolower(labels))
+})
+
+test_that("the category's label is set on the issue", {
+  calls <- local_label_calls()
+  apply_triage_label("7", "idea", triage_issue_data(), triage_settings(), "bot-proceed")
+  expect_length(calls$posted, 1)
+  expect_equal(calls$posted[[1]]$path, "/repos/me/pkg/issues/7/labels")
+  expect_equal(calls$posted[[1]]$body, list(labels = list("enhancement")))
+})
+
+test_that("a label already there is not set again", {
+  calls <- local_label_calls()
+  issue <- triage_issue_data()
+  issue$labels <- "bug"
+  apply_triage_label("7", "bug", issue, triage_settings(), "bot-proceed")
+  expect_length(calls$posted, 0)
+})
+
+test_that("needs-info goes when a later triage finds another category, and stays otherwise", {
+  issue <- triage_issue_data()
+  issue$labels <- "needs-info"
+  calls <- local_label_calls()
+  apply_triage_label("7", "bug", issue, triage_settings(), "bot-proceed")
+  expect_equal(calls$removed, "needs-info")
+  calls <- local_label_calls()
+  apply_triage_label("7", "needs-info", issue, triage_settings(), "bot-proceed")
+  expect_length(calls$removed, 0)
+})
+
+test_that("the approval label is refused, in any case, whatever the config says", {
+  settings <- triage_settings()
+  settings$categories$bug$github_label <- "Bot-Proceed"
+  calls <- local_label_calls()
+  expect_error(apply_triage_label("7", "bug", triage_issue_data(), settings, "bot-proceed"), "must not set the approval label")
+  expect_length(calls$posted, 0)
+})
+
+test_that("a category without a label sets none", {
+  settings <- triage_settings()
+  settings$categories$bug$github_label <- ""
+  calls <- local_label_calls()
+  apply_triage_label("7", "bug", triage_issue_data(), settings, "bot-proceed")
+  expect_length(calls$posted, 0)
 })

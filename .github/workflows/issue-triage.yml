@@ -1,8 +1,9 @@
 name: Issue Triage
 
 # First look at a new issue (dev-notes/issue-agents.md): one Claude call
-# on the API, one comment with a category and a short reason. Nothing else
-# changes on the issue. It waits for a quiet issue: each edit cancels a
+# on the API, one comment with a category and a short reason, and the
+# category's label. It never closes an issue, and can't set the approval
+# label. It waits for a quiet issue: each edit cancels a
 # waiting run through `concurrency` and so restarts the wait. One triage
 # per issue, repeated on an edit only if the bot asked for more
 # information. No checkout of the calling repository.
@@ -101,6 +102,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ steps.gate.outputs.number }}
+          APPROVAL_LABEL: ${{ inputs.approval-label }}
         run: Rscript .shared-workflows/R/triage_issue.R
 
       # Counts this run once, anonymously, by workflow, outcome and version

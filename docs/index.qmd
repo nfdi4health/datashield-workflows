@@ -50,7 +50,7 @@ you need is very welcome, see [Roadmap and open questions](roadmap.qmd).
 | Analysis projects | [DataSHIELD analysis scripts](datashield-analysis-suggest.qmd) | Drafts starter scripts from your analysis plan, tested on mock data in DSLite |
 | DataSHIELD naming (draft) | [Naming check and apply](ds-naming.qmd) | Checks packages against shared [naming rules](ds-naming-rules.qmd) and renames what people approve |
 | Issue flow | [Issue label check](issue-label-check.qmd) | Removes the approval label if the wrong person set it or the issue changed afterwards |
-| | [Issue triage](issue-triage.qmd) | A first look at new issues: one category and a short reason, as a comment |
+| | [Issue triage](issue-triage.qmd) | A first look at new issues: one category, a short reason and a label |
 | Workflow upkeep | [Workflow keepalive](workflow-keepalive.qmd) | Keeps scheduled workflows from being disabled after 60 days of inactivity |
 | | [Workflow graphs](workflow-graphs.qmd) | Writes an overview of your workflows — table and diagrams — into `.github/workflow-graphs/README.md` |
 

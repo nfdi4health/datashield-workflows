@@ -13,6 +13,7 @@ read_issue_for_triage <- function(number) {
     number = as.integer(number),
     title = issue$title %||% "",
     body = issue$body %||% "",
+    labels = vapply(issue$labels %||% list(), function(x) x$name, character(1)),
     repository_description = get_github_json(sprintf("/repos/%s", repo))$description %||% "",
     open_issues = data.frame(
       number = vapply(open, function(x) as.integer(x$number), integer(1)),
