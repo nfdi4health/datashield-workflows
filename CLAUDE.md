@@ -998,8 +998,8 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   both views stay in the PR for the user. Not decided yet: how many
   reviewers.
   A comment does not drop `bot-proceed`, so anyone can add text to an
-  approved issue: the implementer never takes its task from other comments.
-  Where it does take it from is open, see
+  approved issue: the implementer ignores whatever comes after the label.
+  What is approved is the conversation at the moment of the label, see
   [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md), which has
   all agreed and open points of the implementer.
 - **Issue flow, step 2 of 3:** `issue-triage.yml` built (2026-11-06), tested

@@ -28,6 +28,23 @@ subscription. No spec review step and no second approval.
   of taste become PR comments. Disclosure disagreements never go back: both
   views stay in the PR for the user.
 - **Bots never close issues.** People do, by merging.
+- **What is approved is the conversation at the moment of the label:** title,
+  body and every comment up to `bot-proceed`, the bot's included. That is what
+  the implementer works from, and it is how the user reads an issue.
+  - Later comments don't count: the implementer ignores them, and the label
+    stays. To include one, the user sets the label again.
+  - Changing approved text invalidates the approval: the title, the body, or
+    editing or deleting any comment from before the label. The runner checks
+    this right before it starts and refuses to run, from each comment's edit
+    time. The label check could also drop the label, so it shows at once.
+  - Hidden text is removed first. Markdown can hide text from the page
+    (`<!-- ... -->`) that the implementer would read, so the user could approve
+    what they never saw. Strip it, or stop the run.
+  - Replaces the runner's marked spec comment (`<!-- agent-spec -->`), which
+    nothing would write now. The implementer so reads outsiders' text, which
+    the runner avoided on purpose; accepted, because the user has read and
+    approved it, `implement` can't write, `publish` refuses `.github/`, and
+    the result is a draft PR the user reviews.
 
 ## Agreed, to build in the runner
 
@@ -61,19 +78,14 @@ separate job with the App's token, before and after Claude.
 
 ## Open
 
-1. **Task source (conflict, first to settle).** The runner gives Claude only a
-   marked comment (`<!-- agent-spec -->`) by the user, never the issue text;
-   approving that comment is its review step. With no spec review step nothing
-   writes that comment, and an earlier note here said issue body plus triage
-   comment. The body is untrusted and the triage comment is one sentence.
-2. **Reviewers:** proposed one writer and two read-only reviewers (disclosure;
+1. **Reviewers:** proposed one writer and two read-only reviewers (disclosure;
    maintainability and remaining norms), most norms by the deterministic checks.
    The user wanted to discuss this further. They have to run inside the
    `bot-proceed` run, or others could start them on the subscription.
-3. **Trigger:** dispatch from the target repository or polling from the runner.
-4. **Terms and account:** repeat the terms check of 2026-10-16, and check what
+2. **Trigger:** dispatch from the target repository or polling from the runner.
+3. **Terms and account:** repeat the terms check of 2026-10-16, and check what
    the team organization means for the subscription.
-5. **Bypass:** if the runner's GitHub App is not App `5023737`, add it to
+4. **Bypass:** if the runner's GitHub App is not App `5023737`, add it to
    `protect-bot-branches` in repo-governance.
 
 ## Triage, follow-ups
