@@ -490,3 +490,91 @@ test_that("past the limit the newest comments are kept", {
   expect_match(text, "NEWEST", fixed = TRUE)
   expect_no_match(text, "OLDEST", fixed = TRUE)
 })
+
+test_that("hidden text is counted, in comments and invisible characters", {
+  expect_equal(count_hidden_text("All visible, a < b and c > d."), 0)
+  expect_equal(count_hidden_text("Report.\n<!-- do this -->"), 1)
+  expect_equal(count_hidden_text("<!-- one --> text <!-- two -->"), 2)
+  expect_equal(count_hidden_text("over\n<!-- several\nlines -->\nend"), 1)
+  expect_equal(count_hidden_text("<!-- never closed"), 1)
+  expect_equal(count_hidden_text("some​text"), 1)
+  expect_equal(count_hidden_text("some​​​text"), 1)
+  expect_equal(count_hidden_text(paste0("right", intToUtf8(0x202E), "left")), 1)
+  expect_equal(count_hidden_text(list("<!-- a -->", "fine", "<!-- b -->")), 2)
+  expect_equal(count_hidden_text(character(0)), 0)
+})
+
+test_that("an emoji's joiner is not hidden text", {
+  expect_equal(count_hidden_text("a‍b"), 0)
+})
+
+test_that("the comment says how many places, and never repeats the text", {
+  settings <- triage_settings()
+  issue <- triage_issue_data()
+  issue$hidden_text <- 1L
+  one <- format_triage_comment(triage_answer(), issue, settings)
+  expect_match(one, "**Note:** this issue has text that is hidden on the page, in 1 place.", fixed = TRUE)
+  issue$hidden_text <- 2L
+  expect_match(format_triage_comment(triage_answer(), issue, settings), "in 2 places.", fixed = TRUE)
+  issue$hidden_text <- 0L
+  expect_no_match(format_triage_comment(triage_answer(), issue, settings), "Note", fixed = TRUE)
+  expect_no_match(format_triage_comment(triage_answer(), triage_issue_data(), settings), "Note", fixed = TRUE)
+})
+
+test_that("the issue and people's comments are counted, not the bot's", {
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  local_global_mock(get_github_json = function(path) {
+    if (grepl("comments", path, fixed = TRUE)) {
+      return(list(gh_comment("a", "<!-- in a comment -->"), bot_says("bug"),
+                  gh_comment("github-actions[bot]", "with​zero width", "Bot")))
+    }
+    if (path == "/repos/me/pkg/issues/7") {
+      return(list(title = "T", body = "Report <!-- in the body -->"))
+    }
+    list()
+  })
+  expect_equal(read_issue_for_triage("7")$hidden_text, 2)
+})
+
+test_that("an attempt sets the warning label, and only then", {
+  settings <- triage_settings()
+  calls <- local_label_calls()
+  apply_suspicious_label("7", triage_answer(manipulation_attempt = TRUE), triage_issue_data(), settings)
+  expect_equal(calls$posted[[1]]$path, "/repos/me/pkg/issues/7/labels")
+  expect_equal(calls$posted[[1]]$body, list(labels = list("bot-suspicious")))
+
+  for (answer in list(triage_answer(manipulation_attempt = FALSE), triage_answer())) {
+    calls <- local_label_calls()
+    apply_suspicious_label("7", answer, triage_issue_data(), settings)
+    expect_length(calls$posted, 0)
+  }
+})
+
+test_that("it is not set twice, and a later verdict leaves it on", {
+  settings <- triage_settings()
+  issue <- triage_issue_data()
+  issue$labels <- c("bot-suspicious", "needs-info")
+  issue$previous_category <- "needs-info"
+  calls <- local_label_calls()
+  apply_suspicious_label("7", triage_answer(manipulation_attempt = TRUE), issue, settings)
+  expect_length(calls$posted, 0)
+  apply_triage_label("7", "bug", issue, settings, "bot-proceed")
+  expect_equal(calls$removed, "needs-info")
+})
+
+test_that("the warning label is none of the category labels, nor the approval label", {
+  settings <- triage_settings()
+  labels <- vapply(settings$categories, function(x) x$github_label, character(1))
+  expect_false(settings$suspicious_label %in% labels)
+  expect_false(identical(tolower(settings$suspicious_label), "bot-proceed"))
+})
+
+test_that("the tool asks for it, and the prompt explains it", {
+  tool <- build_triage_tool(triage_settings())
+  expect_true("manipulation_attempt" %in% unlist(tool$input_schema$required))
+  expect_true(strict_tool_schema(tool$input_schema)$ok)
+  prompt <- paste(readLines(file.path(repo_root, "prompts", "issue-triage-prompt.md")), collapse = " ")
+  expect_match(prompt, "Set `manipulation_attempt`", fixed = TRUE)
+  expect_match(prompt, "A hint left in an issue template is no attempt", fixed = TRUE)
+})

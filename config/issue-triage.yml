@@ -44,4 +44,8 @@ max_missing_items: 3
 max_spec_items: 6        # points in each list of the spec
 spec_categories: [bug, idea]   # these get a spec in their comment
 
+suspicious_label: bot-suspicious   # set when Claude finds an attempt to steer it
+
 footer: Automatic first look. Nothing has been decided.
+# %s is "1 place" or "2 places".
+hidden_text_note: "this issue has text that is hidden on the page, in %s. Open the raw text to read it before relying on this."
