@@ -93,13 +93,54 @@ separate job with the App's token, before and after Claude.
    is unchecked.
 5. **Bypass:** if the runner's GitHub App is not App `5023737`, add it to
    `protect-bot-branches` in repo-governance.
+6. **`bot-suspicious`:** the implementer refuses to start while the label is
+   on, until a person has looked and removed it.
+7. **Stale spec:** after a bug or idea, comments don't refresh the spec, and
+   nothing warns. When `bot-proceed` is set and people commented after the
+   bot's last spec, remove the label with a note to set `bot-triage` first.
+8. **Label check elsewhere:** `dsAnalysis` and `datashield-workflows` have
+   `bot-proceed` but no label check caller. Each target repository needs it
+   before the implementer runs there.
 
 ## Triage, follow-ups
 
-Noted while testing, none needed for the above: a "Related" line for similar
-issues (up to three, numbers checked), the start of each body besides the
-title, recently closed issues. The line could show an issue's state, such as
-"a PR is open".
+Live on `main` and tested for real on dsSupportClient (2026-11-07). None of
+these is needed for the above:
+
+- A "Related" line for similar issues (up to three, numbers checked), recently
+  closed issues in what Claude reads, and an issue's state, such as "a PR is
+  open".
+- Whether a smaller model is enough: compare the Cost page of the `issue-triage`
+  workspace with the quality of the specs. The defaults still to confirm are
+  the seven categories and the model.
+- A corrected answer: editing a comment starts no triage, only a new comment
+  does. Add `issue_comment: edited` if this comes up on real issues.
+- The cache warning in the triage job ("cache write denied"): R packages are
+  installed each time, about a minute, because the job has no `actions: write`.
+  Left that way on purpose.
+- Issue templates, optional: they help the quality of reports, with the function
+  as a helpful field, not as a filter. They belong in the governance repository,
+  and must never list `bot-proceed`.
+
+## Other open points from this work
+
+- `dev-notes/issue-agents.md` still says nothing is built, and has an uncommitted
+  edit in the main checkout.
+- `setup-r` stalled several times on 2026-11-06 and 2026-11-07, on Ubuntu 24.04
+  and on 26 alike, so the image is not the cause. The slow and fast 24.04 runs
+  differed in region, which is only a hunch. If it goes on: skip R setup in the
+  three repo-governance jobs, which only need two R packages. `ubuntu-latest`
+  stays.
+- Usage counts: the counter files were not maintained from 2026-10-16 to
+  2026-11-06, so runs without a file went uncounted. Fixed, but they can't be
+  recovered, so the KPIs of that time are too low.
+- repo-governance: `feat/protect-bot-branches` is unpushed (check App ID
+  `5023737` first), `governance-as-code` is obsolete, and `RULESET_ADMIN_PAT` is
+  a repository secret although the README asks for a protected environment
+  (`anthropic-admin` needs it too, then). Narrow `R/functions/**` in
+  `anthropic.yml` to its own files, so label changes stop starting it.
+- Rule IDs as secrets could become repository variables, all together, ideally
+  with service accounts per owner (open list in `CLAUDE.md`).
 
 ## For later: `client-server-pair` skill in `datashield-skills`
 
