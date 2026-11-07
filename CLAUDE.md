@@ -998,19 +998,19 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   both views stay in the PR for the user. Not decided yet: how many
   reviewers.
   A comment does not drop `bot-proceed`, so anyone can add text to an
-  approved issue: the implementer takes its task from the issue body and
-  the bot's triage comment only, never from other comments.
-- **Issue flow, step 2 of 3:** `issue-triage.yml` built (2026-11-06), tested
-  with stand-ins only, no real Claude call yet. Needs a federation rule
-  (`ANTHROPIC_FDRL_TRIAGE`) and, for its own spend limit, a workspace; both
-  exist for dsSupportClient, created from repo-governance. **Decided (user,
-  2026-11-06): triage sets a label per category and never closes an issue;
-  a repeat needs an answer, or `bot-triage` set by a listed login (no wait,
-  no limit, label removed afterwards, also for older issues): after
-  `needs-info` an edit or any person's
-  comment, after `duplicate`, `spam`, `out-of-scope` a comment or edit by the
-  author.**
-  Chosen without the user yet: the seven categories in
-  `config/issue-triage.yml`; the default profile's model, while the plan
-  says small model; at most 3
-  triages per issue. No own self-test (`self-test.yml`): no fixture run.
+  approved issue: the implementer never reads them.
+  Its only source is the bot's last triage comment, as a spec, see
+  [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md), which has
+  all agreed and open points of the implementer.
+- **Issue flow, step 2 of 3:** `issue-triage.yml` on `main`, tested for real on
+  dsSupportClient (2026-11-07), which sets `wait-minutes: 2`. Rule and secret
+  come from repo-governance. **Decided (user):** triage sets a label per
+  category and never closes an issue; a repeat needs an answer, or `bot-triage`
+  set by a listed login (no wait, no limit, label removed afterwards, also for
+  older issues): after `needs-info` an edit or any person's comment, after
+  `duplicate`, `spam`, `out-of-scope` a comment or edit by the author. Before
+  the first triage the author's comment restarts the wait. Bugs and ideas get a
+  spec. Hidden text gets a note, and an attempt to steer the bot the label
+  `bot-suspicious`. Still to confirm: the seven categories and the model. No
+  own self-test (`self-test.yml`). All open points, also of other work done
+  alongside: [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md).
