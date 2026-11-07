@@ -63,15 +63,14 @@ not where things stand.
 
 When a discussion has settled:
 
-1. Set `bot-triage`. A new comment replaces nothing, but it is the latest one
-   and reads the whole conversation.
+1. Set `bot-triage`. The bot posts a new comment from the whole conversation.
+   The old one stays, so look at the latest.
 2. Read that spec. Check that it says what was agreed, and look at the open
    questions.
 3. Only then decide what happens next, such as approving with `approval-label`.
 
 Editing the title or body doesn't refresh the spec either, after a bug or
-idea. A new triage comment is also the place to correct the bot: change the
-label by hand if you disagree with its category.
+idea. If you disagree with the bot's category, change the label by hand.
 
 ## Example
 
