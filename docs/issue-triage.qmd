@@ -86,6 +86,11 @@ comment says so and how many places, without repeating it. To read it, choose
 **Edit** in that post's `…` menu. It is only a note, because hints from
 issue templates are hidden in the same way.
 
+If Claude finds text trying to instruct it, visible or hidden, the issue gets the
+label `bot-suspicious`. Later triages leave it on: remove it yourself once
+you've looked. It helps you spot such issues, but a clever attempt can go
+unnoticed, so it is no replacement for reading.
+
 ## Secrets
 
 {{< wf-secrets issue-triage.yml >}}

@@ -536,3 +536,45 @@ test_that("the issue and people's comments are counted, not the bot's", {
   })
   expect_equal(read_issue_for_triage("7")$hidden_text, 2)
 })
+
+test_that("an attempt sets the warning label, and only then", {
+  settings <- triage_settings()
+  calls <- local_label_calls()
+  apply_suspicious_label("7", triage_answer(manipulation_attempt = TRUE), triage_issue_data(), settings)
+  expect_equal(calls$posted[[1]]$path, "/repos/me/pkg/issues/7/labels")
+  expect_equal(calls$posted[[1]]$body, list(labels = list("bot-suspicious")))
+
+  for (answer in list(triage_answer(manipulation_attempt = FALSE), triage_answer())) {
+    calls <- local_label_calls()
+    apply_suspicious_label("7", answer, triage_issue_data(), settings)
+    expect_length(calls$posted, 0)
+  }
+})
+
+test_that("it is not set twice, and a later verdict leaves it on", {
+  settings <- triage_settings()
+  issue <- triage_issue_data()
+  issue$labels <- c("bot-suspicious", "needs-info")
+  issue$previous_category <- "needs-info"
+  calls <- local_label_calls()
+  apply_suspicious_label("7", triage_answer(manipulation_attempt = TRUE), issue, settings)
+  expect_length(calls$posted, 0)
+  apply_triage_label("7", "bug", issue, settings, "bot-proceed")
+  expect_equal(calls$removed, "needs-info")
+})
+
+test_that("the warning label is none of the category labels, nor the approval label", {
+  settings <- triage_settings()
+  labels <- vapply(settings$categories, function(x) x$github_label, character(1))
+  expect_false(settings$suspicious_label %in% labels)
+  expect_false(identical(tolower(settings$suspicious_label), "bot-proceed"))
+})
+
+test_that("the tool asks for it, and the prompt explains it", {
+  tool <- build_triage_tool(triage_settings())
+  expect_true("manipulation_attempt" %in% unlist(tool$input_schema$required))
+  expect_true(strict_tool_schema(tool$input_schema)$ok)
+  prompt <- paste(readLines(file.path(repo_root, "prompts", "issue-triage-prompt.md")), collapse = " ")
+  expect_match(prompt, "Set `manipulation_attempt`", fixed = TRUE)
+  expect_match(prompt, "A hint left in an issue template is no attempt", fixed = TRUE)
+})

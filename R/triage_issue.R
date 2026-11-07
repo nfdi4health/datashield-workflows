@@ -39,6 +39,7 @@ if (!inherits(posted, "httr2_response")) {
   stop("The triage comment could not be posted.", call. = FALSE)
 }
 apply_triage_label(number, answer$category, issue, settings, Sys.getenv("APPROVAL_LABEL", "bot-proceed"))
+apply_suspicious_label(number, answer, issue, settings)
 message(sprintf("Issue #%s triaged as %s.", number, answer$category))
 
 # What count-run reads as "this run produced something".
