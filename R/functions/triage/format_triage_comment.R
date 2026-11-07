@@ -22,5 +22,10 @@ format_triage_comment <- function(answer, issue, settings) {
     missing <- utils::head(missing, settings$max_missing_items)
     lines <- c(lines, "", "Still needed:", paste("-", vapply(missing, text, character(1), USE.NAMES = FALSE)))
   }
+  hidden <- issue$hidden_text %||% 0L
+  if (hidden > 0) {
+    places <- if (hidden == 1) "1 place" else sprintf("%d places", hidden)
+    lines <- c(lines, "", sprintf("**Note:** %s", sprintf(settings$hidden_text_note, places)))
+  }
   paste(c(lines, "", sprintf("_%s_", settings$footer)), collapse = "\n")
 }

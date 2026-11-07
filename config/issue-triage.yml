@@ -45,3 +45,5 @@ max_spec_items: 6        # points in each list of the spec
 spec_categories: [bug, idea]   # these get a spec in their comment
 
 footer: Automatic first look. Nothing has been decided.
+# %s is "1 place" or "2 places".
+hidden_text_note: "this issue has text that is hidden on the page, in %s. Open the raw text to read it before relying on this."

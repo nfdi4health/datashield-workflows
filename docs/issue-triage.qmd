@@ -80,6 +80,12 @@ taking the objection's word for it. Labels come from the fixed
 list above, and triage refuses to set `approval-label`. At worst, a crafted
 issue gets the wrong category and label.
 
+Text can also be hidden from the page, for example in an HTML comment, while
+Claude still reads it. If an issue or a person's comment has any, the triage
+comment says so and how many places, without repeating it. To read it, choose
+**Edit** in that post's `…` menu. It is only a note, because hints from
+issue templates are hidden in the same way.
+
 ## Secrets
 
 {{< wf-secrets issue-triage.yml >}}
