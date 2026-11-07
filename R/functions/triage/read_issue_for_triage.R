@@ -28,6 +28,7 @@ read_issue_for_triage <- function(number) {
     previous_category = history$category,
     previous_comment = history$comment,
     replies = history$replies,
-    disputed = read_disputed_issue(history$category, history$comment)
+    disputed = read_disputed_issue(history$category, history$comment),
+    hidden_text = count_hidden_text(c(issue$title, issue$body, lapply(history$replies, function(x) x$body)))
   )
 }

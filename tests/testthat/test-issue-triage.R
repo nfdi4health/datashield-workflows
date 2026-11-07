@@ -225,14 +225,14 @@ test_that("a category without a label sets none", {
 gh_comment <- function(login, body, type = "User") list(user = list(login = login, type = type), body = body)
 bot_says <- function(category) gh_comment("github-actions[bot]", sprintf("<!-- bot-triage: %s -->\n**Triage**", category), "Bot")
 
-test_that("the history is the last triage and what people wrote since", {
+test_that("the history is the last triage and everything people wrote, oldest first", {
   history <- triage_history(list(
     gh_comment("a", "early"), bot_says("needs-info"), gh_comment("a", "more"),
     bot_says("duplicate"), gh_comment("label-bot", "noise", "Bot"), gh_comment("a", "It differs"), gh_comment("b", "Agreed")
   ))
   expect_equal(history$category, "duplicate")
   expect_match(history$comment, "bot-triage: duplicate", fixed = TRUE)
-  expect_equal(vapply(history$replies, function(x) x$body, ""), c("It differs", "Agreed"))
+  expect_equal(vapply(history$replies, function(x) x$body, ""), c("early", "more", "It differs", "Agreed"))
 })
 
 test_that("a copied marker is no triage, before a first triage all comments are read", {
@@ -263,7 +263,7 @@ test_that("replies are cut, which bounds the cost", {
   issue$replies <- list(list(author = "a", body = strrep("x", settings$max_reply_chars * 2)))
   text <- format_triage_history(issue, settings)
   expect_lt(nchar(text), settings$max_reply_chars + 200)
-  expect_match(text, "[... rest cut]", fixed = TRUE)
+  expect_match(text, "[... earlier comments cut]", fixed = TRUE)
 })
 
 test_that("the last verdict's label goes when the verdict changes", {
@@ -397,4 +397,184 @@ test_that("the limits are in the config", {
   settings <- triage_settings()
   expect_gt(settings$max_open_issue_chars, 0)
   expect_gt(settings$max_open_issues_chars, settings$max_open_issue_chars)
+})
+
+spec_answer <- function(...) {
+  triage_answer(goal = "The median skips that study.", reported = list("NA for the median", "no warning"),
+                acceptance_criteria = list("a warning names the study"), open_questions = list("Is the limit nfilter.tab?"), ...)
+}
+
+test_that("a bug gets its spec, before the reason", {
+  comment <- format_triage_comment(spec_answer(), triage_issue_data(), triage_settings())
+  expect_match(comment, "**Goal:** The median skips that study.", fixed = TRUE)
+  expect_match(comment, "**What was reported:**\n- NA for the median\n- no warning", fixed = TRUE)
+  expect_match(comment, "**Acceptance criteria:**\n- a warning names the study", fixed = TRUE)
+  expect_match(comment, "**Open questions:**\n- Is the limit nfilter.tab?", fixed = TRUE)
+  expect_lt(regexpr("**Goal:**", comment, fixed = TRUE), regexpr("Why:", comment, fixed = TRUE))
+  expect_match(comment, "^<!-- bot-triage: bug -->\n")
+})
+
+test_that("an idea gets it too, other categories never", {
+  settings <- triage_settings()
+  answer <- spec_answer()
+  answer$category <- "idea"
+  expect_match(format_triage_comment(answer, triage_issue_data(), settings), "**Goal:**", fixed = TRUE)
+  for (category in c("question", "duplicate", "needs-info", "out-of-scope", "spam")) {
+    answer$category <- category
+    expect_no_match(format_triage_comment(answer, triage_issue_data(), settings), "**Goal:**", fixed = TRUE)
+  }
+})
+
+test_that("empty fields get no heading", {
+  answer <- spec_answer()
+  answer$open_questions <- list()
+  answer$goal <- ""
+  comment <- format_triage_comment(answer, triage_issue_data(), triage_settings())
+  expect_no_match(comment, "Open questions", fixed = TRUE)
+  expect_no_match(comment, "**Goal:**", fixed = TRUE)
+  expect_match(comment, "**What was reported:**", fixed = TRUE)
+})
+
+test_that("an answer without spec fields still gives a comment", {
+  comment <- format_triage_comment(triage_answer(), triage_issue_data(), triage_settings())
+  expect_match(comment, "Why: A clear report.", fixed = TRUE)
+})
+
+test_that("lists are cut, and the spec can't carry links or mentions", {
+  settings <- triage_settings()
+  answer <- spec_answer()
+  answer$reported <- as.list(paste("Point", seq_len(settings$max_spec_items + 3)))
+  answer$acceptance_criteria <- list("ask @alice at https://evil.example")
+  answer$goal <- "See ![x](http://y.example)"
+  comment <- format_triage_comment(answer, triage_issue_data(), settings)
+  expect_match(comment, sprintf("Point %d", settings$max_spec_items), fixed = TRUE)
+  expect_no_match(comment, sprintf("Point %d", settings$max_spec_items + 1), fixed = TRUE)
+  expect_no_match(comment, "@alice", fixed = TRUE)
+  expect_no_match(comment, "https://", fixed = TRUE)
+  expect_no_match(comment, "![", fixed = TRUE)
+})
+
+test_that("the spec fields are required, and strict mode accepts the tool", {
+  tool <- build_triage_tool(triage_settings())
+  expect_true(all(c("goal", "reported", "acceptance_criteria", "open_questions") %in% unlist(tool$input_schema$required)))
+  expect_true(strict_tool_schema(tool$input_schema)$ok)
+})
+
+test_that("the prompt tells Claude not to invent or name files", {
+  prompt <- paste(readLines(file.path(repo_root, "prompts", "issue-triage-prompt.md")), collapse = " ")
+  expect_match(prompt, "invent nothing", fixed = TRUE)
+  expect_match(prompt, "don't name files", fixed = TRUE)
+})
+
+test_that("a repeat still sees a comment from before the last triage", {
+  history <- triage_history(list(gh_comment("a", "Concrete case: NA for the median"), bot_says("bug")))
+  expect_equal(history$category, "bug")
+  expect_equal(history$replies[[1]]$body, "Concrete case: NA for the median")
+  issue <- triage_issue_data()
+  issue$author <- "a"
+  issue$previous_category <- history$category
+  issue$previous_comment <- history$comment
+  issue$replies <- history$replies
+  text <- format_triage_history(issue, triage_settings())
+  expect_match(text, "Concrete case: NA for the median", fixed = TRUE)
+  expect_match(text, "The comments people wrote on this issue, oldest first:", fixed = TRUE)
+})
+
+test_that("past the limit the newest comments are kept", {
+  settings <- triage_settings()
+  issue <- triage_issue_data()
+  issue$author <- "a"
+  issue$replies <- list(list(author = "a", body = paste0("OLDEST", strrep("x", settings$max_reply_chars))),
+                        list(author = "a", body = "NEWEST"))
+  text <- format_triage_history(issue, settings)
+  expect_match(text, "NEWEST", fixed = TRUE)
+  expect_no_match(text, "OLDEST", fixed = TRUE)
+})
+
+test_that("hidden text is counted, in comments and invisible characters", {
+  expect_equal(count_hidden_text("All visible, a < b and c > d."), 0)
+  expect_equal(count_hidden_text("Report.\n<!-- do this -->"), 1)
+  expect_equal(count_hidden_text("<!-- one --> text <!-- two -->"), 2)
+  expect_equal(count_hidden_text("over\n<!-- several\nlines -->\nend"), 1)
+  expect_equal(count_hidden_text("<!-- never closed"), 1)
+  expect_equal(count_hidden_text("some​text"), 1)
+  expect_equal(count_hidden_text("some​​​text"), 1)
+  expect_equal(count_hidden_text(paste0("right", intToUtf8(0x202E), "left")), 1)
+  expect_equal(count_hidden_text(list("<!-- a -->", "fine", "<!-- b -->")), 2)
+  expect_equal(count_hidden_text(character(0)), 0)
+})
+
+test_that("an emoji's joiner is not hidden text", {
+  expect_equal(count_hidden_text("a‍b"), 0)
+})
+
+test_that("the comment says how many places, and never repeats the text", {
+  settings <- triage_settings()
+  issue <- triage_issue_data()
+  issue$hidden_text <- 1L
+  one <- format_triage_comment(triage_answer(), issue, settings)
+  expect_match(one, "**Note:** this issue has text that is hidden on the page, in 1 place.", fixed = TRUE)
+  issue$hidden_text <- 2L
+  expect_match(format_triage_comment(triage_answer(), issue, settings), "in 2 places.", fixed = TRUE)
+  issue$hidden_text <- 0L
+  expect_no_match(format_triage_comment(triage_answer(), issue, settings), "Note", fixed = TRUE)
+  expect_no_match(format_triage_comment(triage_answer(), triage_issue_data(), settings), "Note", fixed = TRUE)
+})
+
+test_that("the issue and people's comments are counted, not the bot's", {
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  local_global_mock(get_github_json = function(path) {
+    if (grepl("comments", path, fixed = TRUE)) {
+      return(list(gh_comment("a", "<!-- in a comment -->"), bot_says("bug"),
+                  gh_comment("github-actions[bot]", "with​zero width", "Bot")))
+    }
+    if (path == "/repos/me/pkg/issues/7") {
+      return(list(title = "T", body = "Report <!-- in the body -->"))
+    }
+    list()
+  })
+  expect_equal(read_issue_for_triage("7")$hidden_text, 2)
+})
+
+test_that("an attempt sets the warning label, and only then", {
+  settings <- triage_settings()
+  calls <- local_label_calls()
+  apply_suspicious_label("7", triage_answer(manipulation_attempt = TRUE), triage_issue_data(), settings)
+  expect_equal(calls$posted[[1]]$path, "/repos/me/pkg/issues/7/labels")
+  expect_equal(calls$posted[[1]]$body, list(labels = list("bot-suspicious")))
+
+  for (answer in list(triage_answer(manipulation_attempt = FALSE), triage_answer())) {
+    calls <- local_label_calls()
+    apply_suspicious_label("7", answer, triage_issue_data(), settings)
+    expect_length(calls$posted, 0)
+  }
+})
+
+test_that("it is not set twice, and a later verdict leaves it on", {
+  settings <- triage_settings()
+  issue <- triage_issue_data()
+  issue$labels <- c("bot-suspicious", "needs-info")
+  issue$previous_category <- "needs-info"
+  calls <- local_label_calls()
+  apply_suspicious_label("7", triage_answer(manipulation_attempt = TRUE), issue, settings)
+  expect_length(calls$posted, 0)
+  apply_triage_label("7", "bug", issue, settings, "bot-proceed")
+  expect_equal(calls$removed, "needs-info")
+})
+
+test_that("the warning label is none of the category labels, nor the approval label", {
+  settings <- triage_settings()
+  labels <- vapply(settings$categories, function(x) x$github_label, character(1))
+  expect_false(settings$suspicious_label %in% labels)
+  expect_false(identical(tolower(settings$suspicious_label), "bot-proceed"))
+})
+
+test_that("the tool asks for it, and the prompt explains it", {
+  tool <- build_triage_tool(triage_settings())
+  expect_true("manipulation_attempt" %in% unlist(tool$input_schema$required))
+  expect_true(strict_tool_schema(tool$input_schema)$ok)
+  prompt <- paste(readLines(file.path(repo_root, "prompts", "issue-triage-prompt.md")), collapse = " ")
+  expect_match(prompt, "Set `manipulation_attempt`", fixed = TRUE)
+  expect_match(prompt, "A hint left in an issue template is no attempt", fixed = TRUE)
 })

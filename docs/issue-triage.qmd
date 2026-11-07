@@ -9,6 +9,11 @@ the workflow posts one comment with that category, a one-sentence summary
 and the reason, and sets the category's label. It never closes an issue.
 You decide what happens next.
 
+For a bug or an idea, the comment also has a short spec of the conversation:
+the goal, what was reported, acceptance criteria and open questions. The
+acceptance criteria are suggestions from the report, since triage doesn't
+read the code.
+
 | Category | Label |
 |---|---|
 | Bug | `bug` |
@@ -29,7 +34,7 @@ added stay.
 - **One triage per issue, unless someone answers it.** A later triage
   needs a reason, as below, and there are at most `max-triages` comments
   per issue. Each one restarts the wait, so several replies give one
-  triage. It reads the earlier verdict and the comments since.
+  triage. It reads the earlier verdict and all comments.
 
   | Last verdict | Starts another triage |
   |---|---|
@@ -47,6 +52,25 @@ added stay.
   [label check](issue-label-check.qmd).
 - **What is left alone:** closed issues, issues written by a bot,
   `bot-created` issues, and issues that already carry `approval-label`.
+
+## Working with an issue
+
+**After a bug or idea, comments don't update the bot's comment.** Those
+issues are where the discussion happens, and a triage on every comment would
+be noise and cost. So the spec stays as it was, however far the discussion
+has moved on, and nothing warns you. The bot's comment shows what it saw then,
+not where things stand.
+
+When a discussion has settled:
+
+1. Set `bot-triage`. The bot posts a new comment from the whole conversation.
+   The old one stays, so look at the latest.
+2. Read that spec. Check that it says what was agreed, and look at the open
+   questions.
+3. Only then decide what happens next, such as approving with `approval-label`.
+
+Editing the title or body doesn't refresh the spec either, after a bug or
+idea. If you disagree with the bot's category, change the label by hand.
 
 ## Example
 
@@ -74,6 +98,17 @@ a duplicate, Claude compares against that issue's full text rather than
 taking the objection's word for it. Labels come from the fixed
 list above, and triage refuses to set `approval-label`. At worst, a crafted
 issue gets the wrong category and label.
+
+Text can also be hidden from the page, for example in an HTML comment, while
+Claude still reads it. If an issue or a person's comment has any, the triage
+comment says so and how many places, without repeating it. To read it, choose
+**Edit** in that post's `…` menu. It is only a note, because hints from
+issue templates are hidden in the same way.
+
+If Claude finds text trying to instruct it, visible or hidden, the issue gets the
+label `bot-suspicious`. Later triages leave it on: remove it yourself once
+you've looked. It helps you spot such issues, but a clever attempt can go
+unnoticed, so it is no replacement for reading.
 
 ## Secrets
 

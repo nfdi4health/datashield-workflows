@@ -1,6 +1,8 @@
 # What happened on an issue up to now, from its comments: the category and
-# text of the last triage, and the comments people wrote after it (bots
-# left out). Before a first triage: all people's comments, and no category.
+# text of the last triage, and every comment people wrote, oldest first
+# (bots left out). All of them, also those before the last triage: that
+# triage's text is only a summary, and a repeat has to read the conversation
+# itself, or it loses what was already said.
 # Only github-actions[bot]'s comments count as a triage, as in the gate:
 # anyone can copy the marker.
 triage_history <- function(comments) {
@@ -10,11 +12,10 @@ triage_history <- function(comments) {
   at <- which(vapply(comments, is_triage, logical(1)))
   last <- if (length(at) > 0) max(at) else 0L
 
-  later <- if (last < length(comments)) comments[seq(last + 1, length(comments))] else list()
-  later <- Filter(function(x) !is_bot(x), later)
+  people <- Filter(function(x) !is_bot(x), comments)
   list(
     category = if (last > 0) sub(paste0(marker, ".*"), "\\1", comments[[last]]$body) else NULL,
     comment = if (last > 0) comments[[last]]$body else NULL,
-    replies = lapply(later, function(x) list(author = x$user$login %||% "", body = x$body %||% ""))
+    replies = lapply(people, function(x) list(author = x$user$login %||% "", body = x$body %||% ""))
   )
 }
