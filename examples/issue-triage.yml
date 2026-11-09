@@ -13,8 +13,8 @@ jobs:
     # label (`triage-label`, default bot-triage). The gate checks all of
     # this again, so leaving it out only costs a few seconds per event.
     if: >-
-      !github.event.issue.pull_request &&
-      (github.event.action != 'labeled' || github.event.label.name == 'bot-triage')
+      ${{ !github.event.issue.pull_request &&
+      (github.event.action != 'labeled' || github.event.label.name == 'bot-triage') }}
     permissions:
       issues: write
       id-token: write
