@@ -585,8 +585,9 @@ test_that("a function's roxygen documentation is read from the default branch, n
   expect_true(doc$documented)
   expect_match(doc$text, "@param x A factor.\n@return Counts per level.", fixed = TRUE)
   expect_no_match(doc$text, "secret_code_line", fixed = TRUE)
-  for (left_out in c("login_example", "@examples", "@import", "@export")) {
-    expect_no_match(doc$text, left_out, fixed = TRUE)
+  # Examples, imports and the export stay: they are what some reports are about.
+  for (kept in c("@examples", "login_example()", "@import dplyr", "@export")) {
+    expect_match(doc$text, kept, fixed = TRUE)
   }
 
   settings$max_documentation_chars <- 10

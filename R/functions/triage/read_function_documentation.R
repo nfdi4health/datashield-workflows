@@ -1,8 +1,7 @@
 # The roxygen documentation of the function in one file of R/ on the
 # default branch, for the triage to compare a report with what the function
-# is documented to do: the call with its arguments and the block's text
-# (without examples, imports and export), cut to
-# settings$max_documentation_chars. Only the documentation, never
+# is documented to do: the call with its arguments and the whole block's
+# text, cut to settings$max_documentation_chars. Only the documentation, never
 # the code: triage decides whether behaviour is meant, not why it happens
 # (that is the implementer's work). `documented` is FALSE for a file whose
 # function has no roxygen block; NULL if the file can't be read or holds
@@ -21,22 +20,10 @@ read_function_documentation <- function(file, settings) {
     return(NULL)
   }
   usage <- sprintf("%s(%s)", parsed$fn_name, paste(parsed$params, collapse = ", "))
-  # Tags that say nothing about behaviour are left out: examples (often the
-  # longest part, a login and a call), imports and the export.
-  lines <- sub("^\\s*#'\\s?", "", parsed$roxygen_lines)
-  skip <- c("@examples", "@examplesIf", "@import", "@importFrom", "@export", "@rawNamespace", "@useDynLib")
-  dropping <- FALSE
-  kept <- character(0)
-  for (line in lines) {
-    tag <- regmatches(line, regexpr("^@[A-Za-z]+", line))
-    if (length(tag) == 1) {
-      dropping <- tag %in% skip
-    }
-    if (!dropping) {
-      kept <- c(kept, line)
-    }
-  }
-  text <- paste(kept, collapse = "\n")
+  # The whole block: examples too ("I followed your example" reports, and
+  # wrong examples are documentation bugs), imports and the export (an
+  # undeclared dependency, a function users can't reach).
+  text <- paste(sub("^\\s*#'\\s?", "", parsed$roxygen_lines), collapse = "\n")
   if (nchar(text) > settings$max_documentation_chars) {
     text <- paste0(substr(text, 1, settings$max_documentation_chars), "\n[... rest cut]")
   }

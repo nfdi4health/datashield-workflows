@@ -1064,7 +1064,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   also names up to `max_documented_functions` (3) files of the default
   branch's `R/` (`list_r_files()`, one contents call) the issue is about;
   their roxygen block (`read_function_documentation()`, via
-  `parse_r_file()`, without examples/imports/export, cut to
+  `parse_r_file()`, the whole block incl. examples, imports and export, cut to
   `max_documentation_chars`) goes into the triage prompt, never the code.
   Claude answers `documentation`: contradicts / matches / not_covered /
   none (+ `documentation_note`); the comment gets a "Documentation (files):
