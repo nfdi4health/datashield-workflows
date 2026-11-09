@@ -123,7 +123,11 @@ the live caller used to validate changes before wider rollout.
     `R/check_ds_naming.R`, `R/apply_ds_naming.R`, functions in
     `R/functions/ds-naming/`; generic `propose-branch` action. Design and
     state: [dev-notes/datashield-naming/](dev-notes/datashield-naming/README.md).
-  - `issue-triage.yml` — first look at new issues, one Claude call: gate
+  - `issue-triage.yml` — first look at new issues, two Claude calls (a
+    cheap shortlist of related issues, Haiku 5.5, profile
+    `issue-triage-shortlist`; then the triage, which reads up to
+    `max_related_issues` (5) of them in full with their discussion,
+    `read_related_issue()`; since 2026-11-09): gate
     (composite action `issue-triage-gate`), wait (`wait-minutes`, default
     10; `concurrency` per issue, so each edit or answering comment restarts
     it; a separate job, so a comment that is ignored cancels nothing), gate
@@ -280,7 +284,22 @@ Details per workflow: [dev-notes/roxygen-suggest.md](dev-notes/roxygen-suggest.m
   task (`roxygen-review`, `test-review`, `test-failure-classification`),
   read with `claude_settings(profile)` (default merged with the profile;
   no `config` package, no `R_CONFIG_ACTIVE` — since 2026-10-19 on
-  `v1/foundation`). Every Claude call goes through
+  `v1/foundation`). **Inputs per Claude call** (2026-11-09, user): model,
+  max-tokens and effort, named after what the call does where a workflow
+  has several (`review-*` / `classification-*` in tests, `triage-*` in
+  triage; plain `model` / `max-tokens` / `effort` in roxygen, analysis,
+  naming check). Passed as `CLAUDE_MODEL_<PROFILE>`,
+  `CLAUDE_MAX_TOKENS_<PROFILE>`, `CLAUDE_EFFORT_<PROFILE>` (profile in
+  capitals, `_` for `-`); `claude_settings()` lets them replace the
+  profile's, also where no caller checkout exists (triage), and stops on
+  an unknown effort. `adapt_to_model()` then fits the profile to the model
+  from `model_rules` in `config/claude.yml` (no forced tool choice →
+  `auto`; no disabled thinking → adaptive; no server-side fallback →
+  dropped with its beta; no effort → dropped), so any model can be named.
+  Keep `model_rules` current when models come out. **Docs pending:** the
+  input tables update themselves; a short note on `suggestions.qmd` /
+  `claude-setup.qmd` (choosing a model, effort, thinking counts towards
+  `max-tokens`), roadmap "Recent changes". Every Claude call goes through
   `call_claude_tool()` (forced tool call; it sets the tool name from config).
 - **Claude returns fields, R assembles the output.** Never trust prompt
   wording where a structural constraint (schema field, `maxItems`, enum)
@@ -1029,11 +1048,38 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   comments and other labels. Not changed (user, 2026-11-09: leave it,
   revisit if it causes problems): a `bot-triage` request shares the
   concurrency group, so a qualifying comment within its run cancels it
-  (label removed anyway). The model can't be changed by a caller: triage
-  checks out no caller repository, so a project's `config/claude.yml`
-  never reaches it; an input would be needed (user: decide after looking
-  at the costs). **Docs pending:** `issue-triage.qmd` (closed
-  issues in "Issue text is untrusted" and duplicates, the `if:` in the
+  (label removed anyway). **Shortlist (2026-11-09, user):** the triage
+  compared against the other issues' bodies only; now a first call
+  (`shortlist_related_issues()`, inputs `shortlist-*`) names at most 5
+  open or recently closed issues from title + start of text
+  (`shortlist_body_chars`, 1000), and the triage gets those with body and
+  comments (`max_related_chars`, body at most a third, newest comments
+  kept; other bots' comments stay, e.g. the test bot's "still failing"
+  updates on the issues it opens, only triage's own are left out) next to a titles-only list of all others
+  (`format_issue_list()`); a disputed duplicate comes with its discussion
+  too. A failed shortlist call only leaves the related issues out.
+  Removed: `format_open_issues()`, `format_closed_issues()`,
+  `max_open_issue_chars`, `max_open_issues_chars`. **Documentation, not
+  code (2026-11-09, user chose B over reading the code):** the shortlist
+  also names up to `max_documented_functions` (3) files of the default
+  branch's `R/` (`list_r_files()`, one contents call) the issue is about;
+  their roxygen block (`read_function_documentation()`, via
+  `parse_r_file()`, the whole block incl. examples, imports and export, cut to
+  `max_documentation_chars`) goes into the triage prompt, never the code.
+  Claude answers `documentation`: contradicts / matches / not_covered /
+  none (+ `documentation_note`); the comment gets a "Documentation (files):
+  …" line (wording `documentation_verdicts`). Reason: triage decides
+  whether behaviour is meant, not why it happens, so it doesn't do the
+  implementer's diagnosis halfway, stays cheap, and the spec gets a
+  documented contract; wrong or missing docs are its limit. Also the
+  package's declared dependencies (`read_declared_dependencies()`, one
+  contents call, `description_fields`): a package a function uses
+  (`@import`) or an error names but DESCRIPTION doesn't declare installs
+  and then fails, which the prompt calls a `bug` (user's case; R CMD
+  check flags it too). **Docs pending:** `issue-triage.qmd` (closed
+  issues in "Issue text is untrusted" and duplicates, the shortlist and
+  related issues read with their discussion, the `shortlist-*` inputs,
+  the documentation line and what it means, the `if:` in the
   example section, `allowed-logins` empty by default: requests need it),
   `issue-label-check.qmd`
   (`allowed-logins` required), roadmap "Recent changes". All open points, also of other work done

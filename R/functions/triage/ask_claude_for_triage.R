@@ -12,13 +12,19 @@ ask_claude_for_triage <- function(claude, issue, settings) {
     REPOSITORY = repo,
     DESCRIPTION = if (nzchar(issue$repository_description)) issue$repository_description else "(none given)",
     CATEGORIES = paste(sprintf("- `%s`: %s", names(meanings), meanings), collapse = "\n"),
-    OPEN_ISSUES = format_open_issues(issue$open_issues, settings),
-    CLOSED_ISSUES = format_closed_issues(issue$closed_issues),
+    OPEN_ISSUES = format_issue_list(issue$open_issues),
+    CLOSED_ISSUES = format_issue_list(issue$closed_issues),
+    RELATED_ISSUES = format_related_issues(issue$related),
+    DOCUMENTATION = format_documentation(issue$documentation),
+    DEPENDENCIES = if (nzchar(issue$dependencies %||% "")) issue$dependencies else "(no DESCRIPTION)",
     TITLE = issue$title,
     BODY = if (nzchar(body)) body else "(empty)",
     HISTORY = format_triage_history(issue, settings)
   ))
   answer <- call_claude_tool(claude, build_triage_tool(settings), prompt)
+  if (!is.null(answer$documentation) && !answer$documentation %in% names(settings$documentation_verdicts)) {
+    stop(sprintf("Unknown documentation verdict: %s", answer$documentation), call. = FALSE)
+  }
   if (!answer$category %in% names(settings$categories)) {
     stop(sprintf("Unknown triage category: %s", answer$category), call. = FALSE)
   }

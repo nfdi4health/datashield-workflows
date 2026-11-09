@@ -1,10 +1,12 @@
 # The issue as it stands now, not as the event gave it: the run has waited,
 # and the text may have changed. With the repository's description, the
-# other open issues with their text and the most recently closed ones by
-# title (settings$max_closed_issues), for spotting duplicates (pull
+# other open issues and the most recently closed ones
+# (settings$max_closed_issues), for the shortlist of related issues (pull
 # requests come in the same lists and are left out), and the last triage
 # with what people have written since (triage_history(), from all
-# comments, as the gate reads them). Without those the triage still works.
+# comments, as the gate reads them), including the issue an earlier
+# verdict called this a duplicate of, with its discussion
+# (read_disputed_issue()). Without those the triage still works.
 read_issue_for_triage <- function(number, settings) {
   issue <- get_github_json(sprintf("/repos/%s/issues/%s", repo, number))
   if (is.null(issue)) {
@@ -39,12 +41,15 @@ read_issue_for_triage <- function(number, settings) {
     closed_issues = data.frame(
       number = vapply(closed, function(x) as.integer(x$number), integer(1)),
       title = vapply(closed, function(x) x$title %||% "", character(1)),
+      body = vapply(closed, function(x) x$body %||% "", character(1)),
       state_reason = vapply(closed, function(x) x$state_reason %||% "", character(1))
     ),
+    r_files = list_r_files(),
+    dependencies = read_declared_dependencies(settings),
     previous_category = history$category,
     previous_comment = history$comment,
     replies = history$replies,
-    disputed = read_disputed_issue(history$category, history$comment),
+    disputed = read_disputed_issue(history$category, history$comment, settings),
     hidden_text = count_hidden_text(c(issue$title, issue$body, lapply(history$replies, function(x) x$body)))
   )
 }

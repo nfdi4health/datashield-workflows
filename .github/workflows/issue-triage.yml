@@ -1,8 +1,8 @@
 name: Issue Triage
 
-# First look at a new issue (dev-notes/issue-agents.md): one Claude call
-# on the API, one comment with a category and a short reason, and the
-# category's label. It never closes an issue, and can't set the approval
+# First look at a new issue (dev-notes/issue-agents.md): two Claude calls
+# on the API (a cheap shortlist of related issues, then the triage), one
+# comment with a category and a short reason, and the category's label. It never closes an issue, and can't set the approval
 # label. It waits for a quiet issue: each edit or answering comment cancels
 # a waiting run through `concurrency` and so restarts the wait. One triage
 # per issue, repeated if someone answers it (the gate action has the rules).
@@ -36,6 +36,36 @@ on:
         default: 'bot-triage'
       allowed-logins:
         description: 'Who may ask for a triage by label (`triage-label`): exact GitHub logins, separated by commas or spaces. Empty: nobody can; the triage of new issues, edits and answers works without it.'
+        required: false
+        type: string
+        default: ''
+      triage-model:
+        description: 'Claude model for the triage (e.g. claude-sonnet-5-5), instead of the one in config/claude.yml; settings the model rejects are adapted (model_rules there). Empty: the config''s.'
+        required: false
+        type: string
+        default: ''
+      triage-max-tokens:
+        description: 'Most tokens per answer for the triage, thinking included; a model that thinks needs room for it. 0: the config''s.'
+        required: false
+        type: number
+        default: 0
+      triage-effort:
+        description: 'How much Claude thinks for the triage: low, medium, high, xhigh or max. More costs more. Empty: the config''s, else the model''s default.'
+        required: false
+        type: string
+        default: ''
+      shortlist-model:
+        description: 'Claude model for the shortlist, the first, cheap call that picks the issues the new one may be about (e.g. claude-haiku-5-5), instead of the one in config/claude.yml; settings the model rejects are adapted (model_rules there). Empty: the config''s.'
+        required: false
+        type: string
+        default: ''
+      shortlist-max-tokens:
+        description: 'Most tokens per answer for the shortlist, thinking included. 0: the config''s.'
+        required: false
+        type: number
+        default: 0
+      shortlist-effort:
+        description: 'How much Claude thinks for the shortlist: low, medium, high, xhigh or max. Empty: the config''s, else the model''s default.'
         required: false
         type: string
         default: ''
@@ -129,6 +159,12 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
+          CLAUDE_MODEL_ISSUE_TRIAGE: ${{ inputs.triage-model }}
+          CLAUDE_MAX_TOKENS_ISSUE_TRIAGE: ${{ inputs.triage-max-tokens }}
+          CLAUDE_EFFORT_ISSUE_TRIAGE: ${{ inputs.triage-effort }}
+          CLAUDE_MODEL_ISSUE_TRIAGE_SHORTLIST: ${{ inputs.shortlist-model }}
+          CLAUDE_MAX_TOKENS_ISSUE_TRIAGE_SHORTLIST: ${{ inputs.shortlist-max-tokens }}
+          CLAUDE_EFFORT_ISSUE_TRIAGE_SHORTLIST: ${{ inputs.shortlist-effort }}
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ steps.gate.outputs.number }}
           APPROVAL_LABEL: ${{ inputs.approval-label }}

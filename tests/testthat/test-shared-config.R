@@ -39,4 +39,62 @@ test_that("claude_settings() merges default, profile and the project's copy", {
   expect_equal(s$max_tokens, 200L)
   expect_equal(s$tool_name, "submit")
   expect_error(claude_settings("nope"), "No profile 'nope'")
+  expect_error(claude_settings("model_rules"), "No profile 'model_rules'")
+})
+
+test_that("a call's inputs (model, max-tokens, effort) replace its profile's; empty or 0 keep it", {
+  local_project_with_shared(
+    c("default:", "  anthropic:", "    model: base-model", "    max_tokens: 100",
+      "test-review:", "  anthropic:", "    tool_name: submit", "    effort: high",
+      "other:", "  anthropic:", "    tool_name: other"),
+    path = "config/claude.yml"
+  )
+  withr::local_envvar(CLAUDE_MODEL_TEST_REVIEW = "input-model", CLAUDE_MAX_TOKENS_TEST_REVIEW = "9000",
+                      CLAUDE_EFFORT_TEST_REVIEW = "Low")
+  s <- claude_settings("test-review")$anthropic
+  expect_equal(s$model, "input-model")
+  expect_equal(s$max_tokens, 9000L)
+  expect_equal(s$effort, "low")
+  # Another call of the same run keeps its own settings.
+  expect_equal(claude_settings("other")$anthropic$model, "base-model")
+
+  withr::local_envvar(CLAUDE_MODEL_TEST_REVIEW = "", CLAUDE_MAX_TOKENS_TEST_REVIEW = "0", CLAUDE_EFFORT_TEST_REVIEW = "")
+  s <- claude_settings("test-review")$anthropic
+  expect_equal(s$model, "base-model")
+  expect_equal(s$max_tokens, 100L)
+  expect_equal(s$effort, "high")
+
+  withr::local_envvar(CLAUDE_EFFORT_TEST_REVIEW = "extreme")
+  expect_error(claude_settings("test-review"), "Unknown effort 'extreme'")
+})
+
+test_that("a profile is fitted to what its model accepts", {
+  rules <- list(no_forced_tool_choice = list("new-model"), no_disabled_thinking = list("new-model"),
+                server_side_fallbacks = list("big-model"), no_effort = list("old-model"))
+  profile <- list(model = "new-model", tool_choice_type = "tool", thinking = list(type = "disabled"),
+                  fallbacks = "default", betas = list("server-side-fallback-2026-07-01", "other-beta"))
+  expect_message(fitted <- adapt_to_model(profile, rules), "rejects forced tool calls")
+  expect_equal(fitted$tool_choice_type, "auto")
+  expect_equal(fitted$thinking, list(type = "adaptive"))
+  expect_null(fitted$fallbacks)
+  expect_equal(fitted$betas, "other-beta")
+
+  big <- adapt_to_model(utils::modifyList(profile, list(model = "big-model", thinking = list(type = "adaptive"))), rules)
+  expect_equal(big$tool_choice_type, "tool")
+  expect_equal(big$fallbacks, "default")
+  expect_length(big$betas, 2)
+
+  # A model in no list is sent as the profile says.
+  plain <- utils::modifyList(profile, list(model = "plain-model", fallbacks = NULL, betas = NULL, effort = "low"))
+  expect_identical(suppressMessages(adapt_to_model(plain, rules)), plain)
+  expect_null(suppressMessages(adapt_to_model(utils::modifyList(plain, list(model = "old-model")), rules))$effort)
+})
+
+test_that("the shared config's profiles all fit their models, and the rules exist", {
+  cfg <- yaml::read_yaml(file.path(repo_root, "config", "claude.yml"))
+  expect_true(all(c("no_forced_tool_choice", "no_disabled_thinking", "server_side_fallbacks", "no_effort") %in% names(cfg$model_rules)))
+  for (profile in setdiff(names(cfg), c("default", "model_rules"))) {
+    s <- utils::modifyList(cfg$default, cfg[[profile]])$anthropic
+    expect_identical(suppressMessages(adapt_to_model(s, cfg$model_rules)), s, info = profile)
+  }
 })

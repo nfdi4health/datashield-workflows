@@ -2,9 +2,13 @@
 # First look at an issue: run by issue-triage.yml once the gate
 # (.github/actions/issue-triage-gate) has decided it is needed.
 #   1. read the issue as it stands now, the repository's description and
-#      the titles of the other open issues;
-#   2. Claude answers through a forced tool: a category and short fields;
-#   3. R writes the comment, with the marker the gate looks for, and sets
+#      the other open and recently closed issues;
+#   2. a cheap first call shortlists the issues it may be about, read in
+#      full with their discussion, and the functions it is about, whose
+#      roxygen documentation is read (never their code), next to the
+#      dependencies the package declares in DESCRIPTION;
+#   3. Claude answers through its tool: a category and short fields;
+#   4. R writes the comment, with the marker the gate looks for, and sets
 #      the category's label. It never closes an issue.
 # The issue's text is untrusted: it only reaches Claude, and what Claude
 # says about it is cut down to plain text before it is posted.
@@ -27,7 +31,12 @@ number <- Sys.getenv("ISSUE_NUMBER")
 
 settings <- read_config_yaml("config/issue-triage.yml")
 issue <- read_issue_for_triage(number, settings)
-claude <- claude_client("issue-triage", "prompts/issue-triage-prompt.md")
+auth <- claude_auth()
+shortlist <- claude_client("issue-triage-shortlist", "prompts/issue-triage-shortlist-prompt.md", auth)
+picked <- shortlist_related_issues(shortlist, issue, settings)
+issue$related <- lapply(picked$issues, read_related_issue, settings = settings)
+issue$documentation <- lapply(picked$files, read_function_documentation, settings = settings)
+claude <- claude_client("issue-triage", "prompts/issue-triage-prompt.md", auth)
 answer <- ask_claude_for_triage(claude, issue, settings)
 
 posted <- post_github_json(
