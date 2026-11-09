@@ -1,0 +1,81 @@
+name: Implementer Log
+
+# Daily, in the runner repository: adds to the implementer's event log
+# (branch `log-branch`, events.json, append-only) what the target
+# repositories' issue timelines and the runner's own runs show, and rebuilds
+# status.csv from it (dev-notes/implementer-plan.md, "Log"). Entries already
+# in the log are never changed, so nothing is lost when GitHub forgets an
+# issue or a run.
+on:
+  workflow_call:
+    inputs:
+      targets:
+        description: 'The same targets JSON as implement-issue.yml.'
+        required: true
+        type: string
+      allowed-logins:
+        description: 'The same allowed logins: only their approvals count as one in status.csv.'
+        required: true
+        type: string
+      runner-workflow:
+        description: "The runner's workflow file, whose runs (and minutes) are logged."
+        required: false
+        type: string
+        default: 'implement-issue.yml'
+      log-branch:
+        required: false
+        type: string
+        default: 'log'
+      release-labels:
+        description: 'Labels of release-issues.yml that count as merged into dev and released.'
+        required: false
+        type: string
+        default: 'next-release released'
+    secrets:
+      app-client-id:
+        required: true
+      app-private-key:
+        required: true
+
+permissions: {}
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write   # the log branch
+      actions: read     # the runner's runs
+    steps:
+      - name: The App installation of the targets
+        id: owner
+        env:
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          echo "owner=$(jq -r 'keys[0] | split("/")[0]' <<< "$TARGETS")" >> "$GITHUB_OUTPUT"
+          echo "names=$(jq -r '[keys[] | split("/")[1]] | join(",")' <<< "$TARGETS")" >> "$GITHUB_OUTPUT"
+
+      - name: Read-only token for the target repositories
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ steps.owner.outputs.owner }}
+          repositories: ${{ steps.owner.outputs.names }}
+          permission-issues: read
+          permission-pull-requests: read
+
+      - name: Update the log
+        uses: $/.github/actions/implementer
+        with:
+          command: log-update
+        env:
+          TARGETS: ${{ inputs.targets }}
+          ALLOWED_LOGINS: ${{ inputs.allowed-logins }}
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          LOG_TOKEN: ${{ github.token }}
+          LOG_REPOSITORY: ${{ github.repository }}
+          LOG_BRANCH: ${{ inputs.log-branch }}
+          RUNNER_WORKFLOW: ${{ inputs.runner-workflow }}
+          RELEASE_LABELS: ${{ inputs.release-labels }}

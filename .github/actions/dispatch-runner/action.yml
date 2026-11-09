@@ -1,0 +1,68 @@
+name: Dispatch runner
+description: >
+  Starts the implementer's runner (a workflow_dispatch in its repository),
+  which then works through the approved issues. With an App's client ID and
+  key it makes a token for that repository only, with Actions permission
+  only; otherwise it uses the token given. Nothing is passed to the run:
+  the runner reads its work from the labels.
+
+inputs:
+  repository:
+    description: 'The runner repository, owner/name.'
+    required: true
+  workflow:
+    description: 'The runner workflow file.'
+    required: false
+    default: 'implement-issue.yml'
+  ref:
+    description: 'The branch the runner workflow runs on.'
+    required: false
+    default: 'main'
+  app-client-id:
+    description: 'Client ID of an App installed on the runner repository with Actions: read and write.'
+    required: false
+    default: ''
+  app-private-key:
+    description: 'Its private key.'
+    required: false
+    default: ''
+  token:
+    description: 'Otherwise: a token that may start workflows in the runner repository.'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Split the repository name
+      id: repo
+      shell: bash
+      env:
+        REPOSITORY: ${{ inputs.repository }}
+      run: |
+        [[ "$REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "Not owner/name: $REPOSITORY" >&2; exit 1; }
+        echo "owner=${REPOSITORY%%/*}" >> "$GITHUB_OUTPUT"
+        echo "name=${REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
+
+    - name: Token for the runner repository
+      id: app
+      if: inputs.app-client-id != ''
+      uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+      with:
+        client-id: ${{ inputs.app-client-id }}
+        private-key: ${{ inputs.app-private-key }}
+        owner: ${{ steps.repo.outputs.owner }}
+        repositories: ${{ steps.repo.outputs.name }}
+        permission-actions: write
+
+    - name: Start the runner
+      shell: bash
+      env:
+        GH_TOKEN: ${{ steps.app.outputs.token || inputs.token }}
+        REPOSITORY: ${{ inputs.repository }}
+        WORKFLOW: ${{ inputs.workflow }}
+        REF: ${{ inputs.ref }}
+      run: |
+        [ -n "$GH_TOKEN" ] || { echo "No App and no token for the runner repository." >&2; exit 1; }
+        gh workflow run "$WORKFLOW" --repo "$REPOSITORY" --ref "$REF"
+        echo "Started $WORKFLOW in $REPOSITORY."

@@ -41,7 +41,8 @@ run_check() {
   jq -n --arg action "$1" --arg sender "$2" --arg label "$3" \
     '{action: $action, sender: {login: $sender}, label: {name: $label},
       issue: {number: 7, title: "$(touch pwned-title)"}}' > "$WORK/event.json"
-  (cd "$WORK" && PATH="$BIN:$PATH" GITHUB_EVENT_NAME="${EVENT_NAME:-issues}" GITHUB_EVENT_PATH="$WORK/event.json" \
+  : > "$WORK/output"
+  (cd "$WORK" && PATH="$BIN:$PATH" GITHUB_EVENT_NAME="${EVENT_NAME:-issues}" GITHUB_EVENT_PATH="$WORK/event.json" GITHUB_OUTPUT="$WORK/output" \
     GITHUB_REPOSITORY=me/pkg LABEL="${5:-bot-proceed}" ALLOWED_LOGINS="${4-FlorianSchw}" OTHER_LABELS="${OTHER:-}" \
     bash "$ACTION/issue-label-check.sh" > "$WORK/out.txt" 2>&1)
 }
@@ -57,9 +58,11 @@ comments()  { grep -c 'issues/7/comments' "$WORK/calls"; }
 
 run_check labeled FlorianSchw bot-proceed; status=$?
 [ "$status" = 0 ] && no_calls; check "allowed user: the label stays" $?
+grep -qx 'approved=true' "$WORK/output"; check "allowed user: the approval is reported (starts the runner)" $?
 
 run_check labeled someone bot-proceed
 removed bot-proceed && [ "$(comments)" = 1 ]; check "other user: removed, one comment" $?
+[ ! -s "$WORK/output" ]; check "other user: no approval reported" $?
 grep -q 'body=Removed `bot-proceed`: only the people named' "$WORK/calls"; check "other user: the comment says why" $?
 [ "$(grep -n . "$WORK/calls" | grep -m 1 DELETE | cut -d: -f1)" = 1 ]; check "removal before the comment" $?
 
@@ -101,6 +104,7 @@ run_check labeled someone '$(touch pwned-label)' FlorianSchw '$(touch pwned-labe
 OTHER='bot-triage, other thing' run_check labeled someone bot-triage
 removed bot-triage && [ "$(comments)" = 1 ]; check "other label, other user: removed, one comment" $?
 OTHER=bot-triage run_check labeled FlorianSchw bot-triage
+[ ! -s "$WORK/output" ]; check "another guarded label by an allowed user: no approval reported" $?
 no_calls; check "other label, allowed user: stays" $?
 OTHER='bot-triage, other thing' run_check labeled someone 'other thing'
 removed 'other%20thing'; check "other labels: a list, with spaces in a name" $?
@@ -170,8 +174,9 @@ run_check labeled someone bot-proceed; status=$?
 FILES=("$ROOT/.github/workflows/issue-label-check.yml" "$ACTION/action.yml")
 ! grep -q 'actions/checkout' "${FILES[@]}"; check "no checkout" $?
 ! grep -q 'github\.event' "${FILES[@]}"; check "no event fields in expressions" $?
-[ "$(sed -n '/^jobs:/,$p' "${FILES[0]}" | sed -n '/permissions:/,/steps:/p' | grep -c ': ')" = 1 ] \
-  && grep -q '^      issues: write$' "${FILES[0]}"; check "issues: write is the only permission" $?
+[ "$(sed -n '/^  check-label:/,/^  start-runner:/p' "${FILES[0]}" | sed -n '/^    permissions:/,/^    outputs:/p' | grep -c ': ')" = 1 ] \
+  && grep -q '^      issues: write$' "${FILES[0]}"; check "issues: write is the only permission of the check" $?
+[ "$(sed -n '/^  start-runner:/,$p' "${FILES[0]}" | grep -c '^    permissions: {}$')" = 1 ]; check "starting the runner needs no permission here" $?
 
 echo "$passed passed, $failed failed"
 [ "$failed" = 0 ]

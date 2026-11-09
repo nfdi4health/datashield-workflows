@@ -1,0 +1,90 @@
+name: Implementer Timer
+
+# After the implementer stopped at the subscription's 5-hour limit, it sends
+# a repository_dispatch (event type `implementer-timer`, `reset_at` in its
+# payload) to the target repository whose issue it was working on. This
+# workflow, called from there, waits until the reset and then starts the
+# runner again (dev-notes/implementer-plan.md, "Subscription limits"). It
+# runs in the public target repository, where waiting costs no Actions
+# minutes. A reset further away than `max-wait-minutes` is not waited for:
+# the next approval or a manual start continues then.
+on:
+  workflow_call:
+    inputs:
+      runner-repository:
+        description: 'The runner repository, owner/name.'
+        required: true
+        type: string
+      runner-workflow:
+        description: 'The runner workflow file.'
+        required: false
+        type: string
+        default: 'implement-issue.yml'
+      runner-ref:
+        description: 'The branch the runner workflow runs on.'
+        required: false
+        type: string
+        default: 'main'
+      margin-minutes:
+        description: 'Waited beyond the reset time.'
+        required: false
+        type: number
+        default: 5
+      max-wait-minutes:
+        description: 'The longest wait; a hosted job ends after 6 hours.'
+        required: false
+        type: number
+        default: 345
+    secrets:
+      dispatch-app-client-id:
+        description: 'Client ID of an App installed on the runner repository with Actions: read and write only.'
+        required: false
+      dispatch-app-private-key:
+        description: 'Its private key.'
+        required: false
+      dispatch-token:
+        description: 'Otherwise: a token that may start workflows in the runner repository.'
+        required: false
+
+permissions: {}
+
+jobs:
+  wait:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions: {}
+    steps:
+      - name: Wait until the limit resets
+        id: wait
+        env:
+          MARGIN: ${{ inputs.margin-minutes }}
+          MAX_WAIT: ${{ inputs.max-wait-minutes }}
+        run: |
+          reset="$(jq -r '.client_payload.reset_at // ""' "$GITHUB_EVENT_PATH")"
+          if ! [[ "$reset" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z$ ]] || ! target="$(date -d "$reset" +%s 2> /dev/null)"; then
+            echo "No valid reset time in the event, nothing to wait for."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          seconds=$(( target - $(date +%s) + MARGIN * 60 ))
+          if [ "$seconds" -gt $(( MAX_WAIT * 60 )) ]; then
+            echo "The limit resets at $reset, beyond the longest wait. The next start continues."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$seconds" -gt 0 ]; then
+            echo "Waiting $(( seconds / 60 )) minutes, until $reset plus $MARGIN."
+            sleep "$seconds"
+          fi
+          echo "go=true" >> "$GITHUB_OUTPUT"
+
+      - name: Start the runner
+        if: steps.wait.outputs.go == 'true'
+        uses: $/.github/actions/dispatch-runner
+        with:
+          repository: ${{ inputs.runner-repository }}
+          workflow: ${{ inputs.runner-workflow }}
+          ref: ${{ inputs.runner-ref }}
+          app-client-id: ${{ secrets.dispatch-app-client-id }}
+          app-private-key: ${{ secrets.dispatch-app-private-key }}
+          token: ${{ secrets.dispatch-token }}

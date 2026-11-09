@@ -1,0 +1,31 @@
+name: Implementer
+description: >
+  The steps of implement-issue.yml and implementer-log.yml that aren't
+  Claude: picking the next approved issue, checking its approval, the
+  checks between rounds, the outcome, publishing, the log. Settings come
+  through the step's env (see implementer.mjs); nothing from an issue is
+  written into a script.
+
+inputs:
+  command:
+    description: 'pick, verify, prompt, settings, checks, round, outcome, publish, cleanup, log-run or log-update.'
+    required: true
+  working-directory:
+    description: 'Where the command runs.'
+    required: false
+    default: '.'
+
+runs:
+  using: composite
+  steps:
+    - name: Run ${{ inputs.command }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        COMMAND: ${{ inputs.command }}
+      run: |
+        if [ "$COMMAND" = checks ]; then
+          bash "$GITHUB_ACTION_PATH/run-checks.sh"
+        else
+          node "$GITHUB_ACTION_PATH/implementer.mjs" "$COMMAND"
+        fi

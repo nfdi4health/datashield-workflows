@@ -1,0 +1,730 @@
+name: Implement Issue
+
+# The implementer (step 3 of the issue flow, dev-notes/implementer-plan.md):
+# works through the issues a maintainer approved with the approval label,
+# one per run, and opens a pull request for each. Called from a private
+# runner repository that holds the subscription token; that caller sets
+# `concurrency` (one run at a time) and grants contents: write (the log)
+# and actions: write (the next run).
+#
+#   pick       the next approved issue: the requested one, else the oldest
+#              approval; checks the approval, marks it as running
+#   implement  the agent on its own machine, with no token that can write:
+#              a writer, the checks, a maintainability reviewer, up to two
+#              correction rounds, a disclosure reviewer; the result is a git
+#              bundle and text files
+#   publish    a clean machine that never runs the agent: checks the
+#              approval again, pushes, opens the pull request (a draft if
+#              the attempt failed), comments, sets the labels, starts the
+#              timer after a 5-hour limit
+#   finish     logs the run and starts the next one
+#
+# Nothing in a dispatch or an issue is trusted: every fact is read back
+# from GitHub, and issue text reaches scripts only through files and env.
+on:
+  workflow_call:
+    inputs:
+      targets:
+        description: 'The repositories the runner works on, as JSON: {"owner/name": {"base": "dev", "setup": "r", "server": "owner/server-package"}}. One owner (one App installation). `server` (optional) is checked out for the disclosure reviewer.'
+        required: true
+        type: string
+      allowed-logins:
+        description: 'Who may approve: exact GitHub logins, separated by commas or spaces. Only an approval label set by one of them counts.'
+        required: true
+        type: string
+      repository:
+        description: 'Optional: a target repository whose issue goes first.'
+        required: false
+        type: string
+        default: ''
+      issue:
+        description: 'Optional: that issue.'
+        required: false
+        type: string
+        default: ''
+      model:
+        description: 'Model of the writer.'
+        required: false
+        type: string
+        default: 'claude-sonnet-5-5'
+      review-model:
+        description: 'Model of the reviewers.'
+        required: false
+        type: string
+        default: 'claude-sonnet-5-5'
+      max-turns:
+        description: 'Turns of the writer per round.'
+        required: false
+        type: string
+        default: '80'
+      review-max-turns:
+        description: 'Turns of a reviewer.'
+        required: false
+        type: string
+        default: '40'
+      correction-rounds:
+        description: 'Correction rounds (0 to 2) after the first attempt.'
+        required: false
+        type: string
+        default: '2'
+      allowed-hosts:
+        description: "The hosts the agent's commands may reach (Claude Code's sandbox), separated by spaces or commas."
+        required: false
+        type: string
+        default: 'cloud.r-project.org p3m.dev packagemanager.posit.co rspm-sync.rstudio.com bioconductor.posit.co bioconductor.org github.com api.github.com codeload.github.com objects.githubusercontent.com release-assets.githubusercontent.com'
+      timeout-minutes:
+        description: "Time limit of the agent's job."
+        required: false
+        type: number
+        default: 150
+      triage-author:
+        description: 'The login that writes triage comments (issue-triage.yml with GITHUB_TOKEN).'
+        required: false
+        type: string
+        default: 'github-actions[bot]'
+      spec-categories:
+        description: 'Triage categories whose comment is a spec.'
+        required: false
+        type: string
+        default: 'bug idea'
+      type-labels:
+        description: 'Issue label -> commit type, as JSON. The type decides the branch and the pull request title.'
+        required: false
+        type: string
+        default: '{"bug": "fix", "enhancement": "feat"}'
+      log-branch:
+        description: "Branch of the caller's repository with the event log (empty: no log)."
+        required: false
+        type: string
+        default: 'log'
+      timer-event:
+        description: 'repository_dispatch event type sent to the target repository after a 5-hour limit (empty: no timer).'
+        required: false
+        type: string
+        default: 'implementer-timer'
+      label-proceed:
+        required: false
+        type: string
+        default: 'bot-proceed'
+      label-in-progress:
+        required: false
+        type: string
+        default: 'bot-in-progress'
+      label-completed:
+        required: false
+        type: string
+        default: 'bot-completed'
+      label-failed:
+        required: false
+        type: string
+        default: 'bot-failed'
+      label-needs-input:
+        required: false
+        type: string
+        default: 'bot-needs-input'
+      label-suspicious:
+        required: false
+        type: string
+        default: 'bot-suspicious'
+    secrets:
+      claude-code-oauth-token:
+        description: 'From `claude setup-token`: the subscription the agent runs on.'
+        required: true
+      app-client-id:
+        description: 'Client ID of the GitHub App installed on the target repositories (contents, pull requests and issues: read and write).'
+        required: true
+      app-private-key:
+        description: 'Its private key.'
+        required: true
+
+permissions: {}
+
+env:
+  TARGETS: ${{ inputs.targets }}
+  ALLOWED_LOGINS: ${{ inputs.allowed-logins }}
+  TRIAGE_AUTHOR: ${{ inputs.triage-author }}
+  SPEC_CATEGORIES: ${{ inputs.spec-categories }}
+  TYPE_LABELS: ${{ inputs.type-labels }}
+  LABEL_PROCEED: ${{ inputs.label-proceed }}
+  LABEL_IN_PROGRESS: ${{ inputs.label-in-progress }}
+  LABEL_COMPLETED: ${{ inputs.label-completed }}
+  LABEL_FAILED: ${{ inputs.label-failed }}
+  LABEL_NEEDS_INPUT: ${{ inputs.label-needs-input }}
+  LABEL_SUSPICIOUS: ${{ inputs.label-suspicious }}
+
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read   # the log
+    outputs:
+      found: ${{ steps.pick.outputs.found }}
+      repository: ${{ steps.pick.outputs.repository }}
+      owner: ${{ steps.pick.outputs.owner }}
+      name: ${{ steps.pick.outputs.name }}
+      issue: ${{ steps.pick.outputs.issue }}
+      base: ${{ steps.pick.outputs.base }}
+      setup: ${{ steps.pick.outputs.setup }}
+      server: ${{ steps.pick.outputs.server }}
+      type: ${{ steps.pick.outputs.type }}
+      branch: ${{ steps.pick.outputs.branch }}
+      spec_sha: ${{ steps.pick.outputs.spec_sha }}
+      existing_pr: ${{ steps.pick.outputs.existing_pr }}
+    steps:
+      - name: The App installation of the targets
+        id: owner
+        run: |
+          echo "owner=$(jq -r 'keys[0] | split("/")[0]' <<< "$TARGETS")" >> "$GITHUB_OUTPUT"
+          echo "names=$(jq -r '[keys[] | split("/")[1]] | join(",")' <<< "$TARGETS")" >> "$GITHUB_OUTPUT"
+
+      - name: Token for the target repositories
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ steps.owner.outputs.owner }}
+          repositories: ${{ steps.owner.outputs.names }}
+          permission-contents: read
+          permission-issues: write
+          permission-pull-requests: read
+
+      - name: Pick the next approved issue
+        id: pick
+        uses: $/.github/actions/implementer
+        with:
+          command: pick
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          LOG_TOKEN: ${{ github.token }}
+          LOG_REPOSITORY: ${{ github.repository }}
+          LOG_BRANCH: ${{ inputs.log-branch }}
+          REQUEST_REPOSITORY: ${{ inputs.repository }}
+          REQUEST_ISSUE: ${{ inputs.issue }}
+          SPEC_FILE: ${{ runner.temp }}/spec.md
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.pick.outputs.found == 'true'
+        with:
+          name: spec
+          path: ${{ runner.temp }}/spec.md
+          retention-days: 3
+
+  implement:
+    needs: pick
+    if: needs.pick.outputs.found == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    permissions:
+      contents: read
+    steps:
+      - name: Read-only token for the target repository
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ needs.pick.outputs.owner }}
+          repositories: ${{ needs.pick.outputs.name }}
+          permission-contents: read
+
+      - name: Check out the target repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ needs.pick.outputs.repository }}
+          ref: ${{ needs.pick.outputs.base }}
+          token: ${{ steps.token.outputs.token }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out the server package
+        if: needs.pick.outputs.server != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ needs.pick.outputs.server }}
+          path: .agent/server
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: spec
+          path: ${{ runner.temp }}/spec
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        if: needs.pick.outputs.setup == 'r'
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        if: needs.pick.outputs.setup == 'r'
+        with:
+          extra-packages: any::devtools, any::roxygen2, any::testthat, any::rcmdcheck
+          needs: check
+
+      # Claude Code's sandbox runs the agent's commands with bubblewrap and
+      # only the allowed hosts. Ubuntu blocks the unprivileged user
+      # namespaces bubblewrap needs unless this is turned off.
+      - name: Prepare the sandbox
+        run: |
+          sudo apt-get install -y -qq bubblewrap socat > /dev/null
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      - name: Sandbox settings
+        uses: $/.github/actions/implementer
+        with:
+          command: settings
+        env:
+          ALLOWED_HOSTS: ${{ inputs.allowed-hosts }}
+          SETTINGS_FILE: ${{ runner.temp }}/claude-settings.json
+
+      # New packages go into a library in the working folder, which the
+      # sandbox lets the agent write.
+      - name: Prepare the workspace
+        env:
+          BRANCH: ${{ needs.pick.outputs.branch }}
+          SPEC_DIR: ${{ runner.temp }}/spec
+        run: |
+          mkdir -p .agent/library
+          cp "$SPEC_DIR/spec.md" .agent/spec.md
+          echo ".agent/" >> .git/info/exclude
+          echo "R_LIBS=$PWD/.agent/library${R_LIBS_USER:+:$R_LIBS_USER}" >> "$GITHUB_ENV"
+          git config user.name "datashield-implementer"
+          git config user.email "datashield-implementer@users.noreply.github.com"
+          git switch --create "$BRANCH"
+
+      - name: 'Prompt: writer'
+        id: prompt-writer0
+        if: success()
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: writer
+          BASE: ${{ needs.pick.outputs.base }}
+
+      - name: 'Agent: writer'
+        id: writer0
+        if: success()
+        continue-on-error: true
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1.0.268
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt-writer0.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.model }}
+            --max-turns ${{ inputs.max-turns }}
+            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      - name: Checks after round 0
+        id: checks0
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: checks
+        env:
+          SETUP: ${{ needs.pick.outputs.setup }}
+
+      - name: 'Prompt: maintainability'
+        id: prompt-maintainability0
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: maintainability
+          BASE: ${{ needs.pick.outputs.base }}
+          ROUND: '0'
+
+      - name: 'Agent: maintainability review'
+        id: maintainability0
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        continue-on-error: true
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1.0.268
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt-maintainability0.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.review-model }}
+            --max-turns ${{ inputs.review-max-turns }}
+            --allowedTools "Read,Glob,Grep,Skill,Write(.agent/**),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      - name: Another correction round?
+        id: round0
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: round
+        env:
+          ROUND: '0'
+          MAX_ROUNDS: ${{ inputs.correction-rounds }}
+
+      - name: 'Prompt: correction'
+        id: prompt-writer1
+        if: steps.round0.outputs.again == 'true'
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: correction
+          BASE: ${{ needs.pick.outputs.base }}
+          ROUND: '1'
+
+      - name: 'Agent: correction round 1'
+        id: writer1
+        if: steps.round0.outputs.again == 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1.0.268
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt-writer1.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.model }}
+            --max-turns ${{ inputs.max-turns }}
+            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      - name: Checks after round 1
+        id: checks1
+        if: steps.writer1.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: checks
+        env:
+          SETUP: ${{ needs.pick.outputs.setup }}
+
+      - name: 'Prompt: maintainability'
+        id: prompt-maintainability1
+        if: steps.writer1.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: maintainability
+          BASE: ${{ needs.pick.outputs.base }}
+          ROUND: '1'
+          SINCE: ${{ steps.round0.outputs.head }}
+
+      - name: 'Agent: maintainability re-check 1'
+        id: maintainability1
+        if: steps.writer1.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        continue-on-error: true
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1.0.268
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt-maintainability1.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.review-model }}
+            --max-turns ${{ inputs.review-max-turns }}
+            --allowedTools "Read,Glob,Grep,Skill,Write(.agent/**),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      - name: Another correction round?
+        id: round1
+        if: steps.writer1.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: round
+        env:
+          ROUND: '1'
+          MAX_ROUNDS: ${{ inputs.correction-rounds }}
+
+      - name: 'Prompt: correction'
+        id: prompt-writer2
+        if: steps.round1.outputs.again == 'true'
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: correction
+          BASE: ${{ needs.pick.outputs.base }}
+          ROUND: '2'
+
+      - name: 'Agent: correction round 2'
+        id: writer2
+        if: steps.round1.outputs.again == 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1.0.268
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt-writer2.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.model }}
+            --max-turns ${{ inputs.max-turns }}
+            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      - name: Checks after round 2
+        id: checks2
+        if: steps.writer2.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: checks
+        env:
+          SETUP: ${{ needs.pick.outputs.setup }}
+
+      - name: 'Prompt: maintainability'
+        id: prompt-maintainability2
+        if: steps.writer2.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: maintainability
+          BASE: ${{ needs.pick.outputs.base }}
+          ROUND: '2'
+          SINCE: ${{ steps.round1.outputs.head }}
+
+      - name: 'Agent: maintainability re-check 2'
+        id: maintainability2
+        if: steps.writer2.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        continue-on-error: true
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1.0.268
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt-maintainability2.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.review-model }}
+            --max-turns ${{ inputs.review-max-turns }}
+            --allowedTools "Read,Glob,Grep,Skill,Write(.agent/**),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      - name: 'Prompt: disclosure'
+        id: prompt-disclosure
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: disclosure
+          BASE: ${{ needs.pick.outputs.base }}
+
+      - name: 'Agent: disclosure review'
+        id: disclosure
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        continue-on-error: true
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1.0.268
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt-disclosure.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.review-model }}
+            --max-turns ${{ inputs.review-max-turns }}
+            --allowedTools "Read,Glob,Grep,Skill,Write(.agent/**),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      - name: Pack the result
+        id: pack
+        if: always()
+        env:
+          BASE: ${{ needs.pick.outputs.base }}
+          OUT: ${{ runner.temp }}/out
+        run: |
+          mkdir -p "$OUT"
+          for file in summary.md checks.md checks.json review-maintainability.json review-disclosure.md needs-input.md; do
+            cp ".agent/$file" "$OUT/$file" 2> /dev/null || true
+          done
+          if [ "$(git rev-list --count "origin/$BASE..HEAD")" -gt 0 ]; then
+            git bundle create "$OUT/agent.bundle" HEAD --not "origin/$BASE"
+          fi
+
+      - name: The outcome
+        if: always()
+        uses: $/.github/actions/implementer
+        with:
+          command: outcome
+        env:
+          STEPS: ${{ toJSON(steps) }}
+          BASE: ${{ needs.pick.outputs.base }}
+          OUT: ${{ runner.temp }}/out
+          ROUNDS_USED: ${{ steps.writer2.outcome == 'success' && 2 || steps.writer1.outcome == 'success' && 1 || 0 }}
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: agent-result
+          path: ${{ runner.temp }}/out
+          if-no-files-found: warn
+          retention-days: 90
+
+  publish:
+    needs: [pick, implement]
+    if: always() && needs.pick.outputs.found == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions: {}
+    outputs:
+      result: ${{ steps.publish.outputs.result }}
+      reason: ${{ steps.publish.outputs.reason }}
+      pr: ${{ steps.publish.outputs.pr }}
+      paused_until: ${{ steps.publish.outputs.paused_until }}
+      rounds: ${{ steps.publish.outputs.rounds }}
+    steps:
+      - name: Token to push and open the pull request
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ needs.pick.outputs.owner }}
+          repositories: ${{ needs.pick.outputs.name }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
+      # A label removed or a spec edited during the run stops here.
+      - name: Check that the approval still holds
+        id: verify
+        uses: $/.github/actions/implementer
+        with:
+          command: verify
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          REQUEST_REPOSITORY: ${{ needs.pick.outputs.repository }}
+          REQUEST_ISSUE: ${{ needs.pick.outputs.issue }}
+          EXPECTED_SPEC_SHA: ${{ needs.pick.outputs.spec_sha }}
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: agent-result
+          path: ${{ runner.temp }}/out
+
+      - name: Check out the target repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ needs.pick.outputs.repository }}
+          ref: ${{ needs.pick.outputs.base }}
+          token: ${{ steps.token.outputs.token }}
+          path: target
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Publish
+        id: publish
+        uses: $/.github/actions/implementer
+        with:
+          command: publish
+          working-directory: target
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          REQUEST_REPOSITORY: ${{ needs.pick.outputs.repository }}
+          REQUEST_ISSUE: ${{ needs.pick.outputs.issue }}
+          BASE: ${{ needs.pick.outputs.base }}
+          BRANCH: ${{ needs.pick.outputs.branch }}
+          TYPE: ${{ needs.pick.outputs.type }}
+          TITLE: ${{ steps.verify.outputs.title }}
+          EXISTING_PR: ${{ needs.pick.outputs.existing_pr }}
+          OUT: ${{ runner.temp }}/out
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TIMER_EVENT: ${{ inputs.timer-event }}
+          GIT_AUTHOR_NAME: datashield-implementer
+          GIT_AUTHOR_EMAIL: datashield-implementer@users.noreply.github.com
+          GIT_COMMITTER_NAME: datashield-implementer
+          GIT_COMMITTER_EMAIL: datashield-implementer@users.noreply.github.com
+
+  finish:
+    needs: [pick, implement, publish]
+    if: always() && needs.pick.outputs.found == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write   # the log branch
+      actions: write    # the next run
+    steps:
+      - name: Token for the issue
+        id: token
+        if: needs.publish.result != 'success'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ needs.pick.outputs.owner }}
+          repositories: ${{ needs.pick.outputs.name }}
+          permission-issues: write
+
+      - name: Unmark the issue as running
+        if: needs.publish.result != 'success'
+        uses: $/.github/actions/implementer
+        with:
+          command: cleanup
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          REQUEST_REPOSITORY: ${{ needs.pick.outputs.repository }}
+          REQUEST_ISSUE: ${{ needs.pick.outputs.issue }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Log the run
+        if: inputs.log-branch != ''
+        continue-on-error: true
+        uses: $/.github/actions/implementer
+        with:
+          command: log-run
+        env:
+          LOG_TOKEN: ${{ github.token }}
+          LOG_REPOSITORY: ${{ github.repository }}
+          LOG_BRANCH: ${{ inputs.log-branch }}
+          REQUEST_REPOSITORY: ${{ needs.pick.outputs.repository }}
+          REQUEST_ISSUE: ${{ needs.pick.outputs.issue }}
+          RESULT: ${{ needs.publish.outputs.result || 'failed' }}
+          REASON: ${{ needs.publish.outputs.reason }}
+          PR: ${{ needs.publish.outputs.pr }}
+          ROUNDS: ${{ needs.publish.outputs.rounds }}
+          PAUSED_UNTIL: ${{ needs.publish.outputs.paused_until }}
+
+      # The next issue in a new run, started with GITHUB_TOKEN (allowed for
+      # workflow_dispatch). Not after a limit: the timer or the next
+      # approval starts it then. An empty list ends the chain in `pick`.
+      - name: Start the next run
+        if: needs.publish.outputs.result != 'limit'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          file="${GITHUB_WORKFLOW_REF#*/.github/workflows/}"
+          file="${file%%@*}"
+          gh workflow run "$file" --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME"
+          echo "Started $file again."

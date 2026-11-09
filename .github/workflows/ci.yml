@@ -1,7 +1,7 @@
 name: CI
 
 # This repository's own checks (not reusable): unit tests of the R
-# functions, tests of the shell scripts, and static checks of the
+# functions, tests of the shell and Node scripts, and static checks of the
 # workflows and scripts. Runs on every push and pull request; none of it
 # calls Claude or costs anything but runner minutes.
 on:
@@ -47,6 +47,9 @@ jobs:
           bash tests/shell/test-label-check.sh
           bash tests/shell/test-triage-gate.sh
           bash tests/shell/test-release-issues.sh
+      # The implementer's scripts (Node 22 is on the runner image).
+      - name: Run the Node tests
+        run: node --test tests/node/*.test.mjs
 
   lint:
     name: Static checks
