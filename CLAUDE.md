@@ -70,7 +70,11 @@ the live caller used to validate changes before wider rollout.
     fork's) unless another open PR still uses it. `agent-suggest/<type>/…`
     (2026-11-09): branches of coding agents, the implementer's and those of
     Claude Code sessions here (e.g. `agent-suggest/feat/…`), which the
-    roxygen, test and authors bots do review. **Docs pending:**
+    roxygen, test and authors bots do review. **Decided (user,
+    2026-11-09): Claude Code sessions name every branch
+    `agent-suggest/<type>/<topic>`** (type as in Conventional Commits:
+    `fix`, `feat`, `ci`, `docs`, …), in this repository and in callers;
+    no stacked PRs. **Docs pending:**
     `cleanup-suggestion-branch.qmd` (agent branches; "branches of your own
     pull requests are never touched" holds only for other names).
   - `suggestion-choices.yml` — on `pull_request: edited` of a roxygen or
