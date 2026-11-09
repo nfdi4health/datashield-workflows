@@ -66,7 +66,17 @@ the live caller used to validate changes before wider rollout.
   - `roxygen-suggest.yml`, `test-suggest.yml` — LLM-assisted
     suggestion workflows; see below.
   - `cleanup-suggestion-branch.yml` — on PR close, deletes a `bot-suggest/*`
-    head branch unless another open PR still uses it.
+    or `agent-suggest/*` head branch of the repository itself (not a
+    fork's) unless another open PR still uses it. `agent-suggest/<type>/…`
+    (2026-11-09): branches of coding agents, the implementer's and those of
+    Claude Code sessions here (e.g. `agent-suggest/feat/…`), which the
+    roxygen, test and authors bots do review. **Decided (user,
+    2026-11-09): Claude Code sessions name every branch
+    `agent-suggest/<type>/<topic>`** (type as in Conventional Commits:
+    `fix`, `feat`, `ci`, `docs`, …), in this repository and in callers;
+    no stacked PRs. **Docs pending:**
+    `cleanup-suggestion-branch.qmd` (agent branches; "branches of your own
+    pull requests are never touched" holds only for other names).
   - `suggestion-choices.yml` — on `pull_request: edited` of a roxygen or
     test bot PR by a person: makes the bot branch match the checkboxes in
     its description (keep, decline, or pick up a not-applied suggestion),
@@ -150,7 +160,10 @@ the live caller used to validate changes before wider rollout.
     only `issues: write`.
 - This repository's own, non-reusable workflows (besides `ci.yml`,
   `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `pr-checks.yml`
-  (commit messages on PRs into dev/main, only `dev` into `main`) and
+  (commit messages on PRs into dev/main, only `dev` into `main`),
+  `cleanup-agent-branches.yml` (calls `cleanup-suggestion-branch.yml` for
+  this repository's own agent branches; "Automatically delete head
+  branches" stays off, user 2026-11-09) and
   `release.yml` (semantic-release of this repository: `vX.Y.Z`, moving
   `vX`, CHANGELOG.md, config `.github/release/releaserc.json` copied over
   the root `.releaserc.json` in the runner — the root one is the R-package

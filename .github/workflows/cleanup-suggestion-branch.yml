@@ -3,9 +3,17 @@ name: Cleanup Suggestion Branch
 on:
   workflow_call:
 
+# Deletes the branch of a closed pull request (merged or not) made by a
+# bot or an agent: `bot-suggest/*` (the suggestion workflows) and
+# `agent-suggest/*` (coding agents, e.g. agent-suggest/fix/issue-12), unless
+# another open pull request still uses it. Only branches of this repository:
+# a fork's branch of the same name must not delete ours.
 jobs:
   cleanup:
-    if: startsWith(github.event.pull_request.head.ref, 'bot-suggest/')
+    if: >-
+      ${{ github.event.pull_request.head.repo.full_name == github.repository &&
+      (startsWith(github.event.pull_request.head.ref, 'bot-suggest/') ||
+      startsWith(github.event.pull_request.head.ref, 'agent-suggest/')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

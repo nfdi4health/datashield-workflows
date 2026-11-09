@@ -1,0 +1,19 @@
+name: Cleanup Agent Branches
+
+# This repository's own caller of cleanup-suggestion-branch.yml: deletes a
+# closed pull request's `agent-suggest/*` (or `bot-suggest/*`) branch. Only
+# those: other branches stay, since "Automatically delete head branches" is
+# deliberately off. Not reusable.
+on:
+  pull_request:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  cleanup:
+    # Not reusable itself: always this repository's own workflow file.
+    uses: ./.github/workflows/cleanup-suggestion-branch.yml  # zizmor: ignore[self-repository]
+    permissions:
+      contents: write
+      pull-requests: read
