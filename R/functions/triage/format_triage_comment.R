@@ -2,8 +2,9 @@
 # (.github/actions/issue-triage-gate), so a change here has to go there too.
 # Claude's fields go through plain_comment_text(); `bug` and `idea` get a
 # spec (triage_spec_lines()), which is what gets approved. A duplicate is only
-# named if it is one of the open or closed issues Claude was shown: the
-# number has to be real, since it becomes a link.
+# named if it is one of the open or closed issues Claude was shown (the
+# related ones are among them): the number has to be real, since it
+# becomes a link.
 format_triage_comment <- function(answer, issue, settings) {
   text <- function(x) plain_comment_text(x, settings$max_text_chars)
   lines <- c(

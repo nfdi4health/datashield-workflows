@@ -91,3 +91,12 @@ issue-triage:
       type: adaptive
     effort: medium
     max_tokens: 8192   # thinking plus the spec
+
+# The triage's first, cheap call: which other issues the new one may be
+# about (at most max_related_issues of config/issue-triage.yml), read in
+# full afterwards. Only numbers come back.
+issue-triage-shortlist:
+  anthropic:
+    tool_name: submit_shortlist
+    model: claude-haiku-5-5
+    max_tokens: 1024

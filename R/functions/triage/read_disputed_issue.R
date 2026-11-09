@@ -1,9 +1,10 @@
-# The issue an earlier triage called this one a duplicate of, in full, so
-# that an objection can be checked against what that issue really says:
-# the list of open issues only has titles. Found through the line
-# format_triage_comment() writes. NULL if the last verdict was something
-# else, no issue was named, or it can't be read; the triage still works.
-read_disputed_issue <- function(category, comment) {
+# The issue an earlier triage called this one a duplicate of, in full and
+# with its discussion (read_related_issue()), so that an objection can be
+# checked against what that issue really says and where its discussion
+# ended. Found through the line format_triage_comment() writes. NULL if the
+# last verdict was something else, no issue was named, or it can't be read;
+# the triage still works.
+read_disputed_issue <- function(category, comment, settings) {
   if (!identical(category, "duplicate") || is.null(comment)) {
     return(NULL)
   }
@@ -11,9 +12,5 @@ read_disputed_issue <- function(category, comment) {
   if (length(found) < 2) {
     return(NULL)
   }
-  issue <- get_github_json(sprintf("/repos/%s/issues/%s", repo, found[2]))
-  if (is.null(issue)) {
-    return(NULL)
-  }
-  list(number = as.integer(found[2]), title = issue$title %||% "", body = issue$body %||% "")
+  read_related_issue(found[2], settings)
 }

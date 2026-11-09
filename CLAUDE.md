@@ -123,7 +123,11 @@ the live caller used to validate changes before wider rollout.
     `R/check_ds_naming.R`, `R/apply_ds_naming.R`, functions in
     `R/functions/ds-naming/`; generic `propose-branch` action. Design and
     state: [dev-notes/datashield-naming/](dev-notes/datashield-naming/README.md).
-  - `issue-triage.yml` — first look at new issues, one Claude call: gate
+  - `issue-triage.yml` — first look at new issues, two Claude calls (a
+    cheap shortlist of related issues, Haiku 5.5, profile
+    `issue-triage-shortlist`; then the triage, which reads up to
+    `max_related_issues` (5) of them in full with their discussion,
+    `read_related_issue()`; since 2026-11-09): gate
     (composite action `issue-triage-gate`), wait (`wait-minutes`, default
     10; `concurrency` per issue, so each edit or answering comment restarts
     it; a separate job, so a comment that is ignored cancels nothing), gate
@@ -1044,8 +1048,21 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   comments and other labels. Not changed (user, 2026-11-09: leave it,
   revisit if it causes problems): a `bot-triage` request shares the
   concurrency group, so a qualifying comment within its run cancels it
-  (label removed anyway). **Docs pending:** `issue-triage.qmd` (closed
-  issues in "Issue text is untrusted" and duplicates, the `if:` in the
+  (label removed anyway). **Shortlist (2026-11-09, user):** the triage
+  compared against the other issues' bodies only; now a first call
+  (`shortlist_related_issues()`, inputs `shortlist-*`) names at most 5
+  open or recently closed issues from title + start of text
+  (`shortlist_body_chars`), and the triage gets those with body and
+  people's comments (`max_related_chars`, body at most a third, newest
+  comments kept) next to a titles-only list of all others
+  (`format_issue_list()`); a disputed duplicate comes with its discussion
+  too. A failed shortlist call only leaves the related issues out.
+  Removed: `format_open_issues()`, `format_closed_issues()`,
+  `max_open_issue_chars`, `max_open_issues_chars`. Still not read: the
+  code (triage checks out nothing; see the open question about functions
+  named in a bug report). **Docs pending:** `issue-triage.qmd` (closed
+  issues in "Issue text is untrusted" and duplicates, the shortlist and
+  related issues read with their discussion, the `shortlist-*` inputs, the `if:` in the
   example section, `allowed-logins` empty by default: requests need it),
   `issue-label-check.qmd`
   (`allowed-logins` required), roadmap "Recent changes". All open points, also of other work done

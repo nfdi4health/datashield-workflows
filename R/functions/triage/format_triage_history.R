@@ -26,13 +26,9 @@ format_triage_history <- function(issue, settings) {
     ))
   }
   if (!is.null(issue$disputed)) {
-    body <- issue$disputed$body
-    if (nchar(body) > settings$max_body_chars) {
-      body <- paste0(substr(body, 1, settings$max_body_chars), "\n[... rest cut]")
-    }
     parts <- c(parts, sprintf(
-      "The issue you called this a duplicate of, in full:\n\n<duplicate_of number=\"%d\">\n%s\n\n%s\n</duplicate_of>",
-      issue$disputed$number, issue$disputed$title, body
+      "The issue you called this a duplicate of, with its discussion:\n\n<duplicate_of number=\"%d\" state=\"%s\">\n%s\n\n%s\n</duplicate_of>",
+      issue$disputed$number, issue$disputed$state, issue$disputed$title, issue$disputed$text
     ))
   }
   if (nzchar(replies)) {
