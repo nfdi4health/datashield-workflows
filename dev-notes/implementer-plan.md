@@ -93,11 +93,30 @@ separate job with the App's token, before and after Claude.
 
 ## Open
 
-1. **Reviewers:** proposed one writer and two read-only reviewers (disclosure;
-   maintainability and remaining norms), most norms by the deterministic checks.
-   The user wanted to discuss this further. They have to run inside the
-   `bot-proceed` run, or others could start them on the subscription.
-2. **Trigger:** dispatch from the target repository or polling from the runner.
+1. ~~**Reviewers:**~~ **Decided (user, 2026-11-09): one writer and two
+   read-only reviewers**, all in the `implement` job (the only one with the
+   subscription token; nobody else can start them): a **disclosure reviewer**
+   (works out what the server returns from the code, then compares with the
+   writer's suggestion; both views go into the PR, never back to the writer)
+   and a **maintainability reviewer** (bugs, code that differs from its
+   suggestion, real maintainability problems). Deterministic checks (tests,
+   R CMD check) run in the job too; clear problems from them and from the
+   maintainability reviewer go back to the writer once (the correction
+   round). Chosen over one reviewer although the roxygen and test bots review
+   the PR into `dev` as well: they cover docs and tests, not the code itself.
+   For a client/server pair the disclosure reviewer needs the server
+   repository checked out too.
+2. ~~**Trigger:**~~ **Decided (user, 2026-11-09): `workflow_dispatch` from
+   the target repository** once the label check has confirmed `bot-proceed`
+   from an allowed login, with a fine-grained token of the user's that has
+   only **Actions: read and write** on the runner repository (it can start a
+   run, not change code or secrets; a leaked token only starts runs, which
+   verify the approval themselves). Stored as an organization secret. Plus a
+   daily scheduled run that picks up approved issues a dropped dispatch
+   missed (GitHub keeps one waiting run), and the manual start. Rejected:
+   `repository_dispatch` (needs Contents: write on the runner, which could
+   reach the subscription token) and polling alone (idle runs cost minutes in
+   a private repository).
 3. **Terms and account:** repeat the terms check of 2026-10-16, and check what
    the team organization means for the subscription.
 4. **Network:** limit what the `implement` job can reach, since it holds the
