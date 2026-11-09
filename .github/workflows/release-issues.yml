@@ -7,9 +7,10 @@ name: Release Issues
 #         Fixes or Resolves #n in its description or commits; a mere
 #         Refs #n doesn't count) get `next-label` and one comment;
 #   link  in the release chain, before the release pull request is merged:
-#         its description gets `Closes #n` for each open issue with
-#         `next-label`, which closes them on the merge into the default
-#         branch;
+#         its description gets `Closes #n` for each issue with `next-label`
+#         (open, or closed by hand as completed), which closes them on the
+#         merge into the default branch; none is fine, the release goes
+#         ahead;
 #   swap  in the release chain, after the merge: those issues get
 #         `released-label` instead.
 # link and swap belong in the release chain itself: a merge with
@@ -32,8 +33,8 @@ on:
         required: false
         type: string
         default: 'released'
-      dev-branch:
-        description: 'The branch pull requests are merged into before a release (mark only).'
+      branch:
+        description: 'mark only: the branch whose merged pull requests count, the one releases are made from.'
         required: false
         type: string
         default: 'dev'
@@ -53,5 +54,5 @@ jobs:
           step: ${{ inputs.step }}
           next-label: ${{ inputs.next-label }}
           released-label: ${{ inputs.released-label }}
-          dev-branch: ${{ inputs.dev-branch }}
+          branch: ${{ inputs.branch }}
           token: ${{ github.token }}

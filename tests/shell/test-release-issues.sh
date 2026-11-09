@@ -22,7 +22,7 @@ check() {  # check <name> <condition result>
 }
 
 # gh: answers from $WORK (issues/<n>.json, labels/<n>, commits, body,
-# labelled, delete-error), keeps the pull request's description in
+# labelled.json with its --jq filter applied, delete-error), keeps the pull request's description in
 # $WORK/body when it is changed, and writes each call to $WORK/calls.
 cat > "$BIN/gh" <<STANDIN
 #!/usr/bin/env bash
@@ -32,7 +32,9 @@ case "\$*" in
   "api repos/me/pkg/pulls/9 "*) cat "$WORK/body" ;;
   "api -X PATCH repos/me/pkg/pulls/9"*)
     for arg in "\$@"; do case "\$arg" in body=*) printf '%s' "\${arg#body=}" > "$WORK/body" ;; esac; done ;;
-  "api repos/me/pkg/issues?state=open"*) cat "$WORK/labelled" ;;
+  "api repos/me/pkg/issues?state="*)
+    filter=""; prev=""; for arg in "\$@"; do [ "\$prev" = --jq ] && filter="\$arg"; prev="\$arg"; done
+    jq -r "\$filter" "$WORK/labelled.json" ;;
   "api repos/me/pkg/issues/"*"/labels"*) n="\${2#repos/me/pkg/issues/}"; cat "$WORK/labels/\${n%%/*}" 2>/dev/null ;;
   "api repos/me/pkg/issues/"*) f="$WORK/issues/\${2#repos/me/pkg/issues/}.json"; [ -f "\$f" ] || { echo "HTTP 404" >&2; exit 1; }; cat "\$f" ;;
   "api -X DELETE"*) [ ! -s "$WORK/delete-error" ] || { cat "$WORK/delete-error" >&2; exit 1; } ;;
@@ -44,9 +46,19 @@ issue() {  # issue <n> [state] [pull request?]
   jq -n --argjson n "$1" --arg state "${2:-open}" --arg pr "${3:-}" \
     '{number: $n, state: $state} + (if $pr == "" then {} else {pull_request: {url: "x"}} end)' > "$WORK/issues/$1.json"
 }
+# labelled <n[:state[:reason]]|n:pr> ...: the issues the label search finds.
+labelled_issues() {
+  local spec n state reason
+  for spec in "$@"; do
+    IFS=: read -r n state reason <<< "$spec"
+    jq -n --argjson n "$n" --arg state "${state:-open}" --arg reason "${reason:-}" \
+      '{number: $n, state: (if $state == "pr" then "open" else $state end), state_reason: (if $reason == "" then null else $reason end)}
+       + (if $state == "pr" then {pull_request: {url: "x"}} else {} end)'
+  done | jq -s . > "$WORK/labelled.json"
+}
 reset() {
   rm -f "$WORK/issues/"* "$WORK/labels/"*
-  : > "$WORK/calls"; : > "$WORK/commits"; : > "$WORK/labelled"; : > "$WORK/delete-error"
+  : > "$WORK/calls"; : > "$WORK/commits"; labelled_issues; : > "$WORK/delete-error"
   printf 'The release.' > "$WORK/body"
 }
 
@@ -55,7 +67,7 @@ run() {
   jq -n --arg merged "${2:-true}" --arg base "${3:-dev}" --arg body "${4:-}" \
     '{pull_request: {number: 9, merged: ($merged == "true"), base: {ref: $base}, body: $body}}' > "$WORK/event.json"
   (cd "$WORK" && PATH="$BIN:$PATH" GITHUB_EVENT_PATH="$WORK/event.json" GITHUB_REPOSITORY=me/pkg \
-    STEP="$1" NEXT_LABEL=next-release RELEASED_LABEL=released DEV_BRANCH=dev \
+    STEP="$1" NEXT_LABEL=next-release RELEASED_LABEL=released BRANCH=dev \
     bash "$ACTION/release-issues.sh" > "$WORK/out.txt" 2>&1)
 }
 labelled() { grep -qF "api -X POST repos/me/pkg/issues/$1/labels -f labels[]=$2" "$WORK/calls"; }
@@ -101,28 +113,36 @@ run mark true dev '$(touch pwned) Closes #12'
 
 # --- link: the release pull request ------------------------------------------
 
-reset; printf '12\n15\n' > "$WORK/labelled"
+reset; labelled_issues 12 15
 run link; status=$?
 [ "$status" = 0 ] && grep -qxF 'Closes #12' "$WORK/body" && grep -qxF 'Closes #15' "$WORK/body" && grep -q '^The release.$' "$WORK/body"
 check "link: Closes for each labelled issue, the description kept" $?
 
-printf '15\n' > "$WORK/labelled"
+labelled_issues 15
 run link
 [ "$(grep -c 'release-issues: closed by this release' "$WORK/body")" = 1 ] && ! grep -q '#12' "$WORK/body" && grep -qxF 'Closes #15' "$WORK/body"
 check "link: run again, the block is replaced, not added" $?
 
-: > "$WORK/labelled"
+labelled_issues
 run link
 ! grep -q 'release-issues' "$WORK/body" && [ "$(cat "$WORK/body")" = 'The release.' ]
 check "link: no labelled issue, no block" $?
 
-reset; printf '12\n' > "$WORK/labelled"; printf 'Notes\n\nCloses #3 by hand.' > "$WORK/body"
+reset; labelled_issues 12 13:closed:completed 14:closed:not_planned 16:pr
+run link; status=$?
+[ "$status" = 0 ] && grep -qxF 'Closes #12' "$WORK/body" && grep -qxF 'Closes #13' "$WORK/body" \
+  && ! grep -q '#14' "$WORK/body" && ! grep -q '#16' "$WORK/body"
+check "link: open and closed-as-completed issues, not 'not planned', not pull requests" $?
+: > "$WORK/calls"; run swap
+labelled 13 released && ! labelled 14 released; check "swap: an issue closed by hand gets released too" $?
+
+reset; labelled_issues 12; printf 'Notes\n\nCloses #3 by hand.' > "$WORK/body"
 run link
 grep -qF 'Closes #3 by hand.' "$WORK/body" && grep -qxF 'Closes #12' "$WORK/body"; check "link: a person's own lines stay" $?
 
 # --- swap: after the release -------------------------------------------------
 
-reset; printf '12\n15\n' > "$WORK/labelled"; run link; : > "$WORK/calls"
+reset; labelled_issues 12 15; run link; : > "$WORK/calls"
 run swap; status=$?
 [ "$status" = 0 ] && labelled 12 released && labelled 15 released \
   && grep -qF 'api -X DELETE repos/me/pkg/issues/12/labels/next-release' "$WORK/calls"
@@ -133,7 +153,7 @@ reset; printf 'Closes #3 by hand.' > "$WORK/body"
 run swap
 [ "$(writes)" = 0 ]; check "swap: no block, nothing" $?
 
-reset; printf '12\n' > "$WORK/labelled"; run link; : > "$WORK/calls"
+reset; labelled_issues 12; run link; : > "$WORK/calls"
 echo 'gh: Label does not exist (HTTP 404)' > "$WORK/delete-error"
 run swap; status=$?
 [ "$status" = 0 ] && labelled 12 released; check "swap: a label already gone is fine" $?

@@ -2,21 +2,25 @@
 # Closes issues with the release that ships their fix, not with the merge
 # into dev (dev-notes/implementer-plan.md, "Closing issues"). STEP is one of:
 #
-#   mark  A pull request merged into DEV_BRANCH: the issues its description
+#   mark  A pull request merged into BRANCH: the issues its description
 #         or commit messages close (Closes/Fixes/Resolves #n, which GitHub
 #         ignores outside the default branch) get NEXT_LABEL and one comment.
 #         A mere mention (Refs #n) doesn't count: that is how unfinished
 #         work stays open.
 #   link  The release pull request (dev into the default branch), before it
 #         is merged: a marked block in its description lists `Closes #n` for
-#         every open issue with NEXT_LABEL, so merging it closes them.
-#         Replaced on each run; removed when there are none.
+#         every issue with NEXT_LABEL, so merging it closes them. Open ones,
+#         and those already closed by hand as completed (their fix ships with
+#         this release too; the keyword does nothing for them); not those
+#         closed as not planned. Replaced on each run; removed when there are
+#         none, which is no failure: a release without issues goes ahead.
+#         Removing NEXT_LABEL by hand takes an issue out of the release.
 #   swap  After the release pull request was merged: the issues of that block
 #         lose NEXT_LABEL and get RELEASED_LABEL.
 #
 # Only issues of this repository, never pull requests. Reads the event file
 # and the API, so no text of a pull request or issue is written into a
-# script. Needs STEP, NEXT_LABEL, RELEASED_LABEL, DEV_BRANCH, GH_TOKEN and
+# script. Needs STEP, NEXT_LABEL, RELEASED_LABEL, BRANCH, GH_TOKEN and
 # the GITHUB_* variables of the runner.
 set -euo pipefail
 
@@ -81,7 +85,7 @@ case "$STEP" in
   mark)
     [ "$(event_field .pull_request.merged)" = true ] || { echo "Not merged, nothing to mark."; exit 0; }
     base="$(event_field .pull_request.base.ref)"
-    [ "$base" = "${DEV_BRANCH:-dev}" ] || { echo "Merged into $base, not ${DEV_BRANCH:-dev}: nothing to mark."; exit 0; }
+    [ "$base" = "${BRANCH:-dev}" ] || { echo "Merged into $base, not ${BRANCH:-dev}: nothing to mark."; exit 0; }
     numbers="$( { event_field .pull_request.body
                   gh api "repos/$GITHUB_REPOSITORY/pulls/$pr/commits" --paginate --jq '.[].commit.message'; } | closing_numbers)"
     [ -n "$numbers" ] || { echo "No issue to close in #$pr."; exit 0; }
@@ -96,14 +100,15 @@ case "$STEP" in
       fi
       add_label "$n" "$NEXT_LABEL"
       gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$n/comments" \
-        -f body="Merged into \`${DEV_BRANCH:-dev}\` with #$pr. This issue will be closed by the next release." > /dev/null
+        -f body="Merged into \`${BRANCH:-dev}\` with #$pr. This issue will be closed by the next release." > /dev/null
       echo "#$n: $NEXT_LABEL."
     done <<< "$numbers"
     ;;
 
   link)
-    numbers="$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open&labels=$(jq -rn --arg l "$NEXT_LABEL" '$l | @uri')&per_page=100" \
-      --paginate --jq '.[] | select(.pull_request == null) | .number' | sort -un)"
+    numbers="$(gh api "repos/$GITHUB_REPOSITORY/issues?state=all&labels=$(jq -rn --arg l "$NEXT_LABEL" '$l | @uri')&per_page=100" \
+      --paginate --jq '.[] | select(.pull_request == null)
+        | select(.state == "open" or .state_reason == "completed") | .number' | sort -un)"
     body="$(pr_body | strip_block)"
     if [ -n "$numbers" ]; then
       block="$(printf '%s\n' "$BLOCK_START"; while IFS= read -r n; do printf 'Closes #%s\n' "$n"; done <<< "$numbers"; printf '%s' "$BLOCK_END")"

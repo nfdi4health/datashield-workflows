@@ -16,8 +16,8 @@ inputs:
   released-label:
     description: 'The label of issues closed by a release.'
     required: true
-  dev-branch:
-    description: 'The branch pull requests are merged into before a release.'
+  branch:
+    description: 'The branch whose merged pull requests count (mark): the one released from, usually dev.'
     required: true
   token:
     description: 'Token with issues: write and pull-requests: write.'
@@ -33,5 +33,5 @@ runs:
         STEP: ${{ inputs.step }}
         NEXT_LABEL: ${{ inputs.next-label }}
         RELEASED_LABEL: ${{ inputs.released-label }}
-        DEV_BRANCH: ${{ inputs.dev-branch }}
+        BRANCH: ${{ inputs.branch }}
       run: bash "$GITHUB_ACTION_PATH/release-issues.sh"

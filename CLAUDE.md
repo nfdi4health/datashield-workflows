@@ -155,8 +155,10 @@ the live caller used to validate changes before wider rollout.
     ignores these outside the default branch, `Refs` doesn't count) get
     `next-label` (`next-release`) and one comment. `link` (job in the
     release chain before the merge): a marked block of `Closes #n` for every
-    open issue with that label in the `dev` → `main` PR's description,
-    replaced on each run. `swap` (after the merge job): those issues get
+    issue with that label (open, or closed by hand as completed — its fix
+    ships too; not "not planned") in the `dev` → `main` PR's description,
+    replaced on each run; none is no failure. Input `branch` (default
+    `dev`) for `mark`. `swap` (after the merge job): those issues get
     `released-label` (`released`) instead. link and swap must sit in the
     release chain: `merge-pull-request.yml` merges with `GITHUB_TOKEN`,
     which starts no other workflow. Logic in the composite action
