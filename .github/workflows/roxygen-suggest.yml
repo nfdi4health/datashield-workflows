@@ -39,15 +39,20 @@ on:
         type: string
         default: ''
       model:
-        description: 'Claude model for every Claude call of this run (e.g. claude-sonnet-5-5) instead of the one in config/claude.yml; settings the model rejects are adapted (model_rules there). Empty: the config''s model.'
+        description: 'Claude model for the roxygen review (e.g. claude-sonnet-5-5), instead of the one in config/claude.yml; settings the model rejects are adapted (model_rules there). Empty: the config''s.'
         required: false
         type: string
         default: ''
       max-tokens:
-        description: 'Most tokens per Claude answer, thinking included, instead of the config''s. A model that thinks needs room for it. 0: the config''s value.'
+        description: 'Most tokens per answer for the roxygen review, thinking included; a model that thinks needs room for it. 0: the config''s.'
         required: false
         type: number
         default: 0
+      effort:
+        description: 'How much Claude thinks for the roxygen review: low, medium, high, xhigh or max. More costs more. Empty: the config''s, else the model''s default.'
+        required: false
+        type: string
+        default: ''
     secrets:
       anthropic-organization-id:
         description: 'Anthropic organization ID.'
@@ -161,8 +166,9 @@ jobs:
         if: steps.files.outputs.count > 0
         env:
           ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
-          CLAUDE_MODEL: ${{ inputs.model }}
-          CLAUDE_MAX_TOKENS: ${{ inputs.max-tokens }}
+          CLAUDE_MODEL_ROXYGEN_REVIEW: ${{ inputs.model }}
+          CLAUDE_MAX_TOKENS_ROXYGEN_REVIEW: ${{ inputs.max-tokens }}
+          CLAUDE_EFFORT_ROXYGEN_REVIEW: ${{ inputs.effort }}
           # For renewing the token in a long run (refresh_anthropic_token()).
           ANTHROPIC_ORG_ID: ${{ secrets.anthropic-organization-id }}
           ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ secrets.anthropic-service-account-id }}

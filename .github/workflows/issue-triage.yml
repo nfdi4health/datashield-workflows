@@ -39,16 +39,21 @@ on:
         required: false
         type: string
         default: ''
-      model:
-        description: 'Claude model for every Claude call of this run (e.g. claude-sonnet-5-5) instead of the one in config/claude.yml; settings the model rejects are adapted (model_rules there). Empty: the config''s model.'
+      triage-model:
+        description: 'Claude model for the triage (e.g. claude-sonnet-5-5), instead of the one in config/claude.yml; settings the model rejects are adapted (model_rules there). Empty: the config''s.'
         required: false
         type: string
         default: ''
-      max-tokens:
-        description: 'Most tokens per Claude answer, thinking included, instead of the config''s. A model that thinks needs room for it. 0: the config''s value.'
+      triage-max-tokens:
+        description: 'Most tokens per answer for the triage, thinking included; a model that thinks needs room for it. 0: the config''s.'
         required: false
         type: number
         default: 0
+      triage-effort:
+        description: 'How much Claude thinks for the triage: low, medium, high, xhigh or max. More costs more. Empty: the config''s, else the model''s default.'
+        required: false
+        type: string
+        default: ''
     secrets:
       anthropic-organization-id:
         description: 'Anthropic organization ID.'
@@ -139,8 +144,9 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
-          CLAUDE_MODEL: ${{ inputs.model }}
-          CLAUDE_MAX_TOKENS: ${{ inputs.max-tokens }}
+          CLAUDE_MODEL_ISSUE_TRIAGE: ${{ inputs.triage-model }}
+          CLAUDE_MAX_TOKENS_ISSUE_TRIAGE: ${{ inputs.triage-max-tokens }}
+          CLAUDE_EFFORT_ISSUE_TRIAGE: ${{ inputs.triage-effort }}
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ steps.gate.outputs.number }}
           APPROVAL_LABEL: ${{ inputs.approval-label }}

@@ -43,16 +43,36 @@ on:
         required: false
         type: string
         default: ''
-      model:
-        description: 'Claude model for every Claude call of this run (e.g. claude-sonnet-5-5) instead of the one in config/claude.yml; settings the model rejects are adapted (model_rules there). Empty: the config''s model.'
+      review-model:
+        description: 'Claude model for writing and reviewing tests (e.g. claude-sonnet-5-5), instead of the one in config/claude.yml; settings the model rejects are adapted (model_rules there). Empty: the config''s.'
         required: false
         type: string
         default: ''
-      max-tokens:
-        description: 'Most tokens per Claude answer, thinking included, instead of the config''s. A model that thinks needs room for it. 0: the config''s value.'
+      review-max-tokens:
+        description: 'Most tokens per answer for writing and reviewing tests, thinking included; a model that thinks needs room for it. 0: the config''s.'
         required: false
         type: number
         default: 0
+      review-effort:
+        description: 'How much Claude thinks for writing and reviewing tests: low, medium, high, xhigh or max. More costs more. Empty: the config''s, else the model''s default.'
+        required: false
+        type: string
+        default: ''
+      classification-model:
+        description: 'Claude model for classifying failing tests (e.g. claude-sonnet-5-5), instead of the one in config/claude.yml; settings the model rejects are adapted (model_rules there). Empty: the config''s.'
+        required: false
+        type: string
+        default: ''
+      classification-max-tokens:
+        description: 'Most tokens per answer for classifying failing tests, thinking included; a model that thinks needs room for it. 0: the config''s.'
+        required: false
+        type: number
+        default: 0
+      classification-effort:
+        description: 'How much Claude thinks for classifying failing tests: low, medium, high, xhigh or max. More costs more. Empty: the config''s, else the model''s default.'
+        required: false
+        type: string
+        default: ''
     secrets:
       anthropic-organization-id:
         description: 'Anthropic organization ID.'
@@ -166,8 +186,12 @@ jobs:
         if: steps.files.outputs.count > 0
         env:
           ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
-          CLAUDE_MODEL: ${{ inputs.model }}
-          CLAUDE_MAX_TOKENS: ${{ inputs.max-tokens }}
+          CLAUDE_MODEL_TEST_REVIEW: ${{ inputs.review-model }}
+          CLAUDE_MAX_TOKENS_TEST_REVIEW: ${{ inputs.review-max-tokens }}
+          CLAUDE_EFFORT_TEST_REVIEW: ${{ inputs.review-effort }}
+          CLAUDE_MODEL_TEST_FAILURE_CLASSIFICATION: ${{ inputs.classification-model }}
+          CLAUDE_MAX_TOKENS_TEST_FAILURE_CLASSIFICATION: ${{ inputs.classification-max-tokens }}
+          CLAUDE_EFFORT_TEST_FAILURE_CLASSIFICATION: ${{ inputs.classification-effort }}
           # For renewing the token in a long run (refresh_anthropic_token()).
           ANTHROPIC_ORG_ID: ${{ secrets.anthropic-organization-id }}
           ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ secrets.anthropic-service-account-id }}

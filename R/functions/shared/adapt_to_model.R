@@ -4,7 +4,8 @@
 # for the tool in the prompt; the tool stays strict, so its fields still
 # match the schema); one that can't run with thinking disabled gets
 # adaptive thinking; server-side fallbacks (and their beta header) are
-# dropped for a model that doesn't offer them. A model in no list is sent
+# dropped for a model that doesn't offer them, and so is effort for a model
+# that rejects it. A model in no list is sent
 # as the profile says. Each change is logged, since it changes the cost.
 adapt_to_model <- function(anthropic, rules) {
   model <- anthropic$model %||% ""
@@ -16,6 +17,10 @@ adapt_to_model <- function(anthropic, rules) {
   if (listed("no_disabled_thinking") && identical(anthropic$thinking$type, "disabled")) {
     anthropic$thinking <- list(type = "adaptive")
     message(sprintf("%s can't run with thinking disabled: adaptive thinking.", model))
+  }
+  if (listed("no_effort") && !is.null(anthropic$effort)) {
+    anthropic$effort <- NULL
+    message(sprintf("%s takes no effort setting: sent without one.", model))
   }
   if (!is.null(anthropic$fallbacks) && length(rules$server_side_fallbacks) > 0 && !listed("server_side_fallbacks")) {
     anthropic$fallbacks <- NULL

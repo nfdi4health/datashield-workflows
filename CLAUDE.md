@@ -280,18 +280,22 @@ Details per workflow: [dev-notes/roxygen-suggest.md](dev-notes/roxygen-suggest.m
   task (`roxygen-review`, `test-review`, `test-failure-classification`),
   read with `claude_settings(profile)` (default merged with the profile;
   no `config` package, no `R_CONFIG_ACTIVE` — since 2026-10-19 on
-  `v1/foundation`). **Inputs `model` and `max-tokens`** (2026-11-09, user)
-  on every Claude-assisted workflow (roxygen, tests, analysis, naming
-  check, triage): `CLAUDE_MODEL` / `CLAUDE_MAX_TOKENS` replace the
-  profile's for every call of the run (tests: both profiles), also where
-  no caller checkout exists (triage). `adapt_to_model()` then fits the
-  profile to the model from `model_rules` in `config/claude.yml` (no
-  forced tool choice → `auto`; no disabled thinking → adaptive; no
-  server-side fallback → dropped with its beta), so any model can be named.
-  Keep `model_rules` current when models come out. Not an input: effort
-  (user to decide). **Docs pending:** the input tables update themselves;
-  a short note on `suggestions.qmd` / `claude-setup.qmd` (choosing a model,
-  thinking counts towards `max-tokens`), roadmap "Recent changes". Every Claude call goes through
+  `v1/foundation`). **Inputs per Claude call** (2026-11-09, user): model,
+  max-tokens and effort, named after what the call does where a workflow
+  has several (`review-*` / `classification-*` in tests, `triage-*` in
+  triage; plain `model` / `max-tokens` / `effort` in roxygen, analysis,
+  naming check). Passed as `CLAUDE_MODEL_<PROFILE>`,
+  `CLAUDE_MAX_TOKENS_<PROFILE>`, `CLAUDE_EFFORT_<PROFILE>` (profile in
+  capitals, `_` for `-`); `claude_settings()` lets them replace the
+  profile's, also where no caller checkout exists (triage), and stops on
+  an unknown effort. `adapt_to_model()` then fits the profile to the model
+  from `model_rules` in `config/claude.yml` (no forced tool choice →
+  `auto`; no disabled thinking → adaptive; no server-side fallback →
+  dropped with its beta; no effort → dropped), so any model can be named.
+  Keep `model_rules` current when models come out. **Docs pending:** the
+  input tables update themselves; a short note on `suggestions.qmd` /
+  `claude-setup.qmd` (choosing a model, effort, thinking counts towards
+  `max-tokens`), roadmap "Recent changes". Every Claude call goes through
   `call_claude_tool()` (forced tool call; it sets the tool name from config).
 - **Claude returns fields, R assembles the output.** Never trust prompt
   wording where a structural constraint (schema field, `maxItems`, enum)
