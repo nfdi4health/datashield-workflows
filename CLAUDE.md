@@ -1026,9 +1026,13 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   (`get_github_json_pages()`, as the gate does); the 30 most recently closed
   issues by title for duplicates (`max_closed_issues`,
   `format_closed_issues()`); the example caller's job-level `if:` skips PR
-  comments and other labels. Not changed: a `bot-triage` request shares
-  the concurrency group, so a qualifying comment within its run cancels it
-  (label removed anyway). **Docs pending:** `issue-triage.qmd` (closed
+  comments and other labels. Not changed (user, 2026-11-09: leave it,
+  revisit if it causes problems): a `bot-triage` request shares the
+  concurrency group, so a qualifying comment within its run cancels it
+  (label removed anyway). The model can't be changed by a caller: triage
+  checks out no caller repository, so a project's `config/claude.yml`
+  never reaches it; an input would be needed (user: decide after looking
+  at the costs). **Docs pending:** `issue-triage.qmd` (closed
   issues in "Issue text is untrusted" and duplicates, the `if:` in the
   example section, `allowed-logins` empty by default: requests need it),
   `issue-label-check.qmd`
