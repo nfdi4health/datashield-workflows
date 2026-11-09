@@ -51,7 +51,7 @@ gate() {
       comment: {user: {login: $who, type: $type}}, label: {name: $label}, sender: {login: $sender}}' > "$WORK/event.json"
   (cd "$WORK" && PATH="$BIN:$PATH" GITHUB_EVENT_NAME="${EVENT_NAME:-issues}" GITHUB_EVENT_PATH="$WORK/event.json" \
     GITHUB_OUTPUT="$WORK/out.txt" GITHUB_REPOSITORY=me/pkg APPROVAL_LABEL=bot-proceed MAX_TRIAGES=3 \
-    TRIAGE_LABEL=bot-triage ALLOWED_LOGINS=FlorianSchw \
+    TRIAGE_LABEL=bot-triage ALLOWED_LOGINS="${ALLOWED-FlorianSchw}" \
     bash "$ACTION/issue-triage-gate.sh" > "$WORK/log.txt" 2>&1)
 }
 runs()  { grep -qx 'run=true' "$WORK/out.txt"; }
@@ -154,6 +154,11 @@ issue closed; request; skips && requested; check "request on a closed issue: no 
 issue open User '["bot-proceed"]'; request; skips && requested; check "request on an approved issue: no triage, the label still goes" $?
 issue
 echo '[]' > "$WORK/comments.json"
+
+# No allowed-logins (the input's default): nobody can ask by label, and the
+# triage of new issues works as before.
+ALLOWED='' request; skips && ! requested; check "no allowed logins: no request, also not the listed one" $?
+ALLOWED='' gate opened; runs; check "no allowed logins: a new issue is still triaged" $?
 
 # --- failures ----------------------------------------------------------------
 

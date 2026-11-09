@@ -8,10 +8,19 @@ on:
 
 jobs:
   triage:
+    # Optional: starts no runner for events the triage ignores anyway,
+    # i.e. comments on pull requests and labels other than the request
+    # label (`triage-label`, default bot-triage). The gate checks all of
+    # this again, so leaving it out only costs a few seconds per event.
+    if: >-
+      ${{ !github.event.issue.pull_request &&
+      (github.event.action != 'labeled' || github.event.label.name == 'bot-triage') }}
     permissions:
       issues: write
       id-token: write
     uses: nfdi4health/datashield-workflows/.github/workflows/issue-triage.yml@main
+    with:
+      allowed-logins: your-login   # optional: who may ask for a triage with the bot-triage label (exact GitHub logins); without it nobody can
     secrets:
       anthropic-organization-id: ${{ secrets.ANTHROPIC_ORG_ID }}
       anthropic-service-account-id: ${{ secrets.ANTHROPIC_SVAC_ID }}
