@@ -62,7 +62,10 @@ subscription. No spec review step and no second approval.
   never by Claude: the type decides the version. The label is the user's way to
   correct triage before approving. Replaces `branch_prefix` `agent/issue-` in
   `config/runner.json`.
-- **`cleanup-suggestion-branch.yml`** has to learn `agent-suggest/`. The
+- ~~**`cleanup-suggestion-branch.yml`** has to learn `agent-suggest/`.~~
+  Done 2026-11-09 (also only branches of the repository itself, not a
+  fork's of the same name; this repository calls it too,
+  `cleanup-agent-branches.yml`). The
   roxygen, test and authors bots should run on these branches, unlike
   `bot-suggest/`.
 
