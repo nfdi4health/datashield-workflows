@@ -39,6 +39,16 @@ on:
         required: false
         type: string
         default: ''
+      model:
+        description: 'Claude model for every Claude call of this run (e.g. claude-sonnet-5-5) instead of the one in config/claude.yml; settings the model rejects are adapted (model_rules there). Empty: the config''s model.'
+        required: false
+        type: string
+        default: ''
+      max-tokens:
+        description: 'Most tokens per Claude answer, thinking included, instead of the config''s. A model that thinks needs room for it. 0: the config''s value.'
+        required: false
+        type: number
+        default: 0
     secrets:
       anthropic-organization-id:
         description: 'Anthropic organization ID.'
@@ -129,6 +139,8 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
+          CLAUDE_MODEL: ${{ inputs.model }}
+          CLAUDE_MAX_TOKENS: ${{ inputs.max-tokens }}
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ steps.gate.outputs.number }}
           APPROVAL_LABEL: ${{ inputs.approval-label }}

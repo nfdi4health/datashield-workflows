@@ -280,7 +280,18 @@ Details per workflow: [dev-notes/roxygen-suggest.md](dev-notes/roxygen-suggest.m
   task (`roxygen-review`, `test-review`, `test-failure-classification`),
   read with `claude_settings(profile)` (default merged with the profile;
   no `config` package, no `R_CONFIG_ACTIVE` — since 2026-10-19 on
-  `v1/foundation`). Every Claude call goes through
+  `v1/foundation`). **Inputs `model` and `max-tokens`** (2026-11-09, user)
+  on every Claude-assisted workflow (roxygen, tests, analysis, naming
+  check, triage): `CLAUDE_MODEL` / `CLAUDE_MAX_TOKENS` replace the
+  profile's for every call of the run (tests: both profiles), also where
+  no caller checkout exists (triage). `adapt_to_model()` then fits the
+  profile to the model from `model_rules` in `config/claude.yml` (no
+  forced tool choice → `auto`; no disabled thinking → adaptive; no
+  server-side fallback → dropped with its beta), so any model can be named.
+  Keep `model_rules` current when models come out. Not an input: effort
+  (user to decide). **Docs pending:** the input tables update themselves;
+  a short note on `suggestions.qmd` / `claude-setup.qmd` (choosing a model,
+  thinking counts towards `max-tokens`), roadmap "Recent changes". Every Claude call goes through
   `call_claude_tool()` (forced tool call; it sets the tool name from config).
 - **Claude returns fields, R assembles the output.** Never trust prompt
   wording where a structural constraint (schema field, `maxItems`, enum)
@@ -1029,10 +1040,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   comments and other labels. Not changed (user, 2026-11-09: leave it,
   revisit if it causes problems): a `bot-triage` request shares the
   concurrency group, so a qualifying comment within its run cancels it
-  (label removed anyway). The model can't be changed by a caller: triage
-  checks out no caller repository, so a project's `config/claude.yml`
-  never reaches it; an input would be needed (user: decide after looking
-  at the costs). **Docs pending:** `issue-triage.qmd` (closed
+  (label removed anyway). **Docs pending:** `issue-triage.qmd` (closed
   issues in "Issue text is untrusted" and duplicates, the `if:` in the
   example section, `allowed-logins` empty by default: requests need it),
   `issue-label-check.qmd`
