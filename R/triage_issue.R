@@ -26,7 +26,7 @@ gh_token <- Sys.getenv("GH_TOKEN")
 number <- Sys.getenv("ISSUE_NUMBER")
 
 settings <- read_config_yaml("config/issue-triage.yml")
-issue <- read_issue_for_triage(number)
+issue <- read_issue_for_triage(number, settings)
 claude <- claude_client("issue-triage", "prompts/issue-triage-prompt.md")
 answer <- ask_claude_for_triage(claude, issue, settings)
 

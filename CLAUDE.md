@@ -138,7 +138,8 @@ the live caller used to validate changes before wider rollout.
     ([dev-notes/issue-agents.md](dev-notes/issue-agents.md)), no Claude:
     on `issues: labeled` removes the approval label (input `label`,
     default `bot-proceed`) set by anyone not in `allowed-logins` (exact
-    logins, default `FlorianSchw`, access level plays no part); on
+    logins, required since 2026-11-09, no default; access level plays no
+    part); on
     `issues: edited` removes it from an issue carrying it, whoever
     edited. One short comment each time. All logic in the composite
     action `issue-label-check`, which reads the event file: no checkout,
@@ -1013,6 +1014,20 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   `duplicate`, `spam`, `out-of-scope` a comment or edit by the author. Before
   the first triage the author's comment restarts the wait. Bugs and ideas get a
   spec. Hidden text gets a note, and an attempt to steer the bot the label
-  `bot-suspicious`. Still to confirm: the seven categories and the model. No
-  own self-test (`self-test.yml`). All open points, also of other work done
+  `bot-suspicious`. Still to confirm: the seven categories. No
+  own self-test (`self-test.yml`).
+  **Review round (2026-11-09, user's choices):** model `claude-sonnet-5-5`
+  (`tool_choice_type: auto`, adaptive thinking, `effort: medium`);
+  `allowed-logins` required in both issue workflows (was `FlorianSchw`;
+  **breaking** for callers that relied on the default, e.g.
+  dsSupportClient); all comments read page by page
+  (`get_github_json_pages()`, as the gate does); the 30 most recently closed
+  issues by title for duplicates (`max_closed_issues`,
+  `format_closed_issues()`); the example caller's job-level `if:` skips PR
+  comments and other labels. Not changed: a `bot-triage` request shares
+  the concurrency group, so a qualifying comment within its run cancels it
+  (label removed anyway). **Docs pending:** `issue-triage.qmd` (closed
+  issues in "Issue text is untrusted" and duplicates, the `if:` in the
+  example section, `allowed-logins` required), `issue-label-check.qmd`
+  (`allowed-logins` required), roadmap "Recent changes". All open points, also of other work done
   alongside: [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md).

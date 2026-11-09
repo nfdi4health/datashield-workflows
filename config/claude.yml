@@ -67,9 +67,16 @@ test-failure-classification:
     fallbacks: default
     betas: [server-side-fallback-2026-07-01]
 
-# First look at a new issue. A small, cheap answer; a person decides
-# everything that follows.
+# First look at a new issue; a person decides everything that follows.
+# Sonnet 5.5 for the spec of bugs and ideas, the implementer's only source
+# (user's choice, 2026-11-09). It rejects forced tool calls and needs
+# thinking, see call_claude_tool().
 issue-triage:
   anthropic:
     tool_name: submit_triage
-    max_tokens: 2048   # room for the spec
+    model: claude-sonnet-5-5
+    tool_choice_type: auto
+    thinking:
+      type: adaptive
+    effort: medium
+    max_tokens: 8192   # thinking plus the spec

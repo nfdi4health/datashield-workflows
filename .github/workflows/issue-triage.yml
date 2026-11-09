@@ -35,10 +35,9 @@ on:
         type: string
         default: 'bot-triage'
       allowed-logins:
-        description: 'Who may ask for a triage by label: exact GitHub logins, separated by commas or spaces.'
-        required: false
+        description: 'Who may ask for a triage by label: exact GitHub logins, separated by commas or spaces. Required: no default, so no one is trusted by accident.'
+        required: true
         type: string
-        default: 'FlorianSchw'
     secrets:
       anthropic-organization-id:
         description: 'Anthropic organization ID.'

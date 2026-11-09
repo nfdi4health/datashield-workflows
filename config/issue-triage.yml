@@ -21,7 +21,7 @@ categories:
   duplicate:
     label: Duplicate
     github_label: duplicate
-    meaning: One of the listed open issues asks for the same thing.
+    meaning: One of the listed issues, open or recently closed, asks for the same thing.
   needs-info:
     label: More information needed
     github_label: needs-info
@@ -39,6 +39,7 @@ max_body_chars: 20000    # of the issue body, sent to Claude
 max_reply_chars: 8000    # of all comments, the newest kept, sent to Claude
 max_open_issue_chars: 2000     # of each other open issue, sent to Claude
 max_open_issues_chars: 30000   # of all of them; the rest get their title only
+max_closed_issues: 30    # the most recently closed issues, titles only, sent to Claude (0: none; at most 100)
 max_text_chars: 400      # of each text field in the comment
 max_missing_items: 3
 max_spec_items: 6        # points in each list of the spec
