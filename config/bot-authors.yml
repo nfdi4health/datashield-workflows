@@ -9,6 +9,16 @@ bot_names:
   - semantic-release-bot
   - dependabot[bot]
 
+# Authors never credited in DESCRIPTION whose commits are still reviewed
+# like anyone else's (unlike bot_names): coding assistants that commit
+# under their own git name, e.g. Claude Code as "Claude
+# <noreply@anthropic.com>", which isn't linked to a GitHub account.
+# Matched like bot_names: the GitHub login, or the git author name for
+# commits without a linked account. Read by R only (suggest_authors.R).
+uncredited_names:
+  - Claude
+  - claude[bot]
+
 bot_commit_subjects:
   - "docs: apply roxygen suggestion for"
   - "test: suggested test changes for"

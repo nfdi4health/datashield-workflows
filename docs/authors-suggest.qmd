@@ -42,7 +42,10 @@ an existing "Real Name" entry. Commits without a linked GitHub account use
 the git author name. Bots such as `dependabot[bot]` or
 `github-actions[bot]` are skipped; the list lives in
 `config/bot-authors.yml`, where you can
-[add your own](suggestions.qmd#adjusting-the-guidance).
+[add your own](suggestions.qmd#adjusting-the-guidance). Coding assistants
+that commit under their own name, such as Claude Code (`Claude`), are
+never credited either (`uncredited_names` in the same file), but unlike
+bots their commits are still reviewed by the roxygen and test bots.
 
 **Existing entries are recognised** by a commit e-mail that matches the
 entry's (GitHub's noreply addresses are ignored), or by the name — ignoring
