@@ -1018,9 +1018,11 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   own self-test (`self-test.yml`).
   **Review round (2026-11-09, user's choices):** model `claude-sonnet-5-5`
   (`tool_choice_type: auto`, adaptive thinking, `effort: medium`);
-  `allowed-logins` required in both issue workflows (was `FlorianSchw`;
-  **breaking** for callers that relied on the default, e.g.
-  dsSupportClient); all comments read page by page
+  `allowed-logins` without the `FlorianSchw` default: required in
+  `issue-label-check.yml` (approvals; **breaking** for callers that relied
+  on the default), optional with an empty default in `issue-triage.yml`,
+  where it only says who may request a triage with `bot-triage` (empty:
+  nobody; triage itself unaffected); all comments read page by page
   (`get_github_json_pages()`, as the gate does); the 30 most recently closed
   issues by title for duplicates (`max_closed_issues`,
   `format_closed_issues()`); the example caller's job-level `if:` skips PR
@@ -1028,6 +1030,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   the concurrency group, so a qualifying comment within its run cancels it
   (label removed anyway). **Docs pending:** `issue-triage.qmd` (closed
   issues in "Issue text is untrusted" and duplicates, the `if:` in the
-  example section, `allowed-logins` required), `issue-label-check.qmd`
+  example section, `allowed-logins` empty by default: requests need it),
+  `issue-label-check.qmd`
   (`allowed-logins` required), roadmap "Recent changes". All open points, also of other work done
   alongside: [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md).

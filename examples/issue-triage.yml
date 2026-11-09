@@ -20,7 +20,7 @@ jobs:
       id-token: write
     uses: nfdi4health/datashield-workflows/.github/workflows/issue-triage.yml@main
     with:
-      allowed-logins: your-login   # who may ask for a triage by label: exact GitHub logins, separated by commas or spaces
+      allowed-logins: your-login   # optional: who may ask for a triage with the bot-triage label (exact GitHub logins); without it nobody can
     secrets:
       anthropic-organization-id: ${{ secrets.ANTHROPIC_ORG_ID }}
       anthropic-service-account-id: ${{ secrets.ANTHROPIC_SVAC_ID }}
