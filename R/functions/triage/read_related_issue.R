@@ -1,6 +1,9 @@
 # One issue the triage compares against, with its discussion: title, state,
-# body and people's comments (bots left out), oldest first, as text for the
-# prompt. Cut to settings$max_related_chars: the body keeps at most a third
+# body and comments, oldest first, each with who wrote it, as text for the
+# prompt. Other bots' comments stay (the test bot's "still failing" updates
+# are the discussion of the issues it opens); triage's own are left out,
+# being only a summary of the issue (as in triage_history(), only
+# github-actions[bot]'s count). Cut to settings$max_related_chars: the body keeps at most a third
 # of it, the rest goes to the comments, newest kept, since a discussion
 # often ends somewhere else than it began. NULL if the issue can't be read;
 # the triage works without it.
@@ -16,8 +19,13 @@ read_related_issue <- function(number, settings) {
     body <- paste0(substr(body, 1, body_limit), "\n[... rest cut]")
   }
   comments <- get_github_json_pages(sprintf("/repos/%s/issues/%s/comments", repo, number)) %||% list()
-  people <- Filter(function(x) !identical(x$user$type, "Bot"), comments)
-  replies <- vapply(people, function(x) sprintf("<comment>\n%s\n</comment>", x$body %||% ""), character(1))
+  is_triage <- function(x) {
+    identical(x$user$login, "github-actions[bot]") && grepl("^<!-- bot-triage: [a-z-]+ -->", x$body %||% "")
+  }
+  kept_comments <- Filter(Negate(is_triage), comments)
+  replies <- vapply(kept_comments, function(x) {
+    sprintf("<comment by=\"%s\">\n%s\n</comment>", x$user$login %||% "someone", x$body %||% "")
+  }, character(1))
   left <- limit - nchar(body)
   kept <- character(0)
   for (reply in rev(replies)) {

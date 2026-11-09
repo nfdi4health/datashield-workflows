@@ -1052,9 +1052,10 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   compared against the other issues' bodies only; now a first call
   (`shortlist_related_issues()`, inputs `shortlist-*`) names at most 5
   open or recently closed issues from title + start of text
-  (`shortlist_body_chars`), and the triage gets those with body and
-  people's comments (`max_related_chars`, body at most a third, newest
-  comments kept) next to a titles-only list of all others
+  (`shortlist_body_chars`, 1000), and the triage gets those with body and
+  comments (`max_related_chars`, body at most a third, newest comments
+  kept; other bots' comments stay, e.g. the test bot's "still failing"
+  updates on the issues it opens, only triage's own are left out) next to a titles-only list of all others
   (`format_issue_list()`); a disputed duplicate comes with its discussion
   too. A failed shortlist call only leaves the related issues out.
   Removed: `format_open_issues()`, `format_closed_issues()`,

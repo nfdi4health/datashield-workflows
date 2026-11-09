@@ -363,7 +363,8 @@ test_that("a disputed duplicate is read in full with its discussion, through the
   local_global_mock(get_github_json = function(path) {
     paths <<- c(paths, path)
     if (grepl("/comments", path, fixed = TRUE)) {
-      return(list(gh_comment("b", "It is about the plot, not the path."), bot_says("bug")))
+      return(list(gh_comment("b", "It is about the plot, not the path."), bot_says("bug"),
+                  gh_comment("github-actions[bot]", "Still failing: test-plot.R", "Bot")))
     }
     list(title = "ds.histAllVars", body = "Also the hardcoded path is not good.", state = "open")
   })
@@ -372,8 +373,10 @@ test_that("a disputed duplicate is read in full with its discussion, through the
   expect_equal(paths[1], "/repos/me/pkg/issues/58")
   expect_equal(disputed$number, 58L)
   expect_equal(disputed$state, "open")
-  expect_match(disputed$text, "Also the hardcoded path is not good.\n<comment>\nIt is about the plot, not the path.\n</comment>", fixed = TRUE)
+  expect_match(disputed$text, "Also the hardcoded path is not good.\n<comment by=\"b\">\nIt is about the plot, not the path.\n</comment>", fixed = TRUE)
   expect_no_match(disputed$text, "bot-triage", fixed = TRUE)
+  # Other bots' comments are part of the discussion; triage's own are not.
+  expect_match(disputed$text, "<comment by=\"github-actions[bot]\">\nStill failing: test-plot.R\n</comment>", fixed = TRUE)
 })
 
 test_that("nothing is fetched for another verdict, or without a named issue", {
@@ -465,7 +468,7 @@ test_that("a related issue is read with its discussion, the newest comments kept
   expect_equal(related$state, "closed: not planned")
   expect_match(related$text, "[... rest cut]", fixed = TRUE)
   expect_no_match(related$text, "BODY END", fixed = TRUE)
-  expect_true(endsWith(related$text, "[... earlier comments cut]\n<comment>\nmiddle\n</comment>\n<comment>\nnewest\n</comment>"))
+  expect_true(endsWith(related$text, "[... earlier comments cut]\n<comment by=\"b\">\nmiddle\n</comment>\n<comment by=\"c\">\nnewest\n</comment>"))
   expect_no_match(related$text, "oooo", fixed = TRUE)
   expect_no_match(related$text, "bot-triage", fixed = TRUE)
 

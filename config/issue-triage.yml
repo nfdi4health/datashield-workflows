@@ -38,7 +38,7 @@ categories:
 max_body_chars: 20000    # of the issue body, sent to Claude
 max_reply_chars: 8000    # of all comments, the newest kept, sent to Claude
 max_closed_issues: 30    # the most recently closed issues listed next to the open ones (0: none; at most 100)
-shortlist_body_chars: 300      # of each other issue's text, for the shortlist (title plus its start)
+shortlist_body_chars: 1000     # of each other issue's text, for the shortlist (title plus its start)
 max_related_issues: 5          # shortlisted issues the triage reads in full
 max_related_chars: 8000        # of each one: body (at most a third) and comments, the newest kept
 max_text_chars: 400      # of each text field in the comment
