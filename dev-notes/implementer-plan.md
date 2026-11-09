@@ -1,53 +1,225 @@
-# Implementer: what is agreed, what is open (2026-11-06)
+# Implementer: what is agreed, what is open (2026-11-09)
 
 The next step of the issue flow, after the label check and triage. Nothing
 here is built yet. The code that exists is in the private
 `FlorianSchw/datashield-agent-runner` (two jobs: `implement` runs Claude and
-can't write, `publish` is a clean machine that opens a draft PR), not yet run
-for real. Background: [issue-agents.md](issue-agents.md).
+can't write, `publish` is a clean machine that opens the PR), not yet run for
+real; its scripts move here when building starts. Background:
+[issue-agents.md](issue-agents.md). Decided with the user on 2026-11-06 and,
+in one round going through all open points, on 2026-11-09.
 
 ## Flow
 
-Triage, then the user sets `bot-proceed`, then the implementer on the
-subscription. No spec review step and no second approval.
+1. **Triage** sets its category label plus `bot-triaged`, and writes the spec
+   (bugs and ideas). For DataSHIELD **ideas** the spec gets a disclosure
+   section: which settings apply, from the list in
+   `config/ds-package-rules.yml` (`function.server.disclosure.settings`; the
+   file and path are a setting in `config/issue-triage.yml`, never
+   hard-coded), and what happens below the threshold, or "no fitting option:
+   needs your decision". A suggestion of the user's in the issue or a comment
+   becomes the chosen one. Bugs keep the existing disclosure. Triage reads
+   documentation, not code, so this is a proposal the implementer checks.
+2. **The user sets `bot-proceed`**, the only manual step besides merging.
+   `issue-label-check` keeps it only if an allowed login set it (so nobody
+   else starts runs on the subscription); a second job of that workflow then
+   sends `workflow_dispatch` to the runner. Everything after that runs on its
+   own.
+3. **The runner** verifies the approval itself: the bot's newest triage
+   comment is the spec (no `<!-- agent-spec -->` marker), `bot-proceed` was
+   last set by an allowed login, the spec is unchanged since.
+
+No spec review step and no second approval.
 
 ## Decided by the user
 
-- **Disclosure control:** the implementer suggests it, the user decides in PR
-  review. The PR description has a disclosure section: what leaves the server,
-  recommended options from the known list (`client-server-pair` and
-  `design-note` skills of `datashield-skills`), what happens below the
-  threshold, rejected alternatives, open doubts. No fitting option means stop
-  and ask. A new function still stops at a design note with the same section.
+- **Disclosure control:** the implementer follows the spec's choice and
+  suggests details; the user decides in PR review. The PR description has a
+  disclosure section: what leaves the server, the options used, what happens
+  below the threshold, rejected alternatives, open doubts.
 - **Disclosure reviewer:** works out what the server returns from the code
   first, then compares with the suggestion. The PR shows both views.
-- **One correction round**, inside the run `bot-proceed` started. The
-  implementer does its own cleanup (no refactor stage) and fixes failing
-  deterministic checks. Clear problems go back once, the reviewers check only
-  those fixes, a second failure stops, and the PR lists what is open. Matters
-  of taste become PR comments. Disclosure disagreements never go back: both
-  views stay in the PR for the user.
-- **Bots never close issues.** People do, by merging.
-- **The implementer's only source is the bot's last triage comment**, as a
-  spec of the conversation. The user reads the whole conversation and what the
-  bot made of it, and approves that with `bot-proceed`. Outsiders' text never
-  reaches the agent that runs commands: triage reads it but can only fill in
-  fields, and what it writes goes through `plain_comment_text()`, so hidden
-  text doesn't survive either. Decided after first choosing the whole
-  conversation as the source, the same day: that handed outsiders' text to an
-  agent with commands, on a machine holding the subscription token.
-  - **Triage writes a spec section** for `bug` and `idea`: goal, what was
-    reported, acceptance criteria, open questions. Not `likely files`: triage
-    doesn't read the code. Its text limits have to grow for this.
-  - **Flow:** after a discussion, `bot-triage` refreshes the spec, the user
-    reads it, then sets `bot-proceed`.
-  - **The runner** accepts the bot as `spec_authors` and its marker instead of
-    `<!-- agent-spec -->`, and keeps checking that the comment is unchanged
-    since the label. Later comments and edits of other comments don't matter
-    to it.
-  - **Limits:** what the bot's spec misses, the implementer doesn't know, so
-    the user has to catch it before approving. An issue can still steer what
-    the bot writes, but only into plain text the user reads first.
+  Disagreements never go back to the writer.
+- **Writer and two read-only reviewers** (disclosure, maintainability), all in
+  the `implement` job. The maintainability check covers refactoring too (no
+  separate refactor stage). Deterministic checks (tests, R CMD check) run in
+  the job.
+- **Two correction rounds** (2026-11-09, was one): clear problems from the
+  checks and the maintainability reviewer go back to the writer, the
+  reviewers check only those fixes. Matters of taste become PR comments.
+- **Bots never close issues.** People do, by merging (`Refs`, see below).
+- **The implementer's only source is the bot's newest triage comment**, as a
+  spec of the conversation. Outsiders' text never reaches the agent that runs
+  commands: triage reads it but can only fill in fields, and what it writes
+  goes through `plain_comment_text()`. After a discussion, `bot-triage`
+  refreshes the spec; the user reads it, then sets `bot-proceed`. What the
+  spec misses, the implementer doesn't know.
+- **New functions: open, for another day.** The 2026-11-06 rule (stop at a
+  design note) and the runner prompt's "commit nothing" are replaced: with
+  `bot-proceed` a new function means code and a PR. Whether triage writes the
+  design note, and how (it can't load skills; its sections would be config
+  here, the skill's template watched by the sync check), is not decided. The
+  user's idea: name a native R package as the starting point of the
+  implementation.
+
+## Queue
+
+- **The approved issues are the list:** `bot-proceed` without
+  `bot-in-progress`, oldest approval first (label time from the timeline).
+  One issue per run, `concurrency` one run at a time.
+- **Chained:** at the end of a run the runner dispatches itself
+  (`GITHUB_TOKEN` may start `workflow_dispatch`); an empty list ends the
+  chain quietly. GitHub keeps only one waiting run, so dropped dispatches
+  don't matter: the next run finds the issue anyway. Six approvals are done
+  one after another, in approval order.
+- **Start:** the dispatch after the label check, or by hand. **No scheduled
+  run** of the implementer (user, 2026-11-09; replaces the daily run decided
+  earlier the same day).
+- A failed issue doesn't stop the chain; the next one starts.
+
+## Labels and what the issue shows
+
+| State | Labels |
+|---|---|
+| waiting | `bot-proceed` |
+| running | `bot-proceed` + `bot-in-progress` |
+| done | `bot-completed` |
+| failed | `bot-failed` |
+| needs the user's input | `bot-needs-input` |
+
+`bot-proceed` stays during the run; completion and failure remove it (the
+approval is used). The runner **never sets `bot-proceed`**: the label check
+would remove it (the App isn't an allowed login), and the approval check
+needs the user's login. A retry is the user setting it again; the run then
+removes `bot-failed`. The labels go into repo-governance's
+`labels/labels.json` with `bot-triaged`.
+
+How a run ends:
+
+- **Completed:** a normal PR into `dev` with `Refs #n` (see below), the
+  reviewers' open points and the disclosure section listed.
+- **Failed** (checks still failing after two rounds, a technical error): a
+  **draft PR** with the partial code (can't be merged by accident; the bots
+  skip it) and one comment: what was tried, which check failed with its key
+  lines, the reviewers' remaining points, what would unblock it, a link to
+  the run (private). If Claude Code wrote no summary, the runner writes a
+  short one.
+- **Needs input** (the code contradicts the spec's disclosure choice, or the
+  spec is unclear): no code for that part, `bot-needs-input`, and a comment in
+  a `> [!IMPORTANT]` box with what is unclear, the options seen and exactly
+  which answer is needed. The answer leads to a new triage (spec updated),
+  then `bot-proceed` again.
+
+**Draft PRs and the bots, in every repository:** the roxygen, test and
+authors callers skip draft PRs (`!github.event.pull_request.draft`) and add
+`ready_for_review` to their triggers, so they run once a person marks a draft
+ready.
+
+## Subscription limits
+
+Claude Code ends with an error at a limit (no `CLAUDE_CODE_RETRY_WATCHDOG`,
+nothing waits inside the private repository). The runner tells it from other
+failures by Claude Code's message, which carries the reset time (format to
+confirm in the first test). Then: `bot-in-progress` removed, `bot-proceed`
+stays (the approval stands, the issue keeps its place), no comment on the
+public issue, an entry in the log, the chain stops. Nothing was pushed, so the
+next attempt starts from scratch.
+
+- **5-hour limit:** the runner starts a timer workflow in the target
+  repository whose issue hit the limit (public, so its waiting is free), with
+  `repository_dispatch` and the App token (contents: write, which it has). The
+  timer sleeps until the reset plus a few minutes, then dispatches the runner.
+  A hosted job runs at most 6 hours, enough for this.
+- **Weekly limit:** logged as "paused until <date>"; the next approval or a
+  manual start continues. No chained timers.
+
+## Security
+
+- The subscription token (`claude setup-token`, valid a year; personal Pro
+  plan, maybe Max later; the model is an input, Sonnet 5.5 on Pro) sits only
+  in the private runner repository.
+- **The existing GitHub App** gets **Issues: read and write** (labels,
+  comments); it has contents and pull-requests already. `implement` gets a
+  read-only token, `publish` the writing one.
+- **Network:** harden-runner is out (its free tier covers public repositories
+  only). Claude Code's own sandbox runs Claude's commands with network access
+  only to a host list, starting from the cloud environment's: CRAN, P3M,
+  Posit Package Manager, Bioconductor, GitHub and its download hosts. The R
+  library is installed before Claude starts (outside the sandbox); new
+  packages go into a library inside the working folder. GitHub's own egress
+  firewall (preview) later. First test: a DSLite test, R CMD check, an
+  install, and a `curl` to an unlisted host, which must fail; `env` in
+  Claude's shell must not show the token.
+- **Dispatch token:** the user wants a GitHub App instead of a fine-grained
+  token. Then a **separate small App** with only Actions: read and write,
+  installed only on the runner repository: its key sits in the target
+  repositories' secrets, where anyone with write access to them could mint
+  tokens with all of that App's permissions. Not the App that writes code.
+  (`repository_dispatch` into the runner stays rejected: contents write on
+  the runner could reach the subscription token.)
+
+## Cost: Actions minutes
+
+The runner repository is private, so its runs use the account's monthly
+quota (the defaults stop jobs when it is used up, no bill). A run is roughly
+30 to 60 minutes per issue (estimate). Every job gets `timeout-minutes`;
+nothing waits inside the private repository; no schedule there except the
+log job. Measure from the log before deciding on a self-hosted runner.
+
+## Log
+
+On a `log` branch of the runner repository (for the record; the runner works
+from the labels):
+
+- `events.json`: one entry per event, sorted by repository, issue, time.
+  **Append-only:** entries are never changed or removed, duplicates are
+  recognised by a key (repository, issue, event, time, and the actor for
+  label events), so nothing is lost when an issue, a run or its logs disappear
+  from GitHub.
+- `status.csv`: one row per issue, latest state and the durations (opened to
+  `bot-proceed`, to the PR, to merged into `dev`, to released), rebuilt from
+  `events.json`.
+- **A daily job** (Node, about a minute) adds what the issue timelines (label
+  changes with actor and time, the PR, closing; `next-release` and `released`
+  from release-issues) and the runner's own runs (start, end, duration) show.
+  It follows every issue that is or was in the flow until it is released or
+  closed. Plus a keepalive job.
+- **The runner adds at the end of each run** what no API knows: result,
+  reason, correction rounds, pause and reset time.
+- May move to `datashield-kpi-reporting` later (undecided).
+
+## Where it is built
+
+| Repository | What |
+|---|---|
+| datashield-workflows | the implementer as a reusable workflow (credentials as inputs; queue, verify, sandbox, publish, labels, comments), the timer, the dispatch job in `issue-label-check.yml`, triage's `bot-triaged` and disclosure section, the draft skip in the bot workflows |
+| datashield-skills | procedure knowledge the implementer loads; follows this repository's config through its sync check |
+| datashield-agent-runner (private) | subscription token, allowed login, target list, a thin caller, the log and its daily job |
+| target repositories (dsSupportClient first; all testing there) | callers: label check with dispatch, triage, timer, release-issues |
+| repo-governance | the labels |
+
+**Build order:** the basics (one issue on a manual start, sandbox, publish,
+labels), then reviewers and correction rounds, then queue, dispatch and timer,
+then the log, then triage's additions, then the draft skip.
+
+**The user, before the first test:** Issues permission for the App (accept it
+on each installation), the subscription token and the App key as runner
+secrets, the dispatch App.
+
+## Overlap with datashield-skills
+
+Facts and lists are defined in this repository's config; skills may repeat
+them, since Claude Code can't read this config in a target repository, but
+every repeated source file is listed in datashield-skills'
+`sync/sources.json`, whose daily check opens an issue when one changes.
+`ds-package-rules.yml` and `ds-argument-rules.yml` added there 2026-11-09
+(nfdi4health/datashield-skills#1). `ds-package-rules.yml` is meant as the
+community's complete source of truth.
+
+Found and left for the community round on the rules: test categories exist
+twice here, `config/test-categories.yml` (8) and `ds-package-rules.yml`
+`tests.category` (9, plus `dgr` and the `bug` qualifier), and `datachk` means
+different things in the two. The test bot keeps `test-categories.yml` until
+that is settled.
 
 ## Agreed, to build in the runner
 
@@ -75,63 +247,26 @@ subscription. No spec review step and no second approval.
   Done 2026-11-09 (also only branches of the repository itself, not a
   fork's of the same name; this repository calls it too,
   `cleanup-agent-branches.yml`). The
-  roxygen, test and authors bots should run on these branches, unlike
-  `bot-suggest/`.
-
-## Showing the state on the issue
-
-- **Run started:** one comment with a link to the run.
-- **Draft PR open:** GitHub links it through `Closes`. `publish` swaps
-  `bot-proceed` for `bot-in-progress`, a new label for `labels/labels.json` in
-  repo-governance.
-- **Merged into `dev`:** nothing; the issue stays open until it reaches `main`.
-- **Run failed or stopped:** one comment with the reason, no branch or PR.
-  Includes an edit during the run, which `publish` already refuses.
-
-`implement` holds no token that can write, so the comments need a small
-separate job with the App's token, before and after Claude.
+  roxygen, test and authors bots run on these branches, unlike
+  `bot-suggest/` (drafts excepted, see above).
 
 ## Open
 
-1. ~~**Reviewers:**~~ **Decided (user, 2026-11-09): one writer and two
-   read-only reviewers**, all in the `implement` job (the only one with the
-   subscription token; nobody else can start them): a **disclosure reviewer**
-   (works out what the server returns from the code, then compares with the
-   writer's suggestion; both views go into the PR, never back to the writer)
-   and a **maintainability reviewer** (bugs, code that differs from its
-   suggestion, real maintainability problems). Deterministic checks (tests,
-   R CMD check) run in the job too; clear problems from them and from the
-   maintainability reviewer go back to the writer once (the correction
-   round). Chosen over one reviewer although the roxygen and test bots review
-   the PR into `dev` as well: they cover docs and tests, not the code itself.
-   For a client/server pair the disclosure reviewer needs the server
-   repository checked out too.
-2. ~~**Trigger:**~~ **Decided (user, 2026-11-09): `workflow_dispatch` from
-   the target repository** once the label check has confirmed `bot-proceed`
-   from an allowed login, with a fine-grained token of the user's that has
-   only **Actions: read and write** on the runner repository (it can start a
-   run, not change code or secrets; a leaked token only starts runs, which
-   verify the approval themselves). Stored as an organization secret. Plus a
-   daily scheduled run that picks up approved issues a dropped dispatch
-   missed (GitHub keeps one waiting run), and the manual start. Rejected:
-   `repository_dispatch` (needs Contents: write on the runner, which could
-   reach the subscription token) and polling alone (idle runs cost minutes in
-   a private repository).
-3. **Terms and account:** repeat the terms check of 2026-10-16, and check what
-   the team organization means for the subscription.
-4. **Network:** limit what the `implement` job can reach, since it holds the
-   subscription token. Whether claude-code-action and the runners support that
-   is unchecked.
-5. **Bypass:** if the runner's GitHub App is not App `5023737`, add it to
+1. **New functions:** see above, for another day.
+2. **Bypass:** if the runner's GitHub App is not App `5023737`, add it to
    `protect-bot-branches` in repo-governance.
-6. **`bot-suspicious`:** the implementer refuses to start while the label is
+3. **`bot-suspicious`:** the implementer refuses to start while the label is
    on, until a person has looked and removed it.
-7. **Stale spec:** after a bug or idea, comments don't refresh the spec, and
+4. **Stale spec:** after a bug or idea, comments don't refresh the spec, and
    nothing warns. When `bot-proceed` is set and people commented after the
    bot's last spec, remove the label with a note to set `bot-triage` first.
-8. **Label check elsewhere:** `dsAnalysis` and `datashield-workflows` have
+5. **Label check elsewhere:** `dsAnalysis` and `datashield-workflows` have
    `bot-proceed` but no label check caller. Each target repository needs it
    before the implementer runs there.
+6. **Parked:** a refactor agent (covered by the maintainability check for
+   now), a disclosure reverse-engineering agent (the community works on
+   something similar), a self-hosted runner, push notifications (GitHub's own
+   for now).
 
 ## Triage, follow-ups
 
