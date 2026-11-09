@@ -1,0 +1,57 @@
+name: Release Issues
+
+# Closes issues with the release that ships their fix, not with the merge
+# into dev (dev-notes/implementer-plan.md, "Closing issues"). Called with
+# one of three steps:
+#   mark  on a pull request merged into dev: the issues it closes (Closes,
+#         Fixes or Resolves #n in its description or commits; a mere
+#         Refs #n doesn't count) get `next-label` and one comment;
+#   link  in the release chain, before the release pull request is merged:
+#         its description gets `Closes #n` for each open issue with
+#         `next-label`, which closes them on the merge into the default
+#         branch;
+#   swap  in the release chain, after the merge: those issues get
+#         `released-label` instead.
+# link and swap belong in the release chain itself: a merge with
+# GITHUB_TOKEN (merge-pull-request.yml) starts no other workflow. No
+# checkout; the logic is in the composite action.
+on:
+  workflow_call:
+    inputs:
+      step:
+        description: 'mark (pull request merged into dev), link (release pull request, before the merge) or swap (after it).'
+        required: true
+        type: string
+      next-label:
+        description: 'The label of issues merged into dev and waiting for the next release.'
+        required: false
+        type: string
+        default: 'next-release'
+      released-label:
+        description: 'The label of issues closed by a release.'
+        required: false
+        type: string
+        default: 'released'
+      dev-branch:
+        description: 'The branch pull requests are merged into before a release (mark only).'
+        required: false
+        type: string
+        default: 'dev'
+
+permissions: {}
+
+jobs:
+  release-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Release issues
+        uses: $/.github/actions/release-issues
+        with:
+          step: ${{ inputs.step }}
+          next-label: ${{ inputs.next-label }}
+          released-label: ${{ inputs.released-label }}
+          dev-branch: ${{ inputs.dev-branch }}
+          token: ${{ github.token }}

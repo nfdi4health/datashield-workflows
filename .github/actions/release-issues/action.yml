@@ -1,0 +1,37 @@
+name: Release issues
+description: >
+  Closes issues with the release that ships their fix: `mark` labels the
+  issues a pull request merged into dev closes, `link` writes them into the
+  release pull request's description as `Closes #n`, `swap` relabels them
+  after the release. Reads the event file and the API, so no text of a pull
+  request or issue is written into a script.
+
+inputs:
+  step:
+    description: 'mark, link or swap.'
+    required: true
+  next-label:
+    description: 'The label of issues waiting for the next release.'
+    required: true
+  released-label:
+    description: 'The label of issues closed by a release.'
+    required: true
+  dev-branch:
+    description: 'The branch pull requests are merged into before a release.'
+    required: true
+  token:
+    description: 'Token with issues: write and pull-requests: write.'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Release issues (${{ inputs.step }})
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        STEP: ${{ inputs.step }}
+        NEXT_LABEL: ${{ inputs.next-label }}
+        RELEASED_LABEL: ${{ inputs.released-label }}
+        DEV_BRANCH: ${{ inputs.dev-branch }}
+      run: bash "$GITHUB_ACTION_PATH/release-issues.sh"
