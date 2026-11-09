@@ -148,6 +148,27 @@ the live caller used to validate changes before wider rollout.
     `prompts/issue-triage-prompt.md`, functions `R/functions/triage/`. No
     checkout; `issues: write`, `id-token: write`. Claude's fields pass
     `plain_comment_text()`.
+  - `release-issues.yml` — closes issues with the release that ships
+    their fix (2026-11-09, user's design): input `step`. `mark` (caller on
+    `pull_request: closed` into `dev`, merged): issues the PR's description
+    or commits close (Closes/Fixes/Resolves #n of this repository; GitHub
+    ignores these outside the default branch, `Refs` doesn't count) get
+    `next-label` (`next-release`) and one comment. `link` (job in the
+    release chain before the merge): a marked block of `Closes #n` for every
+    issue with that label (open, or closed by hand as completed — its fix
+    ships too; not "not planned") in the `dev` → `main` PR's description,
+    replaced on each run; none is no failure. Input `branch` (default
+    `dev`) for `mark`. `swap` (after the merge job): those issues get
+    `released-label` (`released`) instead. link and swap must sit in the
+    release chain: `merge-pull-request.yml` merges with `GITHUB_TOKEN`,
+    which starts no other workflow. Logic in the composite action
+    `release-issues`; no checkout; `issues: write`, `pull-requests:
+    write`. Tests `tests/shell/test-release-issues.sh`. Labels are created
+    by GitHub on first use; colours belong in repo-governance's
+    `labels.json`. **Not yet tested live:** that GitHub closes the issues
+    when the release PR is merged with `GITHUB_TOKEN`. **Docs pending:** a
+    page (`release-issues.qmd`, Release section) and the release page's
+    example.
   - `issue-label-check.yml` — first step of the issue flow
     ([dev-notes/issue-agents.md](dev-notes/issue-agents.md)), no Claude:
     on `issues: labeled` removes the approval label (input `label`,
@@ -183,6 +204,7 @@ the live caller used to validate changes before wider rollout.
   `workflow-graphs.yml`, meant for future generated-file workflows too),
   `issue-label-check` (the logic of the workflow of that name),
   `issue-triage-gate` (whether an issue gets triaged),
+  `release-issues` (the logic of the workflow of that name),
   `propose-branch` (commit a manifest on top of the checkout, force-push
   a fixed branch, open or update its PR; any checkout incl. a second
   repository; the ds-naming workflows). `resolve-push-token` takes
@@ -216,7 +238,10 @@ the live caller used to validate changes before wider rollout.
   `shell/test-triage-gate.sh` (stand-in for
   `gh`, needs `jq`). Run by `ci.yml` with the static checks;
   locally `Rscript tests/testthat.R`, `bash tests/shell/test-scope.sh` and
-  `bash tests/shell/test-label-check.sh` and `test-triage-gate.sh`.
+  `bash tests/shell/test-label-check.sh`, `test-triage-gate.sh` and
+  `test-release-issues.sh`. Locally with `LANG=C.UTF-8` (R stops reading
+  files at the first non-ASCII character in the POSIX locale), and with a
+  stand-in `yq` if the installed one isn't mikefarah's.
   `self-test.yml` (not reusable) runs `roxygen-suggest.yml` and
   `test-suggest.yml` and `authors-suggest.yml` themselves with the input `self-test-fixture:
   r-package` (fixture instead of the caller checkout via

@@ -51,11 +51,20 @@ subscription. No spec review step and no second approval.
 
 ## Agreed, to build in the runner
 
-- **Closing an issue:** `Closes #<issue>` in the commit message and the PR
-  description. Bot PRs go to `dev`, where only the commit's keyword counts,
-  once it reaches `main`; the keyword has to survive a squash merge. Written by
-  the `publish` job, which also strips other closing keywords from Claude's
-  text: a crafted message could otherwise close an unrelated issue.
+- ~~**Closing an issue:** `Closes #<issue>` in the commit message and the PR
+  description.~~ **Changed (user, 2026-11-09):** the agent only mentions the
+  issue: `Refs #<issue>` in its commits and the PR description, with a note
+  that a person changes it to `Closes #<issue>` once the work is done.
+  Unfinished work (reviewers disagree, follow-ups) then never closes the
+  issue. `publish` strips every closing keyword from Claude's text, the
+  issue's own too. The closing itself is `release-issues.yml` (built
+  2026-11-09): `mark` on a PR merged into `dev` labels the issues its
+  description or commits close `next-release` (GitHub ignores the keywords
+  outside the default branch; a mere `Refs` doesn't count); `link` writes
+  `Closes #n` for those into the `dev` → `main` PR's description before the
+  merge, which closes them; `swap` relabels them `released` after it. No
+  commit on `dev` is needed. Untested so far: whether GitHub closes issues
+  when `merge-pull-request.yml` merges with `GITHUB_TOKEN`.
 - **Branch and commit type:** `agent-suggest/fix/issue-<n>` with `fix:` for an
   issue labelled `bug`, `agent-suggest/feat/issue-<n>` with `feat:` for
   `enhancement`. Any other label stops the run. Set by `publish` from the label,
