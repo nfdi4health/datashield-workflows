@@ -55,7 +55,7 @@ test_that("suggest_tests.R proposes the passing tests and reports the failing on
   expect_match(report, "clamp stops when lo is above hi", fixed = TRUE)
 })
 
-test_that("suggest_authors.R credits an R-code author as aut and a tests-only one as ctb, skipping bots", {
+test_that("suggest_authors.R credits an R-code author as aut and a tests-only one as ctb, skipping bots and uncredited names", {
   dir <- local_fixture("r-package")
   git <- function(..., name = "Ada Example", email = "ada@example.org") {
     withr::with_dir(dir, system2("git", shQuote(c("-c", paste0("user.name=", name), "-c", paste0("user.email=", email), ...)), stdout = TRUE, stderr = TRUE))
@@ -72,11 +72,13 @@ test_that("suggest_authors.R credits an R-code author as aut and a tests-only on
   bea <- commit("R/clamp.R", "# note\n", "Bea M", "bea@example.org")
   carl <- commit("tests/testthat/test-add1.R", "# note\n", "Carl Test", "carl@example.org")
   bot <- commit("R/add1.R", "# bump\n", "dependabot[bot]", "bot@example.org")
-  writeLines(c(bea, carl, bot), file.path(dir, "commits.txt"))
+  assistant <- commit("R/clamp.R", "# tidy\n", "Claude", "noreply@anthropic.com")
+  writeLines(c(bea, carl, bot, assistant), file.path(dir, "commits.txt"))
   github <- list()
   github[[paste0("/repos/me/fixturepkg/commits/", bea)]] <- list(commit = list(author = list(name = "Bea M", email = "bea@example.org")), author = list(login = "bea"))
   github[[paste0("/repos/me/fixturepkg/commits/", carl)]] <- list(commit = list(author = list(name = "Carl Test", email = "carl@example.org")), author = NULL)
   github[[paste0("/repos/me/fixturepkg/commits/", bot)]] <- list(commit = list(author = list(name = "dependabot[bot]", email = "bot@example.org")), author = list(login = "dependabot[bot]"))
+  github[[paste0("/repos/me/fixturepkg/commits/", assistant)]] <- list(commit = list(author = list(name = "Claude", email = "noreply@anthropic.com")), author = NULL)  # uncredited_names
   github[["/users/bea"]] <- list(login = "bea", name = "Beatrice van Muster")
 
   run_entry_script_mocked("suggest_authors.R", dir, c(GH_TOKEN = "", GITHUB_REPOSITORY = "me/fixturepkg", PR_NUMBER = ""), github = github)
@@ -88,6 +90,7 @@ test_that("suggest_authors.R credits an R-code author as aut and a tests-only on
   expect_equal(by_name("Beatrice")$role, "aut")
   expect_equal(by_name("Carl")$role, "ctb")
   expect_null(by_name("Beatrice")$email)  # e-mails are never written
+  expect_null(by_name("Claude"))
   expect_length(authors, 3)
   expect_match(paste(readLines(file.path(dir, "suggestion_report.md")), collapse = "\n"), "Beatrice van Muster", fixed = TRUE)
 })

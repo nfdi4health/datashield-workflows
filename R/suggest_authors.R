@@ -12,7 +12,7 @@
 # GitHub handle not matching an existing "Real Name" entry. Falls back to
 # the git author name when a commit isn't linked to any GitHub account, or
 # when that account's profile name is blank. Accounts and names listed in
-# config/bot-authors.yml are skipped.
+# config/bot-authors.yml (bot_names, uncredited_names) are skipped.
 
 library(httr2)
 library(jsonlite)
@@ -30,7 +30,10 @@ gh_token  <- Sys.getenv("GH_TOKEN")
 repo      <- Sys.getenv("GITHUB_REPOSITORY")
 pr_number <- Sys.getenv("PR_NUMBER")
 
-bot_names <- unlist(read_config_yaml("config/bot-authors.yml")$bot_names)
+bot_config <- read_config_yaml("config/bot-authors.yml")
+# bot_names: commits already left out by determine-changes.sh, checked here
+# again; uncredited_names: reviewed by the other bots, only never credited.
+skip_names <- unlist(c(bot_config$bot_names, bot_config$uncredited_names))
 policy <- suggestion_policy()
 match_routing <- check_routing(policy$routing$authors$possible_matches, "authors possible_matches", allowed = c("comment", "log"))
 
@@ -57,13 +60,13 @@ for (sha in shas) {
   gh_author <- commit_data$author
 
   if (is.null(gh_author)) {
-    if (is.null(git_author_name) || git_author_name %in% bot_names) {
+    if (is.null(git_author_name) || git_author_name %in% skip_names) {
       next
     }
     name <- git_author_name
   } else {
     login <- gh_author$login
-    if (login %in% bot_names) {
+    if (login %in% skip_names) {
       next
     }
     if (is.null(login_names[[login]])) {

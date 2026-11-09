@@ -238,7 +238,7 @@ whole.
 |---|---|
 | `config/suggestion-policy.yml` | Reasons and which are proposed, the number of new tests, possible bugs, author roles and name particles, where reports go |
 | `config/claude.yml` | Claude model and request settings, per task |
-| `config/bot-authors.yml` | Accounts never added to `DESCRIPTION`, and how the bot recognises its own commits |
+| `config/bot-authors.yml` | Accounts never added to `DESCRIPTION` (bots, and coding assistants such as Claude Code), and how the bot recognises its own commits |
 | `config/report-style.yml` | Heading levels and spacing of the suggestion reports |
 | `config/roxygen-style.yml` | Roxygen tag order and per-tag guidance |
 | `config/datashield-role-guidance.yml` | Roxygen guidance for DataSHIELD client, server and utility packages |

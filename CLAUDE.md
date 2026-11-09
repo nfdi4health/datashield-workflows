@@ -53,7 +53,9 @@ the live caller used to validate changes before wider rollout.
     caller trigger on all PRs (no `paths` filter), or tests/docs-only
     contributors are never seen. Bots are skipped per
     `config/bot-authors.yml` (overridable, merged, see `read_config_yaml()`
-    below). New people: name split by `split_person_name()` (last word +
+    below); `uncredited_names` there (`Claude`, `claude[bot]`, 2026-11-09)
+    are only never credited — the roxygen/test bots still review their
+    commits, unlike `bot_names`. New people: name split by `split_person_name()` (last word +
     particles like `van`/`de` = family; one-word names flagged). Matching
     (`find_author()`): commit e-mail (noreply ignored; e-mails are never
     written) or name ignoring case/accents/punctuation/order; same family +
