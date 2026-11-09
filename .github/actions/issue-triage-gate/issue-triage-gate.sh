@@ -13,7 +13,9 @@
 #   anything else                 nothing
 # Before the first triage, the author's comment counts like an edit: they
 # are still writing, so the wait starts again. Anyone else's starts nothing,
-# and the triage reads it anyway.
+# and the triage reads it anyway. An issue carrying SUSPICIOUS_LABEL (text
+# tried to steer the bot) gets one triage only: more answers from the same
+# author would only give them more tries.
 #
 # TRIAGE_LABEL set by an exact login in ALLOWED_LOGINS is a person's request:
 # it needs no reason and no wait, and works on issues from before triage
@@ -27,7 +29,7 @@
 #
 # Reads the event file and the API; needs APPROVAL_LABEL, TRIAGE_LABEL,
 # ALLOWED_LOGINS, MAX_TRIAGES, GH_TOKEN and the GITHUB_* variables of the
-# runner.
+# runner; SUSPICIOUS_LABEL is optional (default bot-suspicious).
 set -euo pipefail
 
 skip() {
@@ -95,6 +97,9 @@ if [ -z "$triages" ]; then
   [ "$trigger" = edit ] || [ "$(event .sender.login)" = "$(jq -r '.user.login' <<< "$issue")" ] \
     || skip "no triage yet, the first one reads this comment"
 else
+  if labels_match "${SUSPICIOUS_LABEL:-bot-suspicious}"; then
+    skip "the issue is marked ${SUSPICIOUS_LABEL:-bot-suspicious}: one triage only (a listed login can still ask with the triage label)"
+  fi
   case "$trigger/$(tail -n 1 <<< "$triages")" in
     edit/needs-info|comment/needs-info) ;;
     edit/duplicate|edit/spam|edit/out-of-scope|comment/duplicate|comment/spam|comment/out-of-scope)
