@@ -44,6 +44,7 @@ read_issue_for_triage <- function(number, settings) {
       body = vapply(closed, function(x) x$body %||% "", character(1)),
       state_reason = vapply(closed, function(x) x$state_reason %||% "", character(1))
     ),
+    r_files = list_r_files(),
     previous_category = history$category,
     previous_comment = history$comment,
     replies = history$replies,

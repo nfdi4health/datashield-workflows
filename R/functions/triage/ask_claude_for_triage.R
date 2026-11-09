@@ -15,11 +15,15 @@ ask_claude_for_triage <- function(claude, issue, settings) {
     OPEN_ISSUES = format_issue_list(issue$open_issues),
     CLOSED_ISSUES = format_issue_list(issue$closed_issues),
     RELATED_ISSUES = format_related_issues(issue$related),
+    DOCUMENTATION = format_documentation(issue$documentation),
     TITLE = issue$title,
     BODY = if (nzchar(body)) body else "(empty)",
     HISTORY = format_triage_history(issue, settings)
   ))
   answer <- call_claude_tool(claude, build_triage_tool(settings), prompt)
+  if (!is.null(answer$documentation) && !answer$documentation %in% names(settings$documentation_verdicts)) {
+    stop(sprintf("Unknown documentation verdict: %s", answer$documentation), call. = FALSE)
+  }
   if (!answer$category %in% names(settings$categories)) {
     stop(sprintf("Unknown triage category: %s", answer$category), call. = FALSE)
   }

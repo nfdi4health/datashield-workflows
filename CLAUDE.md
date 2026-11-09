@@ -1059,11 +1059,22 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   (`format_issue_list()`); a disputed duplicate comes with its discussion
   too. A failed shortlist call only leaves the related issues out.
   Removed: `format_open_issues()`, `format_closed_issues()`,
-  `max_open_issue_chars`, `max_open_issues_chars`. Still not read: the
-  code (triage checks out nothing; see the open question about functions
-  named in a bug report). **Docs pending:** `issue-triage.qmd` (closed
+  `max_open_issue_chars`, `max_open_issues_chars`. **Documentation, not
+  code (2026-11-09, user chose B over reading the code):** the shortlist
+  also names up to `max_documented_functions` (3) files of the default
+  branch's `R/` (`list_r_files()`, one contents call) the issue is about;
+  their roxygen block (`read_function_documentation()`, via
+  `parse_r_file()`, without examples/imports/export, cut to
+  `max_documentation_chars`) goes into the triage prompt, never the code.
+  Claude answers `documentation`: contradicts / matches / not_covered /
+  none (+ `documentation_note`); the comment gets a "Documentation (files):
+  …" line (wording `documentation_verdicts`). Reason: triage decides
+  whether behaviour is meant, not why it happens, so it doesn't do the
+  implementer's diagnosis halfway, stays cheap, and the spec gets a
+  documented contract; wrong or missing docs are its limit. **Docs pending:** `issue-triage.qmd` (closed
   issues in "Issue text is untrusted" and duplicates, the shortlist and
-  related issues read with their discussion, the `shortlist-*` inputs, the `if:` in the
+  related issues read with their discussion, the `shortlist-*` inputs,
+  the documentation line and what it means, the `if:` in the
   example section, `allowed-logins` empty by default: requests need it),
   `issue-label-check.qmd`
   (`allowed-logins` required), roadmap "Recent changes". All open points, also of other work done

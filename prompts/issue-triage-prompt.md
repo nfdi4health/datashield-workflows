@@ -21,6 +21,22 @@ discussion (comments oldest first, cut if long):
 
 {{RELATED_ISSUES}}
 
+The roxygen documentation of the functions the issue is about, from the
+default branch:
+
+{{DOCUMENTATION}}
+
+Compare what the issue reports with what this documentation promises, and
+say so in `documentation`: `contradicts` if the function doesn't do what
+it is documented to do, which speaks for `bug`; `matches` if it behaves as
+documented, so the report is a `question` or, if someone wants it
+changed, an `idea`; `not_covered` if the documentation says nothing about
+it, which needs your judgement or more information. Use `none` only when
+no documentation is shown. You see the documentation, not the code: judge
+whether the behaviour is meant, not why it happens, and don't guess a
+cause. The documentation can be wrong; if it looks outdated, say so in
+`documentation_note`.
+
 Only call an issue a duplicate if one of these clearly asks for the same
 thing, and give its number. Judge by the whole discussion, not only the
 first post: what an issue is about can change in its comments. For a

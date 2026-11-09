@@ -3,8 +3,9 @@
 # (.github/actions/issue-triage-gate) has decided it is needed.
 #   1. read the issue as it stands now, the repository's description and
 #      the other open and recently closed issues;
-#   2. a cheap first call shortlists the issues it may be about, which are
-#      read in full with their discussion;
+#   2. a cheap first call shortlists the issues it may be about, read in
+#      full with their discussion, and the functions it is about, whose
+#      roxygen documentation is read (never their code);
 #   3. Claude answers through its tool: a category and short fields;
 #   4. R writes the comment, with the marker the gate looks for, and sets
 #      the category's label. It never closes an issue.
@@ -31,7 +32,9 @@ settings <- read_config_yaml("config/issue-triage.yml")
 issue <- read_issue_for_triage(number, settings)
 auth <- claude_auth()
 shortlist <- claude_client("issue-triage-shortlist", "prompts/issue-triage-shortlist-prompt.md", auth)
-issue$related <- lapply(shortlist_related_issues(shortlist, issue, settings), read_related_issue, settings = settings)
+picked <- shortlist_related_issues(shortlist, issue, settings)
+issue$related <- lapply(picked$issues, read_related_issue, settings = settings)
+issue$documentation <- lapply(picked$files, read_function_documentation, settings = settings)
 claude <- claude_client("issue-triage", "prompts/issue-triage-prompt.md", auth)
 answer <- ask_claude_for_triage(claude, issue, settings)
 

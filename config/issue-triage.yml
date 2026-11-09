@@ -41,6 +41,16 @@ max_closed_issues: 30    # the most recently closed issues listed next to the op
 shortlist_body_chars: 1000     # of each other issue's text, for the shortlist (title plus its start)
 max_related_issues: 5          # shortlisted issues the triage reads in full
 max_related_chars: 8000        # of each one: body (at most a third) and comments, the newest kept
+max_documented_functions: 3    # functions the issue is about whose roxygen documentation the triage reads
+max_documentation_chars: 6000  # of each one's documentation
+
+# How the report compares with the documentation, as the comment words it
+# (empty: no line). The keys are the tool's enum.
+documentation_verdicts:
+  contradicts: the report contradicts what the function is documented to do
+  matches: the reported behaviour is what the function is documented to do
+  not_covered: the documentation doesn't cover the reported behaviour
+  none: ""
 max_text_chars: 400      # of each text field in the comment
 max_missing_items: 3
 max_spec_items: 6        # points in each list of the spec
