@@ -1,0 +1,26 @@
+# In the runner repository, next to implement-issue.yml.
+name: Implementer Log
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  log:
+    permissions:
+      contents: write
+      actions: read
+    uses: nfdi4health/datashield-workflows/.github/workflows/implementer-log.yml@main
+    with:
+      targets: '{"your-org/your-package": {"base": "dev", "setup": "r"}}'
+      allowed-logins: your-login
+    secrets:
+      app-client-id: ${{ secrets.APP_CLIENT_ID }}
+      app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+  keepalive:
+    if: github.event_name == 'schedule'
+    permissions:
+      actions: write
+    uses: nfdi4health/datashield-workflows/.github/workflows/workflow-keepalive.yml@main

@@ -22,6 +22,7 @@ triage_spec_lines <- function(answer, settings) {
     if (nzchar(goal)) c("", sprintf("**Goal:** %s", text(goal))),
     section("What was reported", answer$reported),
     section("Acceptance criteria", answer$acceptance_criteria),
-    section("Open questions", answer$open_questions)
+    section("Open questions", answer$open_questions),
+    triage_disclosure_lines(answer, settings, text)
   )
 }

@@ -59,6 +59,18 @@ max_spec_items: 6        # points in each list of the spec
 spec_categories: [bug, idea]   # these get a spec in their comment
 
 suspicious_label: bot-suspicious   # set when Claude finds an attempt to steer it
+triaged_label: bot-triaged         # set on every triaged issue, so "triaged, waiting for a decision" can be filtered (empty: none)
+
+# DataSHIELD repositories (input `datashield: true`): the spec of these
+# categories gets a disclosure section when the change touches what a
+# server function returns or creates, with the settings that apply, taken
+# from the list at `settings_path` in `settings_file` (a config file of
+# this repository, merged like the others). Bugs keep the existing
+# disclosure, so they get none.
+disclosure:
+  categories: [idea]
+  settings_file: config/ds-package-rules.yml
+  settings_path: [function, server, disclosure, settings]
 
 footer: Automatic first look. Nothing has been decided.
 # %s is "1 place" or "2 places".

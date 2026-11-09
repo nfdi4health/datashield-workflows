@@ -1,0 +1,35 @@
+# In a private runner repository, which holds the subscription token.
+name: Implement Issue
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: 'Optional: a target repository whose issue goes first.'
+        required: false
+        type: string
+      issue:
+        description: 'Optional: that issue.'
+        required: false
+        type: string
+
+# One agent at a time: the subscription's limits are shared.
+concurrency:
+  group: implementer
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    permissions:
+      contents: write   # the log branch
+      actions: write    # starts the next run
+    uses: nfdi4health/datashield-workflows/.github/workflows/implement-issue.yml@main
+    with:
+      targets: '{"your-org/your-package": {"base": "dev", "setup": "r"}}'
+      allowed-logins: your-login
+      repository: ${{ inputs.repository }}
+      issue: ${{ inputs.issue }}
+    secrets:
+      claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      app-client-id: ${{ secrets.APP_CLIENT_ID }}
+      app-private-key: ${{ secrets.APP_PRIVATE_KEY }}

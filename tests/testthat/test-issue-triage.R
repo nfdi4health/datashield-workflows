@@ -866,3 +866,56 @@ test_that("the tool asks for it, and the prompt explains it", {
   expect_match(prompt, "Set `manipulation_attempt`", fixed = TRUE)
   expect_match(prompt, "A hint left in an issue template is no attempt", fixed = TRUE)
 })
+
+# --- bot-triaged and the disclosure section ------------------------------------
+
+test_that("every triaged issue gets the triaged label once; never the approval label", {
+  calls <- local_label_calls()
+  apply_triaged_label("7", triage_issue_data(), triage_settings(), "bot-proceed")
+  expect_equal(calls$posted[[1]]$body, list(labels = list("bot-triaged")))
+  calls <- local_label_calls()
+  issue <- triage_issue_data()
+  issue$labels <- "bot-triaged"
+  apply_triaged_label("7", issue, triage_settings(), "bot-proceed")
+  expect_length(calls$posted, 0)
+  settings <- triage_settings()
+  settings$triaged_label <- "Bot-Proceed"
+  expect_error(apply_triaged_label("7", triage_issue_data(), settings, "bot-proceed"), "must not set the approval label")
+})
+
+test_that("the disclosure settings come from the configured file and path", {
+  settings <- triage_settings()
+  options <- read_disclosure_settings(settings)
+  expect_true(all(c("nfilter.tab", "nfilter.subset") %in% options))
+  settings$disclosure$settings_path <- list("function", "nope")
+  expect_length(read_disclosure_settings(settings), 0)
+  settings$disclosure$settings_file <- NULL
+  expect_length(read_disclosure_settings(settings), 0)
+})
+
+test_that("the disclosure fields are in the tool only for a DataSHIELD repository", {
+  settings <- triage_settings()
+  expect_null(build_triage_tool(settings)$input_schema$properties$disclosure_settings)
+  expect_equal(format_disclosure_guidance(settings), "")
+  settings$disclosure_options <- c("nfilter.tab", "nfilter.glm")
+  tool <- build_triage_tool(settings)
+  expect_equal(unlist(tool$input_schema$properties$disclosure_settings$items$enum), c("nfilter.tab", "nfilter.glm"))
+  expect_setequal(unlist(tool$input_schema$required), names(tool$input_schema$properties))
+  expect_true(strict_tool_schema(tool$input_schema)$ok)
+  expect_match(format_disclosure_guidance(settings), "`nfilter.glm`", fixed = TRUE)
+})
+
+test_that("an idea's spec gets the disclosure section; a bug's doesn't", {
+  settings <- triage_settings()
+  idea <- triage_answer(category = "idea", goal = "A new table.", disclosure_settings = list("nfilter.tab"),
+                        disclosure_below_threshold = "Stop with an error.", disclosure_decision = "")
+  lines <- triage_spec_lines(idea, settings)
+  expect_true(any(grepl("**Disclosure", lines, fixed = TRUE)))
+  expect_true("- Settings: `nfilter.tab`" %in% lines)
+  expect_true("- Below the threshold: Stop with an error." %in% lines)
+  expect_false(any(grepl("To decide", lines)))
+  bug <- utils::modifyList(idea, list(category = "bug"))
+  expect_false(any(grepl("Disclosure", triage_spec_lines(bug, settings))))
+  empty <- triage_answer(category = "idea", goal = "x", disclosure_settings = list(), disclosure_below_threshold = "", disclosure_decision = "")
+  expect_false(any(grepl("Disclosure", triage_spec_lines(empty, settings))))
+})
