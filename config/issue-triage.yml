@@ -43,6 +43,8 @@ max_related_issues: 5          # shortlisted issues the triage reads in full
 max_related_chars: 8000        # of each one: body (at most a third) and comments, the newest kept
 max_documented_functions: 3    # functions the issue is about whose roxygen documentation the triage reads
 max_documentation_chars: 6000  # of each one's documentation
+# DESCRIPTION fields the triage reads, for missing dependencies.
+description_fields: [Package, Depends, Imports, LinkingTo, Suggests, Remotes]
 
 # How the report compares with the documentation, as the comment words it
 # (empty: no line). The keys are the tool's enum.

@@ -601,6 +601,39 @@ test_that("a function's roxygen documentation is read from the default branch, n
   expect_null(read_function_documentation("gone.R", settings))
 })
 
+test_that("the declared dependencies are read from DESCRIPTION on the default branch", {
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  local_global_mock(get_github_json = function(path) {
+    expect_equal(path, "/repos/me/pkg/contents/DESCRIPTION")
+    github_file(c("Package: dsX", "Title: X", "Imports:", "    dplyr (>= 1.0.2),", "    purrr", "Suggests: testthat", "URL: https://x"))
+  })
+  deps <- read_declared_dependencies(triage_settings())
+  expect_equal(deps, "Package: dsX\nImports: dplyr (>= 1.0.2), purrr\nSuggests: testthat")
+  local_global_mock(get_github_json = function(path) NULL)
+  expect_equal(read_declared_dependencies(triage_settings()), "")
+})
+
+test_that("the prompt shows the dependencies and what an undeclared one means", {
+  prompt <- paste(readLines(file.path(repo_root, "prompts", "issue-triage-prompt.md")), collapse = " ")
+  expect_match(prompt, "{{DEPENDENCIES}}", fixed = TRUE)
+  expect_match(prompt, "there is no package called", fixed = TRUE)
+  assign("repo", "me/pkg", envir = globalenv())
+  withr::defer(rm("repo", envir = globalenv()))
+  seen <- NULL
+  local_global_mock(call_claude_tool = function(claude, tool, prompt) {
+    seen <<- prompt
+    triage_answer()
+  })
+  claude <- list(prompt = "{{REPOSITORY}}{{DESCRIPTION}}{{CATEGORIES}}{{DEPENDENCIES}}{{TITLE}}{{BODY}}")
+  issue <- triage_issue_data()
+  issue$dependencies <- "Imports: dplyr"
+  ask_claude_for_triage(claude, issue, triage_settings())
+  expect_match(seen, "Imports: dplyr", fixed = TRUE)
+  ask_claude_for_triage(claude, triage_issue_data(), triage_settings())
+  expect_match(seen, "(no DESCRIPTION)", fixed = TRUE)
+})
+
 test_that("the documentation goes into the prompt per function, an undocumented one said so", {
   docs <- list(list(file = "R/ds.table.R", name = "ds.table", usage = "ds.table(x)", documented = TRUE, text = "@return Counts."),
                NULL,

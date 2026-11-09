@@ -16,6 +16,7 @@ ask_claude_for_triage <- function(claude, issue, settings) {
     CLOSED_ISSUES = format_issue_list(issue$closed_issues),
     RELATED_ISSUES = format_related_issues(issue$related),
     DOCUMENTATION = format_documentation(issue$documentation),
+    DEPENDENCIES = if (nzchar(issue$dependencies %||% "")) issue$dependencies else "(no DESCRIPTION)",
     TITLE = issue$title,
     BODY = if (nzchar(body)) body else "(empty)",
     HISTORY = format_triage_history(issue, settings)

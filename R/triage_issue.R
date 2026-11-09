@@ -5,7 +5,8 @@
 #      the other open and recently closed issues;
 #   2. a cheap first call shortlists the issues it may be about, read in
 #      full with their discussion, and the functions it is about, whose
-#      roxygen documentation is read (never their code);
+#      roxygen documentation is read (never their code), next to the
+#      dependencies the package declares in DESCRIPTION;
 #   3. Claude answers through its tool: a category and short fields;
 #   4. R writes the comment, with the marker the gate looks for, and sets
 #      the category's label. It never closes an issue.

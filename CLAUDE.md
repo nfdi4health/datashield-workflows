@@ -1071,7 +1071,12 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   …" line (wording `documentation_verdicts`). Reason: triage decides
   whether behaviour is meant, not why it happens, so it doesn't do the
   implementer's diagnosis halfway, stays cheap, and the spec gets a
-  documented contract; wrong or missing docs are its limit. **Docs pending:** `issue-triage.qmd` (closed
+  documented contract; wrong or missing docs are its limit. Also the
+  package's declared dependencies (`read_declared_dependencies()`, one
+  contents call, `description_fields`): a package a function uses
+  (`@import`) or an error names but DESCRIPTION doesn't declare installs
+  and then fails, which the prompt calls a `bug` (user's case; R CMD
+  check flags it too). **Docs pending:** `issue-triage.qmd` (closed
   issues in "Issue text is untrusted" and duplicates, the shortlist and
   related issues read with their discussion, the `shortlist-*` inputs,
   the documentation line and what it means, the `if:` in the

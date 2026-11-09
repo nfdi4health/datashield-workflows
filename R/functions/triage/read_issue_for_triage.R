@@ -45,6 +45,7 @@ read_issue_for_triage <- function(number, settings) {
       state_reason = vapply(closed, function(x) x$state_reason %||% "", character(1))
     ),
     r_files = list_r_files(),
+    dependencies = read_declared_dependencies(settings),
     previous_category = history$category,
     previous_comment = history$comment,
     replies = history$replies,

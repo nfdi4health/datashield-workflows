@@ -37,6 +37,18 @@ whether the behaviour is meant, not why it happens, and don't guess a
 cause. The documentation can be wrong; if it looks outdated, say so in
 `documentation_note`.
 
+What the package declares it needs, from its DESCRIPTION:
+
+{{DEPENDENCIES}}
+
+Installing a package only installs what it declares there, so a package
+a function uses (see its `@import` and `@importFrom` lines) but the
+DESCRIPTION doesn't list installs fine and then fails when used, often
+with "there is no package called ...". If the report fits that, it is a
+`bug`; name the missing package in `reason`. Packages that come with R
+(base, utils, stats, methods, grDevices, graphics, tools) are always
+installed, but still have to be declared to be used.
+
 Only call an issue a duplicate if one of these clearly asks for the same
 thing, and give its number. Judge by the whole discussion, not only the
 first post: what an issue is about can change in its comments. For a
