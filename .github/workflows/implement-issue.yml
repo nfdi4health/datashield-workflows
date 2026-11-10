@@ -311,6 +311,10 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
           github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
           prompt: ${{ steps.prompt-writer0.outputs.text }}
           settings: ${{ runner.temp }}/claude-settings.json
           plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
@@ -351,6 +355,10 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
           github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
           prompt: ${{ steps.prompt-maintainability0.outputs.text }}
           settings: ${{ runner.temp }}/claude-settings.json
           plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
@@ -392,6 +400,10 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
           github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
           prompt: ${{ steps.prompt-writer1.outputs.text }}
           settings: ${{ runner.temp }}/claude-settings.json
           plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
@@ -433,6 +445,10 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
           github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
           prompt: ${{ steps.prompt-maintainability1.outputs.text }}
           settings: ${{ runner.temp }}/claude-settings.json
           plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
@@ -474,6 +490,10 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
           github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
           prompt: ${{ steps.prompt-writer2.outputs.text }}
           settings: ${{ runner.temp }}/claude-settings.json
           plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
@@ -515,6 +535,10 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
           github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
           prompt: ${{ steps.prompt-maintainability2.outputs.text }}
           settings: ${{ runner.temp }}/claude-settings.json
           plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
@@ -545,6 +569,10 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
           github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
           prompt: ${{ steps.prompt-disclosure.outputs.text }}
           settings: ${{ runner.temp }}/claude-settings.json
           plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
