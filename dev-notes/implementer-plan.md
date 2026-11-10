@@ -281,6 +281,13 @@ that is settled.
   `enhancement` → `feat`, then `bug` → `fix`); branch and pull request
   title take that type, the writer is told both parts are wanted, and its
   commits keep their own types. Today such an issue is refused.
+- **GitHub's issue type instead of labels** (user agrees, 2026-11-10; not
+  built): the issue type field (Bug, Feature, Task; set per organisation)
+  is one value, so it can't conflict like two labels. The runner would take
+  `fix` / `feat` from the type (Bug → fix, Feature → feat), and fall back to
+  the labels (feat beats fix) where a repository has no types (personal
+  accounts have none). Triage could set the type instead of, or besides,
+  the label.
 - **`open-pull-request`** (input, default `true`): `false` pushes the branch
   only and puts the comparison link, summary and reviews in an issue comment;
   labels as with a pull request; the cleanup never touches such a branch
