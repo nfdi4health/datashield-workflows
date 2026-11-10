@@ -319,6 +319,22 @@ that is settled.
   decisive (prompt and/or a field), so a deliberate split isn't blocked.
   Worked around by closing #58.
 
+- **Answers to open questions start a new triage** (user, 2026-11-10; not
+  built yet). Today, after `bug` or `idea`, only `bot-triage` repeats a
+  triage, so a spec's open questions (dsSupportClient #58) can't be answered
+  by comment. Wanted: a triage comment whose spec has open questions carries
+  a second hidden marker (e.g. `<!-- bot-triage-open-questions -->`; the
+  first-line marker stays, the gate, runner and related-issue reader rely on
+  it); then a comment by the issue's author or an allowed login starts a new
+  triage, with the usual wait. Other people's comments don't (the maintainer
+  approves the spec). The comment says so under the open questions. No
+  label: the issue keeps `bug` / `enhancement`. A spec without open
+  questions stays as it is.
+- **One answer-triage beyond the limit:** after a spec with open questions,
+  one such triage is always allowed, even when `max-triages` is reached; if
+  it again ends with open questions, the normal limit applies. `bot-triage`
+  stays unlimited.
+
 ## Open
 
 1. **New functions:** see above, for another day.
