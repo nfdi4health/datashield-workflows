@@ -94,6 +94,9 @@ export function finalOutcome({ steps, checks, needsInput, hasCommits, now = new 
     if (limit) return { result: "limit", resetAt: limit.resetAt, reason: "The subscription's usage limit was reached." };
     // A failed reviewer doesn't sink the writer's work; a failed writer does.
     if (step.role === "writer") {
+      if (!execution.found) {
+        return { result: "failed", reason: "The agent didn't start (Claude Code left no log); the run's log says why." };
+      }
       return { result: "failed", reason: `The agent stopped with an error${execution.text ? `: ${execution.text.slice(0, 300)}` : "."}` };
     }
   }

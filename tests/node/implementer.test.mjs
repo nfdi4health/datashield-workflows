@@ -214,7 +214,9 @@ test("the final outcome", () => {
   writeFileSync(limitFile, JSON.stringify([{ type: "result", subtype: "error_during_execution", is_error: true, result: "Claude AI usage limit reached|1762700000" }]));
   const ok = { role: "writer", ran: true, conclusion: "success" };
   assert.equal(finalOutcome({ steps: [{ ...ok, conclusion: "failure", executionFile: limitFile }], hasCommits: false }).result, "limit");
-  assert.equal(finalOutcome({ steps: [{ ...ok, conclusion: "failure" }], hasCommits: true }).result, "failed");
+  const notStarted = finalOutcome({ steps: [{ ...ok, conclusion: "failure" }], hasCommits: true });
+  assert.equal(notStarted.result, "failed");
+  assert.match(notStarted.reason, /didn't start/);
   assert.equal(finalOutcome({ steps: [ok, { role: "disclosure", ran: true, conclusion: "failure" }], hasCommits: true }).result, "completed");
   assert.equal(finalOutcome({ steps: [ok], needsInput: true, hasCommits: true }).result, "needs-input");
   assert.equal(finalOutcome({ steps: [ok], hasCommits: false }).result, "failed");
