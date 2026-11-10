@@ -267,8 +267,8 @@ that is settled.
   never an assumed `dev`, and never a guess at "the latest branch". Setting
   it explicitly is fine and expected (dsAnalysis may name one too).
 - **The server side as flat, individual settings**, not a nested object:
-  e.g. `server` (owner/name) and `server-branch` next to `branch` in a
-  target (exact names still to confirm). A client/server pair has one owner
+  `server` (owner/name) and `server-branch` next to `branch` in a
+  target. A client/server pair has one owner
   (user: always so in practice), so one App installation and one token
   cover both; the App needs access to both repositories.
 - **Server-only changes** (e.g. performance): the issue is opened in the
@@ -281,6 +281,22 @@ that is settled.
   labels as with a pull request; the cleanup never touches such a branch
   (it acts on closed pull requests). Re-targeting a pull request
   (Edit → base) keeps it open, so the cleanup doesn't touch it either.
+- **Names confirmed (user, 2026-11-10):** `server` and `server-branch`.
+- **Triage says which repositories are affected** (user, 2026-11-10), so the
+  question comes before `bot-proceed`, not after a run: the triage caller
+  gets the same input `server`; with it, the spec of a bug or idea ends with
+  an "Affects" line — *this repository only* (default), *this repository
+  and `owner/server`*, or *only `owner/server`* (then the issue belongs in
+  the server repository). A proposal from the documentation (a server
+  function `…DS` named, disclosure settings involved, results computed on
+  the server), corrected like the rest of the spec (comment, `bot-triage`);
+  visible text plus a hidden marker with the value, which the runner reads.
+  Without `server` (utility packages, servers themselves): no line.
+- **The implementer follows the line:** *this repository only* — as now,
+  and the writer stops and asks if the code shows a server change is needed
+  after all; *both* — no run until pair changes exist (a short note on the
+  issue, no minutes spent), then the pair run; *only the server* — no run,
+  a note to open the issue in the server repository.
 - **Now:** the writer stops and asks (`bot-needs-input`) when a fix would
   need a server change; the server checkout is read-only, for the disclosure
   reviewer.
