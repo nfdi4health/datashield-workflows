@@ -509,7 +509,12 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
     PR, `main` protected (commitlint, `actionlint`). No `dev`: here a
     release is a tag, not a merge into `main`.~~ Replaced: main / dev /
     feature, only `dev` merges into `main`, release on every merge into
-    `main` (rulesets drafted in `dev-notes/v1-drafts/`).
+    `main` (rulesets drafted in `dev-notes/v1-drafts/`). **`dev` created
+    2026-11-10** (from `main`): pull requests go into `dev`, callers keep
+    `@main`, so a change reaches them with the next `dev` → `main` merge.
+    `main` stays the default branch (schedules and the docs run from it).
+    Dependabot targets `dev`. Rulesets: `workflows-dev`, `workflows-main`,
+    `workflows-release-tags` in repo-governance.
   - **Releases:** semantic-release tags `vX.Y.Z` and moves the major tag
     `vX`; callers pin `@v1`; breaking changes (`feat!:`) become `v2`.
   - **Testing:** dsSupportClient points a caller at `@<feature-branch>`.
