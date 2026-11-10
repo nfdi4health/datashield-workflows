@@ -29,6 +29,11 @@ on:
         required: false
         type: number
         default: 3
+      datashield:
+        description: 'A DataSHIELD package: the spec of an idea that touches what a server function returns gets a disclosure section (config/issue-triage.yml, `disclosure`).'
+        required: false
+        type: boolean
+        default: false
       triage-label:
         description: 'Set by a login in `allowed-logins`, this asks for a triage right now, also on old or already triaged issues. It is removed afterwards.'
         required: false
@@ -168,6 +173,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ steps.gate.outputs.number }}
           APPROVAL_LABEL: ${{ inputs.approval-label }}
+          TRIAGE_DATASHIELD: ${{ inputs.datashield }}
         run: Rscript .shared-workflows/R/triage_issue.R
 
       # Counts this run once, anonymously, by workflow, outcome and version

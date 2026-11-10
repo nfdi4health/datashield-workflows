@@ -5,7 +5,8 @@
 # Starting point, first match wins:
 #   1. the marker "<!-- bot-suggest: reviewed up to <sha> -->" in the open
 #      bot PR's description (catches up dropped or failed runs);
-#   2. a PR that was opened or reopened: the PR's base (the whole PR);
+#   2. a PR that was opened, reopened or marked ready for review: the PR's
+#      base (the whole PR);
 #   3. the event's "before" (push, PR synchronize);
 #   4. a scheduled or manual run: the last review of this branch, from the
 #      run history (review-history.sh); none yet: nothing to review, this
@@ -84,7 +85,7 @@ if [ -z "$start" ] && [ "$event" != "pull_request" ] && [ "$event" != "push" ]; 
     echo "::notice::No earlier review of $BRANCH found in this workflow's runs: nothing to review now, this run is the starting point. For a full review, run it with review-scope \"all\"."
   fi
 elif [ -z "$start" ]; then
-  if [ "$event" = "pull_request" ] && { [ "$action" = "opened" ] || [ "$action" = "reopened" ] || [ -z "$(field '.before')" ]; }; then
+  if [ "$event" = "pull_request" ] && { [ "$action" = "opened" ] || [ "$action" = "reopened" ] || [ "$action" = "ready_for_review" ] || [ -z "$(field '.before')" ]; }; then
     base_ref="$(field '.pull_request.base.ref')"
     start="$(git merge-base "origin/$base_ref" HEAD)"
     range_is_pr=true

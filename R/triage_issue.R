@@ -30,6 +30,9 @@ gh_token <- Sys.getenv("GH_TOKEN")
 number <- Sys.getenv("ISSUE_NUMBER")
 
 settings <- read_config_yaml("config/issue-triage.yml")
+if (identical(Sys.getenv("TRIAGE_DATASHIELD"), "true")) {
+  settings$disclosure_options <- read_disclosure_settings(settings)
+}
 issue <- read_issue_for_triage(number, settings)
 auth <- claude_auth()
 shortlist <- claude_client("issue-triage-shortlist", "prompts/issue-triage-shortlist-prompt.md", auth)
@@ -49,6 +52,7 @@ if (!inherits(posted, "httr2_response")) {
 }
 apply_triage_label(number, answer$category, issue, settings, Sys.getenv("APPROVAL_LABEL", "bot-proceed"))
 apply_suspicious_label(number, answer, issue, settings)
+apply_triaged_label(number, issue, settings, Sys.getenv("APPROVAL_LABEL", "bot-proceed"))
 message(sprintf("Issue #%s triaged as %s.", number, answer$category))
 
 # What count-run reads as "this run produced something".

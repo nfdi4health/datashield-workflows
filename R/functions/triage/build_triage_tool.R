@@ -1,8 +1,10 @@
 # Tool schema for the triage: a category from config/issue-triage.yml and
 # short fields. Claude only fills these in; the comment is written in R
-# (format_triage_comment()), and its limits are checked there.
+# (format_triage_comment()), and its limits are checked there. With
+# settings$disclosure_options (a DataSHIELD repository), three disclosure
+# fields for the spec of ideas, the settings as an enum.
 build_triage_tool <- function(settings) {
-  list(
+  tool <- list(
     description = "Submit the triage of the issue.",
     input_schema = list(
       type = "object",
@@ -51,4 +53,24 @@ build_triage_tool <- function(settings) {
                       "documentation_note", "manipulation_attempt")
     )
   )
+  options <- unlist(settings$disclosure_options)
+  if (length(options) > 0) {
+    categories <- paste(unlist(settings$disclosure$categories), collapse = " and ")
+    tool$input_schema$properties$disclosure_settings <- list(
+      type = "array",
+      description = sprintf("For %s, when it changes what a server function returns or creates on the server: the disclosure settings that protect it. Otherwise empty.", categories),
+      items = list(type = "string", enum = as.list(options))
+    )
+    tool$input_schema$properties$disclosure_below_threshold <- list(
+      type = "string",
+      description = sprintf("For %s with disclosure settings: one sentence, what should happen when a study is below the threshold. Otherwise empty.", categories)
+    )
+    tool$input_schema$properties$disclosure_decision <- list(
+      type = "string",
+      description = sprintf("For %s: one sentence on what the maintainer has to decide about disclosure, if no setting fits or the issue leaves it open. Otherwise empty.", categories)
+    )
+    tool$input_schema$required <- c(tool$input_schema$required,
+                                    list("disclosure_settings", "disclosure_below_threshold", "disclosure_decision"))
+  }
+  tool
 }

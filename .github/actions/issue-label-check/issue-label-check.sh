@@ -72,6 +72,9 @@ case "$(event_field .action)" in
       echo "Another label, nothing to check."
     elif is_allowed "$(event_field .sender.login)"; then
       echo "Set by an allowed login."
+      if is_approval_label "$name" && [ -n "${GITHUB_OUTPUT:-}" ]; then
+        echo "approved=true" >> "$GITHUB_OUTPUT"
+      fi
     else
       remove_label "$name" "Removed \`$name\`: only the people named in this repository's workflow may set this label."
     fi

@@ -183,7 +183,40 @@ the live caller used to validate changes before wider rollout.
     `issues: edited` removes it from an issue carrying it, whoever
     edited. One short comment each time. All logic in the composite
     action `issue-label-check`, which reads the event file: no checkout,
-    only `issues: write`.
+    only `issues: write`. With `runner-repository` (2026-11-09), an
+    approval that stays starts the implementer's runner (job
+    `start-runner`, composite action `dispatch-runner`, secrets
+    `dispatch-app-*` of a small App with only Actions on the runner
+    repository, or `dispatch-token`).
+  - `implement-issue.yml`, `implementer-timer.yml`, `implementer-log.yml`
+    — the implementer, step 3 of the issue flow (built 2026-11-09 on
+    `agent-suggest/feat/implementer`, **not yet run**; decisions in
+    [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md)).
+    Called from the private runner `FlorianSchw/datashield-agent-runner`
+    (subscription token, `concurrency` one run at a time). Jobs `pick`
+    (the approved issues are the list: `bot-proceed` without
+    `bot-in-progress`, oldest approval first; approval from the timeline,
+    spec = newest triage comment, type from the `bug`/`enhancement`
+    label; a refused issue loses the label with a comment), `implement`
+    (no writing token; claude-code-action with Claude Code's sandbox,
+    hosts input `allowed-hosts`; writer, `run-checks.sh` = rcmdcheck,
+    maintainability reviewer, up to two correction rounds unrolled in the
+    YAML, disclosure reviewer; result as a bundle + text files),
+    `publish` (approval checked again; normal PR, or draft for a failed
+    attempt; `Refs` only, closing keywords and mentions stripped, also
+    from commit messages; labels `bot-completed` / `bot-failed` /
+    `bot-needs-input`; at a subscription limit `bot-in-progress` goes,
+    `bot-proceed` stays, and a `repository_dispatch` `implementer-timer`
+    to the target starts `implementer-timer.yml` there, which waits until
+    the reset), `finish` (event log, then `gh workflow run` of itself for
+    the next issue). Log: branch `log` of the runner, `events.json`
+    append-only (key repository, issue, event, time, actor, label, run),
+    `status.csv` rebuilt; `implementer-log.yml` adds timelines and runs
+    daily. Logic in the composite action `implementer` (Node,
+    `implementer.mjs <command>`), prompts `prompts/implementer-*.md`,
+    tests `tests/node/implementer.test.mjs` (`node --test`).
+    **Docs pending:** a page (Issue flow section) with the runner setup,
+    and the label-check page.
 - This repository's own, non-reusable workflows (besides `ci.yml`,
   `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `pr-checks.yml`
   (commit messages on PRs into dev/main, only `dev` into `main`),
@@ -210,6 +243,8 @@ the live caller used to validate changes before wider rollout.
   `issue-label-check` (the logic of the workflow of that name),
   `issue-triage-gate` (whether an issue gets triaged),
   `release-issues` (the logic of the workflow of that name),
+  `implementer` (the implementer's steps that aren't Claude, Node),
+  `dispatch-runner` (starts the implementer's runner),
   `propose-branch` (commit a manifest on top of the checkout, force-push
   a fixed branch, open or update its PR; any checkout incl. a second
   repository; the ds-naming workflows). `resolve-push-token` takes
@@ -244,7 +279,7 @@ the live caller used to validate changes before wider rollout.
   `gh`, needs `jq`). Run by `ci.yml` with the static checks;
   locally `Rscript tests/testthat.R`, `bash tests/shell/test-scope.sh` and
   `bash tests/shell/test-label-check.sh`, `test-triage-gate.sh` and
-  `test-release-issues.sh`. Locally with `LANG=C.UTF-8` (R stops reading
+  `test-release-issues.sh`, `node --test tests/node/*.test.mjs`. Locally with `LANG=C.UTF-8` (R stops reading
   files at the first non-ASCII character in the POSIX locale), and with a
   stand-in `yq` if the installed one isn't mikefarah's.
   `self-test.yml` (not reusable) runs `roxygen-suggest.yml` and
@@ -1127,3 +1162,22 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   `issue-label-check.qmd`
   (`allowed-logins` required), roadmap "Recent changes". All open points, also of other work done
   alongside: [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md).
+  **Since 2026-11-09 (branch `agent-suggest/feat/implementer`):** every
+  triaged issue gets `bot-triaged` (`triaged_label`); with the input
+  `datashield`, an idea's spec gets a disclosure section (settings as an
+  enum from the list at `disclosure.settings_path` in
+  `disclosure.settings_file`, default `config/ds-package-rules.yml`;
+  `read_disclosure_settings()`, `triage_disclosure_lines()`). **Docs
+  pending:** both on `issue-triage.qmd`.
+- **Issue flow, step 3 of 3: the implementer**, built 2026-11-09, not yet
+  run (see the LAYOUT entry). First test on dsSupportClient: the user's
+  setup (App with Issues permission, `CLAUDE_CODE_OAUTH_TOKEN` and the App
+  key in the runner, the dispatch App), then one issue by hand
+  (`workflow_dispatch` with repository and issue). To check in it: that the
+  sandbox blocks an unlisted host (`curl`) and R installs and DSLite still
+  work, that `env` in the agent's shell shows no token, the format of
+  Claude Code's limit message (`parseLimit()`), the `settings` input of
+  claude-code-action, that the chain (`gh workflow run` with
+  `GITHUB_TOKEN`) starts the next run. Bots skip draft pull requests since
+  2026-11-09 (`resolve-suggestion-scope`; callers add `ready_for_review`).
+  **Not decided:** new functions and design notes (user: another day).

@@ -20,10 +20,16 @@ inputs:
     description: 'Token with issues: write.'
     required: true
 
+outputs:
+  approved:
+    description: '"true" when the approval label was set by an allowed login and stays.'
+    value: ${{ steps.check.outputs.approved }}
+
 runs:
   using: composite
   steps:
     - name: Check the approval label
+      id: check
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}

@@ -28,6 +28,10 @@ if [ "$event" = "pull_request" ]; then
   head_repo="$(field '.pull_request.head.repo.full_name')"
   [ -n "$head_repo" ] && [ "$head_repo" != "$GITHUB_REPOSITORY" ] && \
     skip "the pull request comes from a fork ($head_repo), which gets no secrets and can't receive the bot's commits."
+  # A draft is work in progress (the implementer's failed attempts are kept
+  # as drafts): reviewed once it is marked ready, which callers pass as
+  # `ready_for_review` and determine-changes.sh treats like `opened`.
+  [ "$(field '.pull_request.draft')" = "true" ] && skip "the pull request is a draft; it is reviewed once it is marked ready."
 fi
 [ "$ACTOR" = "dependabot[bot]" ] && skip "Dependabot runs get no secrets."
 

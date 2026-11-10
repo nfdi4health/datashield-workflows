@@ -2,6 +2,8 @@ name: DESCRIPTION Author Suggestions
 
 on:
   pull_request:
+    # ready_for_review: drafts are skipped until they are marked ready.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [dev]
   # Optional: also on pushes to your working branches (main left out). Credits
   # the authors of each push's new commits. No paths filter, so contributors

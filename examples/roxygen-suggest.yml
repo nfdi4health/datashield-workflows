@@ -2,6 +2,8 @@ name: Roxygen Doc Suggestions
 
 on:
   pull_request:
+    # ready_for_review: drafts are skipped until they are marked ready.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [dev]
     paths: ['R/**']
   # Optional: also on pushes to your working branches (main left out).
