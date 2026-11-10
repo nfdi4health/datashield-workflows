@@ -15,10 +15,81 @@ inputs:
     required: false
     default: '.'
 
+# A composite action only passes on the outputs it declares: every key
+# implementer.mjs writes must be listed here (tests/node checks it).
+outputs:
+  found:
+    description: 'See implementer.mjs (found).'
+    value: ${{ steps.run.outputs.found }}
+  repository:
+    description: 'See implementer.mjs (repository).'
+    value: ${{ steps.run.outputs.repository }}
+  owner:
+    description: 'See implementer.mjs (owner).'
+    value: ${{ steps.run.outputs.owner }}
+  name:
+    description: 'See implementer.mjs (name).'
+    value: ${{ steps.run.outputs.name }}
+  issue:
+    description: 'See implementer.mjs (issue).'
+    value: ${{ steps.run.outputs.issue }}
+  base:
+    description: 'See implementer.mjs (base).'
+    value: ${{ steps.run.outputs.base }}
+  setup:
+    description: 'See implementer.mjs (setup).'
+    value: ${{ steps.run.outputs.setup }}
+  server:
+    description: 'See implementer.mjs (server).'
+    value: ${{ steps.run.outputs.server }}
+  type:
+    description: 'See implementer.mjs (type).'
+    value: ${{ steps.run.outputs.type }}
+  branch:
+    description: 'See implementer.mjs (branch).'
+    value: ${{ steps.run.outputs.branch }}
+  spec_sha:
+    description: 'See implementer.mjs (spec_sha).'
+    value: ${{ steps.run.outputs.spec_sha }}
+  existing_pr:
+    description: 'See implementer.mjs (existing_pr).'
+    value: ${{ steps.run.outputs.existing_pr }}
+  paused_until:
+    description: 'See implementer.mjs (paused_until).'
+    value: ${{ steps.run.outputs.paused_until }}
+  title:
+    description: 'See implementer.mjs (title).'
+    value: ${{ steps.run.outputs.title }}
+  text:
+    description: 'See implementer.mjs (text).'
+    value: ${{ steps.run.outputs.text }}
+  again:
+    description: 'See implementer.mjs (again).'
+    value: ${{ steps.run.outputs.again }}
+  head:
+    description: 'See implementer.mjs (head).'
+    value: ${{ steps.run.outputs.head }}
+  result:
+    description: 'See implementer.mjs (result).'
+    value: ${{ steps.run.outputs.result }}
+  reason:
+    description: 'See implementer.mjs (reason).'
+    value: ${{ steps.run.outputs.reason }}
+  pr:
+    description: 'See implementer.mjs (pr).'
+    value: ${{ steps.run.outputs.pr }}
+  rounds:
+    description: 'See implementer.mjs (rounds).'
+    value: ${{ steps.run.outputs.rounds }}
+  refused:
+    description: 'See implementer.mjs (refused).'
+    value: ${{ steps.run.outputs.refused }}
+
 runs:
   using: composite
   steps:
     - name: Run ${{ inputs.command }}
+      id: run
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
