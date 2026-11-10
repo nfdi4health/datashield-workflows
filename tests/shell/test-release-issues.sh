@@ -102,6 +102,10 @@ run mark true dev 'Closes #12'
 [ "$(writes)" = 0 ]; check "mark: the label in another case counts" $?
 
 reset; issue 12
+run mark true dev 'A change without closing keywords. Refs #12.'; status=$?
+[ "$status" = 0 ] && [ "$(writes)" = 0 ]; check "mark: no closing keyword, nothing, and no failure" $?
+
+reset; issue 12
 run mark false dev 'Closes #12'
 [ ! -s "$WORK/calls" ]; check "mark: a closed, unmerged pull request: nothing" $?
 run mark true main 'Closes #12'
@@ -150,8 +154,8 @@ check "swap: next-release becomes released" $?
 ! grep -q 'issues/3/' "$WORK/calls"; check "swap: only the issues of the block" $?
 
 reset; printf 'Closes #3 by hand.' > "$WORK/body"
-run swap
-[ "$(writes)" = 0 ]; check "swap: no block, nothing" $?
+run swap; status=$?
+[ "$status" = 0 ] && [ "$(writes)" = 0 ]; check "swap: no block, nothing, and no failure" $?
 
 reset; labelled_issues 12; run link; : > "$WORK/calls"
 echo 'gh: Label does not exist (HTTP 404)' > "$WORK/delete-error"

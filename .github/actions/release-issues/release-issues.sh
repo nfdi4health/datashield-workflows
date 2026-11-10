@@ -41,8 +41,10 @@ pr="$(event_field .pull_request.number)"
 closing_numbers() {
   local repo_pattern
   repo_pattern="$(sed 's/[][\.*^$/]/\\&/g' <<< "$GITHUB_REPOSITORY")"
+  # Each grep finds nothing for text without closing keywords, which is no
+  # error: with pipefail it would end the script.
   { grep -oiE "\\b(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+(${repo_pattern})?#[0-9]+\\b" || true; } \
-    | grep -oE '[0-9]+$' | sort -un
+    | { grep -oE '[0-9]+$' || true; } | sort -un
 }
 
 # is_open_issue <n>: an open issue, not a pull request, of this repository.
