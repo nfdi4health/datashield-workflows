@@ -276,6 +276,11 @@ that is settled.
   (dsAnalysis) are targets without a server.
 - **Branch names and titles stay the standard:** `agent-suggest/<type>/issue-<n>`
   and `fix:` / `feat:`, for every repository.
+- **Both `bug` and `enhancement`: feat beats fix** (user, 2026-11-10):
+  `type-labels` becomes an ordered list, the first match decides (default
+  `enhancement` → `feat`, then `bug` → `fix`); branch and pull request
+  title take that type, the writer is told both parts are wanted, and its
+  commits keep their own types. Today such an issue is refused.
 - **`open-pull-request`** (input, default `true`): `false` pushes the branch
   only and puts the comparison link, summary and reviews in an issue comment;
   labels as with a pull request; the cleanup never touches such a branch
