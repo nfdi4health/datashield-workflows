@@ -258,6 +258,46 @@ that is settled.
   roxygen, test and authors bots run on these branches, unlike
   `bot-suggest/` (drafts excepted, see above).
 
+## Targets, branches, client/server pairs (user, 2026-11-10; not built yet)
+
+- **Other branch models:** not everyone works main / dev / feature. Each
+  target says where work starts and where the pull request goes, one
+  setting: **`branch`** (renamed from `base`, which only the runner's caller
+  used). Left out: the repository's default branch (read from GitHub),
+  never an assumed `dev`, and never a guess at "the latest branch". Setting
+  it explicitly is fine and expected (dsAnalysis may name one too).
+- **The server side as flat, individual settings**, not a nested object:
+  e.g. `server` (owner/name) and `server-branch` next to `branch` in a
+  target (exact names still to confirm). A client/server pair has one owner
+  (user: always so in practice), so one App installation and one token
+  cover both; the App needs access to both repositories.
+- **Server-only changes** (e.g. performance): the issue is opened in the
+  server repository, which is then a target itself. Utility packages
+  (dsAnalysis) are targets without a server.
+- **Branch names and titles stay the standard:** `agent-suggest/<type>/issue-<n>`
+  and `fix:` / `feat:`, for every repository.
+- **`open-pull-request`** (input, default `true`): `false` pushes the branch
+  only and puts the comparison link, summary and reviews in an issue comment;
+  labels as with a pull request; the cleanup never touches such a branch
+  (it acts on closed pull requests). Re-targeting a pull request
+  (Edit → base) keeps it open, so the cleanup doesn't touch it either.
+- **Now:** the writer stops and asks (`bot-needs-input`) when a fix would
+  need a server change; the server checkout is read-only, for the disclosure
+  reviewer.
+- **Later, after the first live test:** pair changes in one run — the issue
+  in the client repository, both checkouts writable, the changed server
+  installed for the tests, two pull requests with the same branch name
+  (server first, links both ways; the client PR's own CI tests against the
+  server's branch until the server PR is merged).
+
+## Triage, found in the first implementer test (2026-11-10)
+
+- dsSupportClient #83 (only the `method` part of the open #58) stayed
+  `duplicate` of #58 after the maintainer's comment that it is split out on
+  purpose. Wanted: an allowed login's objection to a duplicate verdict is
+  decisive (prompt and/or a field), so a deliberate split isn't blocked.
+  Worked around by closing #58.
+
 ## Open
 
 1. **New functions:** see above, for another day.
