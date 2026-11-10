@@ -13,5 +13,5 @@ jobs:
     with:
       runner-repository: your-login/your-agent-runner
     secrets:
-      dispatch-app-client-id: ${{ secrets.DISPATCH_APP_CLIENT_ID }}
-      dispatch-app-private-key: ${{ secrets.DISPATCH_APP_PRIVATE_KEY }}
+      app-client-id: ${{ secrets.APP_CLIENT_ID }}   # the bots' App, with Actions: read and write, installed on the runner repository
+      app-private-key: ${{ secrets.APP_PRIVATE_KEY }}

@@ -149,13 +149,21 @@ next attempt starts from scratch.
   firewall (preview) later. First test: a DSLite test, R CMD check, an
   install, and a `curl` to an unlisted host, which must fail; `env` in
   Claude's shell must not show the token.
-- **Dispatch token:** the user wants a GitHub App instead of a fine-grained
-  token. Then a **separate small App** with only Actions: read and write,
-  installed only on the runner repository: its key sits in the target
-  repositories' secrets, where anyone with write access to them could mint
-  tokens with all of that App's permissions. Not the App that writes code.
-  (`repository_dispatch` into the runner stays rejected: contents write on
-  the runner could reach the subscription token.)
+- **Dispatch token: one App** (user, 2026-11-10; replaces a separate
+  small App, since three Apps would mean six secrets per repository): the
+  bots' existing App got **Issues** and **Actions: read and write** and is
+  installed on the runner repository too. The label check and the timer use
+  the `APP_CLIENT_ID` / `APP_PRIVATE_KEY` the target repositories have
+  already (nfdi4health: possibly as organisation secrets, then a new
+  repository needs none), and make a token with only Actions, only for the
+  runner repository. Cost: whoever can write to a target repository's
+  workflows can mint a token with the App's other permissions on the runner
+  repository too: starting runs (harmless, each run checks the approval),
+  changing ordinary files and the `log` branch; not the workflow files (the
+  App has no Workflows permission) and not the secrets, so not the
+  subscription token. The implementer's commits carry the bots' name; its
+  branches (`agent-suggest/`) tell them apart. (`repository_dispatch` into
+  the runner stays rejected.)
 
 ## Cost: Actions minutes
 
@@ -201,9 +209,9 @@ from the labels):
 labels), then reviewers and correction rounds, then queue, dispatch and timer,
 then the log, then triage's additions, then the draft skip.
 
-**The user, before the first test:** Issues permission for the App (accept it
-on each installation), the subscription token and the App key as runner
-secrets, the dispatch App.
+**The user, before the first test:** done 2026-11-10: Issues and Actions
+permission for the App (accepted on both installations), the subscription
+token and the App key as runner secrets.
 
 ## Overlap with datashield-skills
 
