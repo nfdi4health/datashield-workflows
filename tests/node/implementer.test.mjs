@@ -2,7 +2,7 @@
 //   node --test tests/node/
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -398,4 +398,19 @@ test("prompts, sandbox settings, the API", async () => {
   const pages = [Array(100).fill("a"), ["last"]];
   let call = 0;
   assert.equal((await listAll(async () => pages[call++], "x?y=1")).length, 101);
+});
+
+test("the composite action declares every output implementer.mjs writes", () => {
+  const script = readFileSync(new URL("../../.github/actions/implementer/implementer.mjs", import.meta.url), "utf8");
+  const action = readFileSync(new URL("../../.github/actions/implementer/action.yml", import.meta.url), "utf8");
+  const written = new Set();
+  for (const [, body] of script.matchAll(/writeOutputs\(\{([^}]*)\}/g)) {
+    for (const part of body.split(",")) {
+      const key = part.trim().split(":")[0].trim();
+      if (/^[a-z_]+$/.test(key)) written.add(key);
+    }
+  }
+  const declared = new Set([...action.matchAll(/^  ([a-z_]+):\n    description:[^\n]*\n    value: \$\{\{ steps\.run\.outputs\.\1 \}\}/gm)].map((m) => m[1]));
+  assert.ok(written.size > 10);
+  for (const key of written) assert.ok(declared.has(key), `${key} is written but not declared in action.yml`);
 });
