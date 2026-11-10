@@ -37,8 +37,6 @@ on:
       app-private-key:
         required: true
 
-permissions: {}
-
 jobs:
   log:
     runs-on: ubuntu-latest

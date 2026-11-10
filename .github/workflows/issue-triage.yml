@@ -85,8 +85,6 @@ on:
         description: 'Federation rule ID for this workflow, fdrl_...'
         required: true
 
-permissions: {}
-
 jobs:
   # Before the wait, so an edit or comment that needs nothing holds no runner.
   gate:

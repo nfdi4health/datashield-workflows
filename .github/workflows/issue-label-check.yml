@@ -48,8 +48,6 @@ on:
         description: 'Otherwise: a token that may start workflows in the runner repository (Actions: read and write on it, nothing else).'
         required: false
 
-permissions: {}
-
 jobs:
   check-label:
     runs-on: ubuntu-latest

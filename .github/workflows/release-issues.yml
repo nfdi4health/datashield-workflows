@@ -39,8 +39,6 @@ on:
         type: string
         default: 'dev'
 
-permissions: {}
-
 jobs:
   release-issues:
     runs-on: ubuntu-latest

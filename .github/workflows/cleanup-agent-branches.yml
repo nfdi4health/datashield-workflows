@@ -8,8 +8,6 @@ on:
   pull_request:
     types: [closed]
 
-permissions: {}
-
 jobs:
   cleanup:
     # Not reusable itself: always this repository's own workflow file.
