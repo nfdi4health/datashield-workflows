@@ -137,8 +137,6 @@ on:
         description: 'Its private key.'
         required: true
 
-permissions: {}
-
 env:
   TARGETS: ${{ inputs.targets }}
   ALLOWED_LOGINS: ${{ inputs.allowed-logins }}

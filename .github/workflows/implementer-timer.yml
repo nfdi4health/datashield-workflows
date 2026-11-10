@@ -46,8 +46,6 @@ on:
         description: 'Otherwise: a token that may start workflows in the runner repository.'
         required: false
 
-permissions: {}
-
 jobs:
   wait:
     runs-on: ubuntu-latest
