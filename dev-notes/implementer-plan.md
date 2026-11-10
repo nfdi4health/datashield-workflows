@@ -317,8 +317,8 @@ that is settled.
   `duplicate` of #58 after the maintainer's comment that it is split out on
   purpose. Wanted: an allowed login's objection to a duplicate verdict is
   decisive (prompt and/or a field), so a deliberate split isn't blocked.
-  Worked around by closing #58.
-
+  This time #83 was closed as a duplicate and #58 itself triaged with
+  `bot-triage`.
 - **Answers to open questions start a new triage** (user, 2026-11-10; not
   built yet). Today, after `bug` or `idea`, only `bot-triage` repeats a
   triage, so a spec's open questions (dsSupportClient #58) can't be answered
