@@ -342,6 +342,29 @@ to the writer, and the user settled everything in PR review.
   run refuses an issue with an open, non-draft pull request today. Open:
   what the agent may read from pull request comments.
 
+## The agents' definitions need refinement (user, 2026-11-10; later)
+
+The writer and reviewer prompts (`prompts/implementer-*.md`) are first
+drafts. The maintainability reviewer in particular should cover more than
+bugs and obvious maintainability problems, and not repeat what the roxygen
+and test bots already review on the same pull request:
+
+- **Linting and style:** the package's own style, `lintr` / `styler` where
+  the package uses them (a deterministic step may be better than the
+  reviewer reading for it).
+- **Human readability:** names, structure, length of functions, comments
+  where the code isn't self-explaining.
+- **Reuse:** use the package's existing helpers and the functions of its
+  dependencies (DataSHIELD client functions, `dsBaseClient`, …) instead of
+  re-implementing them in base R.
+- **Consistency** with the package's conventions (argument checks, messages,
+  file layout).
+
+Where the definitions live is part of it: the procedure may belong in
+`datashield-skills` (a reviewer skill or agent definition, usable locally
+too), the facts in this repository's config, the workflow only wiring them
+(see "Overlap with datashield-skills").
+
 ## Triage, found in the first implementer test (2026-11-10)
 
 - dsSupportClient #83 (only the `method` part of the open #58) stayed
