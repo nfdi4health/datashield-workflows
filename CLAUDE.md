@@ -147,7 +147,12 @@ the live caller used to validate changes before wider rollout.
     categories `config/issue-triage.yml`, prompt
     `prompts/issue-triage-prompt.md`, functions `R/functions/triage/`. No
     checkout; `issues: write`, `id-token: write`. Claude's fields pass
-    `plain_comment_text()`.
+    `plain_comment_text()`. An issue carrying `bot-suspicious` gets one
+    triage only (gate input `suspicious-label`, user 2026-11-09): more
+    answers would only give its author more tries; a listed login can still
+    ask with `bot-triage`. Hidden text alone sets no label (issue templates'
+    HTML comments are hidden text too), and `spam` keeps its repeat (may be
+    a vague report, not ill-meant).
   - `release-issues.yml` — closes issues with the release that ships
     their fix (2026-11-09, user's design): input `step`. `mark` (caller on
     `pull_request: closed` into `dev`, merged): issues the PR's description

@@ -168,5 +168,19 @@ gate edited; status=$?
 [ "$status" != 0 ] && ! runs; check "issue not readable: the run fails" $?
 : > "$WORK/read-error"
 
+# --- marked bot-suspicious: one triage only ------------------------------------
+
+issue open User '["bot-suspicious"]'
+echo '[]' > "$WORK/comments.json"
+gate opened; runs; check "suspicious, no triage yet: triaged once" $?
+bot_triage needs-info > "$WORK/comments.json"
+gate edited; skips; check "suspicious after a triage: an edit starts none" $?
+SENDER=author COMMENTER=author comment; skips; check "suspicious after a triage: the author's comment starts none" $?
+issue open User '["Bot-Suspicious"]'
+gate edited; skips; check "suspicious in another case: none either" $?
+LABEL=bot-triage SENDER=FlorianSchw gate labeled; runs; check "suspicious: a listed login can still ask by label" $?
+issue
+echo '[]' > "$WORK/comments.json"
+
 echo "$passed passed, $failed failed"
 [ "$failed" = 0 ]
