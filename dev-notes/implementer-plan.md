@@ -318,6 +318,30 @@ that is settled.
   (server first, links both ways; the client PR's own CI tests against the
   server's branch until the server PR is merged).
 
+## Disclosure review: deviations go back, judgement stays (user, 2026-11-10; not built yet)
+
+The first run showed the question: if writer and disclosure reviewer
+disagree, who corrects? Until now (decision of 2026-11-06) nothing went back
+to the writer, and the user settled everything in PR review.
+
+- **The disclosure reviewer sorts its findings:** *deviates from the spec*
+  — the code does what the approved spec doesn't cover (new data leaves the
+  server, a check removed or weakened, another threshold), checked against
+  the spec's disclosure part, which the user approved; and *judgement* —
+  doubts, alternatives, what the spec leaves open.
+- **Deviations go back to the writer** like a maintainability `must_fix`,
+  within the same correction rounds; the disclosure review therefore runs
+  after round 0 too, and later rounds check only whether its deviations are
+  fixed. One still open after the last round: a clear warning at the top of
+  the pull request, or `bot-needs-input` if it is fundamental.
+- **Judgement stays for the user** in the pull request, as before. The agents
+  don't decide disclosure among themselves; they only enforce what the user
+  approved.
+- **Later:** sending a pull request back for another round (e.g. a
+  `bot-revise` label set by the user, the review comments as input). A new
+  run refuses an issue with an open, non-draft pull request today. Open:
+  what the agent may read from pull request comments.
+
 ## Triage, found in the first implementer test (2026-11-10)
 
 - dsSupportClient #83 (only the `method` part of the open #58) stayed
