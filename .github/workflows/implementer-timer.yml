@@ -36,10 +36,10 @@ on:
         type: number
         default: 345
     secrets:
-      dispatch-app-client-id:
-        description: 'Client ID of an App installed on the runner repository with Actions: read and write only.'
+      app-client-id:
+        description: 'Client ID of a GitHub App installed on the runner repository with Actions: read and write. It can be the App the bots use: only a token for starting workflows in the runner repository is made from it.'
         required: false
-      dispatch-app-private-key:
+      app-private-key:
         description: 'Its private key.'
         required: false
       dispatch-token:
@@ -85,6 +85,6 @@ jobs:
           repository: ${{ inputs.runner-repository }}
           workflow: ${{ inputs.runner-workflow }}
           ref: ${{ inputs.runner-ref }}
-          app-client-id: ${{ secrets.dispatch-app-client-id }}
-          app-private-key: ${{ secrets.dispatch-app-private-key }}
+          app-client-id: ${{ secrets.app-client-id }}
+          app-private-key: ${{ secrets.app-private-key }}
           token: ${{ secrets.dispatch-token }}

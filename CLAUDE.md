@@ -186,8 +186,10 @@ the live caller used to validate changes before wider rollout.
     only `issues: write`. With `runner-repository` (2026-11-09), an
     approval that stays starts the implementer's runner (job
     `start-runner`, composite action `dispatch-runner`, secrets
-    `dispatch-app-*` of a small App with only Actions on the runner
-    repository, or `dispatch-token`).
+    `app-client-id` / `app-private-key` of the bots' App, which has
+    Actions: read and write and is installed on the runner repository —
+    one App, no new secrets per repository (user, 2026-11-10) — or
+    `dispatch-token`).
   - `implement-issue.yml`, `implementer-timer.yml`, `implementer-log.yml`
     — the implementer, step 3 of the issue flow (built 2026-11-09 on
     `agent-suggest/feat/implementer`, **not yet run**; decisions in
@@ -1171,8 +1173,9 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   pending:** both on `issue-triage.qmd`.
 - **Issue flow, step 3 of 3: the implementer**, built 2026-11-09, not yet
   run (see the LAYOUT entry). First test on dsSupportClient: the user's
-  setup (App with Issues permission, `CLAUDE_CODE_OAUTH_TOKEN` and the App
-  key in the runner, the dispatch App), then one issue by hand
+  setup (done 2026-11-10: the bots' App got Issues and Actions read and
+  write and is installed on the runner; `CLAUDE_CODE_OAUTH_TOKEN` and the App
+  key in the runner), then one issue by hand
   (`workflow_dispatch` with repository and issue). To check in it: that the
   sandbox blocks an unlisted host (`curl`) and R installs and DSLite still
   work, that `env` in the agent's shell shows no token, the format of
