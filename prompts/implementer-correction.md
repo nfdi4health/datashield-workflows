@@ -10,6 +10,9 @@ The task is still `.agent/spec.md`. Read what came back:
   leave alone.
 
 Fix the failing checks and every `must_fix` point, and nothing else. If a
+check fails for a reason outside your change (the check environment, a
+test that already failed before), don't change the package to work around
+it: say so under "Not changed" in `.agent/summary.md`. If a
 point is wrong, don't change the code for it: say why under "Not changed" in
 `.agent/summary.md`. Never bend a test to pass, and keep every rule of the
 first round: the sandbox, nothing under `.github/`, disclosure checks only as

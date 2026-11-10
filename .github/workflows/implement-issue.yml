@@ -322,7 +322,7 @@ jobs:
           claude_args: |
             --model ${{ inputs.model }}
             --max-turns ${{ inputs.max-turns }}
-            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*)"
+            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git restore:*)"
             --disallowedTools "WebFetch,WebSearch"
 
       - name: Checks after round 0
@@ -333,6 +333,8 @@ jobs:
           command: checks
         env:
           SETUP: ${{ needs.pick.outputs.setup }}
+          # Tests that install packages from GitHub (remotes) need a token.
+          GITHUB_PAT: ${{ github.token }}
 
       - name: 'Prompt: maintainability'
         id: prompt-maintainability0
@@ -366,8 +368,18 @@ jobs:
           claude_args: |
             --model ${{ inputs.review-model }}
             --max-turns ${{ inputs.review-max-turns }}
-            --allowedTools "Read,Glob,Grep,Skill,Write(.agent/**),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --allowedTools "Read,Glob,Grep,Skill,Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
             --disallowedTools "WebFetch,WebSearch"
+
+      # Reviewers only read; their final answer is the review.
+      - name: 'Save the maintainability review'
+        if: steps.maintainability0.outcome == 'success'
+        uses: $/.github/actions/implementer
+        with:
+          command: save-review
+        env:
+          ROLE: maintainability
+          EXECUTION_FILE: ${{ steps.maintainability0.outputs.execution_file }}
 
       - name: Another correction round?
         id: round0
@@ -411,7 +423,7 @@ jobs:
           claude_args: |
             --model ${{ inputs.model }}
             --max-turns ${{ inputs.max-turns }}
-            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*)"
+            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git restore:*)"
             --disallowedTools "WebFetch,WebSearch"
 
       - name: Checks after round 1
@@ -422,6 +434,8 @@ jobs:
           command: checks
         env:
           SETUP: ${{ needs.pick.outputs.setup }}
+          # Tests that install packages from GitHub (remotes) need a token.
+          GITHUB_PAT: ${{ github.token }}
 
       - name: 'Prompt: maintainability'
         id: prompt-maintainability1
@@ -456,8 +470,18 @@ jobs:
           claude_args: |
             --model ${{ inputs.review-model }}
             --max-turns ${{ inputs.review-max-turns }}
-            --allowedTools "Read,Glob,Grep,Skill,Write(.agent/**),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --allowedTools "Read,Glob,Grep,Skill,Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
             --disallowedTools "WebFetch,WebSearch"
+
+      # Reviewers only read; their final answer is the review.
+      - name: 'Save the maintainability review'
+        if: steps.maintainability1.outcome == 'success'
+        uses: $/.github/actions/implementer
+        with:
+          command: save-review
+        env:
+          ROLE: maintainability
+          EXECUTION_FILE: ${{ steps.maintainability1.outputs.execution_file }}
 
       - name: Another correction round?
         id: round1
@@ -501,7 +525,7 @@ jobs:
           claude_args: |
             --model ${{ inputs.model }}
             --max-turns ${{ inputs.max-turns }}
-            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*)"
+            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git restore:*)"
             --disallowedTools "WebFetch,WebSearch"
 
       - name: Checks after round 2
@@ -512,6 +536,8 @@ jobs:
           command: checks
         env:
           SETUP: ${{ needs.pick.outputs.setup }}
+          # Tests that install packages from GitHub (remotes) need a token.
+          GITHUB_PAT: ${{ github.token }}
 
       - name: 'Prompt: maintainability'
         id: prompt-maintainability2
@@ -546,8 +572,18 @@ jobs:
           claude_args: |
             --model ${{ inputs.review-model }}
             --max-turns ${{ inputs.review-max-turns }}
-            --allowedTools "Read,Glob,Grep,Skill,Write(.agent/**),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --allowedTools "Read,Glob,Grep,Skill,Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
             --disallowedTools "WebFetch,WebSearch"
+
+      # Reviewers only read; their final answer is the review.
+      - name: 'Save the maintainability review'
+        if: steps.maintainability2.outcome == 'success'
+        uses: $/.github/actions/implementer
+        with:
+          command: save-review
+        env:
+          ROLE: maintainability
+          EXECUTION_FILE: ${{ steps.maintainability2.outputs.execution_file }}
 
       - name: 'Prompt: disclosure'
         id: prompt-disclosure
@@ -580,8 +616,18 @@ jobs:
           claude_args: |
             --model ${{ inputs.review-model }}
             --max-turns ${{ inputs.review-max-turns }}
-            --allowedTools "Read,Glob,Grep,Skill,Write(.agent/**),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --allowedTools "Read,Glob,Grep,Skill,Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
             --disallowedTools "WebFetch,WebSearch"
+
+      # Reviewers only read; their final answer is the review.
+      - name: 'Save the disclosure review'
+        if: steps.disclosure.outcome == 'success'
+        uses: $/.github/actions/implementer
+        with:
+          command: save-review
+        env:
+          ROLE: disclosure
+          EXECUTION_FILE: ${{ steps.disclosure.outputs.execution_file }}
 
       - name: Pack the result
         id: pack

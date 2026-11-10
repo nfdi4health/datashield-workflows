@@ -8,7 +8,7 @@ description: >
 
 inputs:
   command:
-    description: 'pick, verify, prompt, settings, checks, round, outcome, publish, cleanup, log-run or log-update.'
+    description: 'pick, verify, prompt, settings, checks, save-review, round, outcome, publish, cleanup, log-run or log-update.'
     required: true
   working-directory:
     description: 'Where the command runs.'
