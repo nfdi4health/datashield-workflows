@@ -177,6 +177,70 @@ papers for federated methods.
 - **Surface:** a real agent (web search, papers, code, test runs, hours),
   so Claude Code (subscription) or Managed Agents, not single API calls.
 
+### A central hub for wishes and gaps (brainstorm with the user, 2026-11-11)
+
+Not built; no repository yet. Problem: the community had no natural place
+for gaps, demand and who works on what (an Excel file in someone's cloud,
+hard to keep up). Idea: one public repository as the entry point for wishes
+not aimed at a specific package.
+
+- **Owner:** `nfdi4health` (the user's funder; the user co-leads the
+  statistical development theme). Transfer possible later. **Name: TBD.**
+- **Content:** issues for concrete wishes (two templates: analysis method /
+  other, e.g. utilities), maybe Discussions for vague ones; a GitHub
+  Project as the overview (theme, status, target package, who works on it,
+  demand). Demand: reactions, paper counts, the analysis bot's gap issues.
+- **Scope of automation:** the researcher agent and the analysis bot only
+  produce analysis-function wishes; utility wishes come from people.
+- **The analysis bot's gap issues go there:** change `gap_issue_repo` in
+  `config/analysis-suggest.yml` and add an issue template in the hub.
+  Checked: the link carries only the step title and the note on what is
+  missing — no plan, study or repository name; the analyst opens the issue
+  under their own account (visible username, their own choice). The step
+  title can still reveal a research question: the template should ask for
+  the method only, and the title should be the method, not the step.
+- **Routing:** a label per topic package (e.g. `dsClusterAnalysis`) maps,
+  via a config list, to a repository; the workflow copies the issue there
+  (GitHub's transfer only works within one owner) with a link back; the
+  hub issue stays open as the demand record, status mirrored back. Who may
+  route: an `allowed-logins` label check as for `bot-proceed`. Light hub
+  triage (new? exists already? which package? duplicate?); the full spec
+  comes from the target repository's own triage. **Issues only** as the
+  first level; later perhaps fork → new function → PR via the implementer
+  for repositories the user doesn't control.
+- **Researcher, monthly:** PubMed and PMC (NCBI E-utilities, free) with
+  named queries in a config file (not settled yet; tried on the PubMed
+  site first, a dry run in the hub), only papers since the last run →
+  method extraction with a cheap model against a controlled list →
+  normalisation (synonym list, a stable method key) → exists in DataSHIELD
+  (catalogue, function inventory, hub issues) → exists in native R (CRAN
+  task views, CRAN database) → deeper research (federated approaches,
+  first disclosure view) only for the top candidates.
+- **No flood: a monthly PR**, like the roxygen and test bots' PRs. It adds
+  a data file (e.g. `scans/2026-11.yml`: methods, counts, existence,
+  decisions), which over the months is the trend record. The description
+  lists at most `max_candidates` (10, config) new candidates: name, short
+  description, paper count and trend, two or three example papers, exists
+  in DataSHIELD (no / partly, package), native R package.
+- **Three boxes per candidate (user, 2026-11-11):** *open issue* (on
+  merge), *not now*, *don't suggest again* (back only if its paper count
+  clearly rises, e.g. doubles, config). **Exactly one per candidate,
+  required** (user: "a fan of actually taking a decision"): a status check
+  fails while a candidate has none or more than one, so the PR can't be
+  merged undecided.
+- **"Not now"** candidates are listed every month in a "Deferred" section
+  outside the 10 slots, with their own boxes; staying deferred needs no
+  new tick there.
+- **Filtered before the top 10** (the next candidate moves up): an open
+  hub issue, one closed as completed or as not planned, *don't suggest
+  again*, deferred ones (in their own section). Exact via a hidden marker
+  with the method key in every issue the workflow opens; for issues people
+  opened, Claude matches against the open issues (an enum of real numbers,
+  like the analysis bot's `existing_issue`) and the marker is added. Demand
+  for tracked methods still goes into the data file, and a short list
+  without boxes ("already tracked: #12, 41 papers, rising") ends the PR;
+  no monthly comments on issues.
+
 ## Points to settle before building
 
 - **Prompt injection is mainly the implementer's risk**, not the
