@@ -478,6 +478,26 @@ report (except the correction round).
   (different framings). Open: framing per entry (by position, or objects
   `{model, framing}`), and scaling by risk (e.g. a second list for small
   bugs, or only the first entry for them).
+- **Proposed shape (2026-11-11, after the user's wish: no extra workflows,
+  no constant caller changes, freedom for other users):** the teams per
+  kind of issue live in a config file, `config/implementer.yml`, read like
+  every other config (shared defaults, a target repository's own copy
+  merged over them key by key):
+
+  ```yaml
+  solvers:
+    bug: [claude-opus-5-5]
+    enhancement: [claude-opus-5-5, claude-sonnet-5-5, claude-fable-5-2]
+    default: [claude-opus-5-5]   # issues of no known kind
+  ```
+
+  The kind comes from what the implementer already reads (issue type,
+  else the type label). One reusable workflow, one caller; changing the
+  teams means editing that file in the target repository, never a
+  workflow. An optional input `solvers` (the same mapping as a JSON
+  string) could override it for a whole runner, but isn't needed at first.
+  Later kinds (e.g. `server` for changes on the server side) are new keys,
+  not new inputs.
 
 ## Open
 
