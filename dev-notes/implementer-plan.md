@@ -499,6 +499,11 @@ report (except the correction round).
   Later kinds (e.g. `server` for changes on the server side) are new keys,
   not new inputs.
 
+  **Unsolved (user, 2026-11-11):** the user is wary of the number of
+  config files across the workflows; a config file may still be the right
+  place, but input vs config file is left open. A target repository needs
+  no file of its own as long as the defaults suit it.
+
 ## Open
 
 1. **New functions:** see above, for another day.
