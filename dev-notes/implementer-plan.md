@@ -453,10 +453,23 @@ report (except the correction round).
   `enhancement` or server-side change → N = 3.
 - Isolation fits what exists: the writer job already has no writing
   token; matrix jobs per candidate, the publish job picks one.
-- Open: who picks when the candidates disagree but all pass (smallest
-  diff, or the human chooses in the PR from a table); whether the losing
-  candidates stay visible (draft branches, or only a summary); how the
-  oracle gets pooled data for packages without DSLite mock data.
+- Open: how the oracle gets pooled data for packages without DSLite mock
+  data.
+
+**User's answers (2026-11-11):**
+
+- "Different models" means different LLM models (e.g. Sonnet vs Opus),
+  combined with different framings. All are Claude models: the run can
+  choose one per solver (Claude Code's model setting), within what the
+  subscription allows; other vendors would need API keys and are not
+  planned. Same-family models still share some mistakes, so the framing
+  stays varied too.
+- **Package code:** when all candidates pass and differ, the **smallest
+  diff** wins.
+- **Analysis scripts:** keep the alternatives — different approaches or
+  packages for the same step are worth showing the analyst, not just one
+  winner. How (all scripts in the PR, one chosen plus the others folded
+  in the description, …) is open.
 
 ## Open
 
