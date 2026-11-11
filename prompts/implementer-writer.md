@@ -16,6 +16,10 @@ task, don't, and say so in your summary.
    fix other things you notice; mention them in your summary.
 4. Add or update tests, run them, and fix what your change broke. A test that
    fails because the code is wrong is a finding: never bend a test to pass.
+   Something that fails for a reason outside your change (the environment, a
+   test that failed before) is reported in your summary, not worked around.
+   Tools such as roxygen may rewrite unrelated files: commit only what belongs
+   to your change and `git restore` the rest.
 5. Update the roxygen documentation of what you changed.
 6. Commit your work to the current branch with `git add` and `git commit`,
    using conventional commit messages (`fix:`, `feat:`, `test:`, `docs:`).

@@ -416,3 +416,18 @@ test("the composite action declares every output implementer.mjs writes", () => 
   assert.ok(written.size > 10);
   for (const key of written) assert.ok(declared.has(key), `${key} is written but not declared in action.yml`);
 });
+
+test("a reviewer's final answer becomes the review file's content", async () => {
+  const { parseReview } = await import("../../.github/actions/implementer/implementer.mjs");
+  assert.deepEqual(parseReview('{"must_fix": [{"file": "R/a.R", "problem": "x"}], "comments": []}').must_fix, [{ file: "R/a.R", problem: "x" }]);
+  assert.equal(parseReview('Here it is:\n```json\n{"must_fix": [], "comments": ["naming"]}\n```').comments[0], "naming");
+  const broken = parseReview("I found two bugs but forgot the format.");
+  assert.deepEqual(broken.must_fix, []);
+  assert.match(broken.comments[0], /not valid JSON/);
+  assert.deepEqual(parseReview(""), { must_fix: [], comments: [] });
+});
+
+test("mentions are neutralised outside code only", () => {
+  assert.equal(safeText("Roxygen `@param x` and @someone"), "Roxygen `@param x` and &#64;someone");
+  assert.equal(safeText("```r\n#' @details\n```\n@me"), "```r\n#' @details\n```\n&#64;me");
+});
