@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Decides whether an issue gets triaged (dev-notes/issue-agents.md), and
 # writes run=true|false and number=<issue> to GITHUB_OUTPUT. Not triaged:
-# other events; pull requests; closed issues; issues written by a bot;
-# `bot-created` issues; issues carrying APPROVAL_LABEL.
+# other events; pull requests; closed issues; issues carrying
+# APPROVAL_LABEL; issues written by a bot not listed in TRIAGE_BOTS, and
+# `bot-created` issues — except on a person's request (TRIAGE_LABEL).
 #
 # The first triage runs on `opened` or `edited`. After that, one triage per
 # issue, repeated only if someone answers it, and at most MAX_TRIAGES:
@@ -29,7 +30,8 @@
 #
 # Reads the event file and the API; needs APPROVAL_LABEL, TRIAGE_LABEL,
 # ALLOWED_LOGINS, MAX_TRIAGES, GH_TOKEN and the GITHUB_* variables of the
-# runner; SUSPICIOUS_LABEL is optional (default bot-suspicious).
+# runner; SUSPICIOUS_LABEL (default bot-suspicious) and TRIAGE_BOTS (empty:
+# no bot's issues) are optional.
 set -euo pipefail
 
 skip() {
@@ -74,18 +76,29 @@ fi
 
 issue="$(gh api "repos/$GITHUB_REPOSITORY/issues/$number")"
 [ "$(jq -r '.state' <<< "$issue")" = open ] || skip "the issue is closed"
-[ "$(jq -r '.user.type' <<< "$issue")" != Bot ] || skip "written by a bot"
 labels_match() {  # labels_match <label>: GitHub treats label names as equal whatever their case
   jq -e --arg label "$1" 'any(.labels[]; (.name | ascii_downcase) == ($label | ascii_downcase))' <<< "$issue" > /dev/null
 }
-if labels_match bot-created; then skip "a bot-created issue"; fi
 if labels_match "$APPROVAL_LABEL"; then skip "already approved"; fi
 
+# A person's request works on any open issue, also one a bot wrote.
 if [ "$trigger" = request ]; then
   echo "Triage requested for issue $number."
   echo "run=true" >> "$GITHUB_OUTPUT"
   exit 0
 fi
+
+# Issues by bots: only those listed in TRIAGE_BOTS (exact logins, e.g. the
+# App the suggestion bots open their issues with), and none labelled
+# bot-created.
+if [ "$(jq -r '.user.type' <<< "$issue")" = Bot ]; then
+  author="$(jq -r '.user.login' <<< "$issue")"
+  listed=false
+  read -r -a bots <<< "$(tr ',\n' '  ' <<< "${TRIAGE_BOTS:-}")"
+  for bot in "${bots[@]}"; do [ "$bot" = "$author" ] && listed=true; done
+  [ "$listed" = true ] || skip "written by a bot not in triage-bots ($author)"
+fi
+if labels_match bot-created; then skip "a bot-created issue"; fi
 
 # --paginate gives one JSON array per page; a failed read fails the run.
 triages="$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$number/comments" | jq -rs '

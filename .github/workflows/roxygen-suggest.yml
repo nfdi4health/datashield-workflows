@@ -154,6 +154,20 @@ jobs:
           extra-packages: any::roxygen2, any::httr2, any::jsonlite, any::purrr, any::yaml
           needs: check
 
+      # Issues opened with GITHUB_TOKEN start no workflow, so triage
+      # wouldn't see them; opened with the App's token they get triaged
+      # (the caller lists the App's bot in issue-triage's triage-bots).
+      # Without an App, or if this fails, issues go out with GITHUB_TOKEN.
+      - name: App token for opening issues
+        id: issue_token
+        if: steps.files.outputs.count > 0 && inputs.self-test-fixture == ''
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          permission-issues: write
+
       - name: Get Anthropic access token
         id: anthropic_auth
         if: steps.files.outputs.count > 0 && inputs.self-test-fixture == ''
@@ -175,6 +189,7 @@ jobs:
           ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ secrets.anthropic-service-account-id }}
           ANTHROPIC_FEDERATION_RULE_ID: ${{ secrets.anthropic-federation-rule-id }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_TOKEN: ${{ steps.issue_token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           DATASHIELD_TYPE: ${{ inputs.datashield-type }}
           # PR and push runs (empty in a sweep): an open bot PR is built on —
