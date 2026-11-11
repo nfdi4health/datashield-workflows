@@ -34,6 +34,11 @@ on:
         required: false
         type: boolean
         default: false
+      triage-bots:
+        description: 'Bot logins whose new issues are triaged like a person''s, e.g. the App the suggestion bots open their issues with (`<app-slug>[bot]`). Exact, separated by commas or spaces. Empty: issues by bots are only triaged on request (`triage-label`).'
+        required: false
+        type: string
+        default: ''
       triage-label:
         description: 'Set by a login in `allowed-logins`, this asks for a triage right now, also on old or already triaged issues. It is removed afterwards.'
         required: false
@@ -104,6 +109,7 @@ jobs:
           triage-label: ${{ inputs.triage-label }}
           allowed-logins: ${{ inputs.allowed-logins }}
           max-triages: ${{ inputs.max-triages }}
+          triage-bots: ${{ inputs.triage-bots }}
           token: ${{ github.token }}
 
   triage:
@@ -133,6 +139,7 @@ jobs:
           triage-label: ${{ inputs.triage-label }}
           allowed-logins: ${{ inputs.allowed-logins }}
           max-triages: ${{ inputs.max-triages }}
+          triage-bots: ${{ inputs.triage-bots }}
           token: ${{ github.token }}
 
       - name: Shared scripts

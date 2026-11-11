@@ -21,6 +21,7 @@ jobs:
     uses: nfdi4health/datashield-workflows/.github/workflows/issue-triage.yml@main
     with:
       allowed-logins: your-login   # optional: who may ask for a triage with the bot-triage label (exact GitHub logins); without it nobody can
+      # triage-bots: your-app[bot]   # optional: the App your suggestion bots open issues with; its issues get triaged too
     secrets:
       anthropic-organization-id: ${{ secrets.ANTHROPIC_ORG_ID }}
       anthropic-service-account-id: ${{ secrets.ANTHROPIC_SVAC_ID }}

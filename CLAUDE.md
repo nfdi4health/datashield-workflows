@@ -154,7 +154,15 @@ the live caller used to validate changes before wider rollout.
     answers would only give its author more tries; a listed login can still
     ask with `bot-triage`. Hidden text alone sets no label (issue templates'
     HTML comments are hidden text too), and `spam` keeps its repeat (may be
-    a vague report, not ill-meant).
+    a vague report, not ill-meant). **Bot issues** (user, 2026-11-11): issues by
+    bots listed in the input `triage-bots` (exact logins, e.g. the App's
+    `<slug>[bot]`) are triaged like a person's, except those labelled
+    `bot-created`; a `bot-triage` request works on any open issue, bots'
+    included. The roxygen and test bots open their issues with the App's
+    token (step `issue_token`, env `ISSUE_TOKEN`, `post_issue_once()`, falls
+    back to `GITHUB_TOKEN`): issues opened with `GITHUB_TOKEN` start no
+    workflow, so triage would never see them. `create-issue.yml` stays on
+    `GITHUB_TOKEN` (release failures aren't tasks).
   - `release-issues.yml` — closes issues with the release that ships
     their fix (2026-11-09, user's design): input `step`. `mark` (caller on
     `pull_request: closed` into `dev`, merged): issues the PR's description
