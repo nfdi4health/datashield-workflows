@@ -389,6 +389,75 @@ too), the facts in this repository's config, the workflow only wiring them
   it again ends with open questions, the normal limit applies. `bot-triage`
   stays unlimited.
 
+## Open for the refactoring: roles proposal (from another chat, 2026-11-11)
+
+Not decided. A proposal for how the implementer (and the analysis bot)
+could be structured, recorded as an open question for the refactoring pass.
+The user likes the three-solver setup.
+
+**Roles:**
+
+- **The workflow orchestrates**, not an LLM: fixed steps, artifacts handed
+  from job to job.
+- **Spec / plan agent:** turns the triage spec into a structured file
+  (`spec.json`: what changes, inputs, expected behaviour, edge cases).
+- **Test / oracle agent:** never sees solver code. Writes the reproducing
+  test and a reference result — for DataSHIELD, plain R on the pooled data
+  against the federated result in DSLite, within a tolerance. For a bug,
+  the test must be confirmed **failing before** any solver starts.
+- **N solvers** (usually 3; N by risk, N = 1 for small bugs), isolated
+  (`strategy.matrix` jobs or worktrees), deliberately diverse (framing,
+  model).
+- **Deterministic gates:** testthat, R CMD check, lintr, federated vs
+  pooled comparison, disclosure check.
+- **Comparator, mostly deterministic:** agreement across candidates, extra
+  edge-case inputs, old vs new on unrelated inputs, prefer the smallest
+  diff; disagreement goes to the human.
+- **Fresh, narrow reviewers** (statistical correctness, disclosure, simplicity):
+  they only flag, never gate.
+- **Human approves** from a structured report.
+
+**Analysis scripts from metadata** (`datashield-analysis-suggest.yml`):
+several independent plans → the human approves a plan (cheapest
+checkpoint) → synthetic data with a planted effect → N scripts in DSLite
+must recover the effect and agree → conformance review → the human runs on
+the real servers.
+
+**Mapping:** roles as skills in `datashield-skills`; handoffs via artifacts
+(`spec.json`, tests, `candidates/`); solver and reviewer jobs without
+secrets and read-only, only the final publish step writes.
+
+**Pitfalls named:** correlated errors (same model, same prompt → same
+mistake), rubber-stamping reviewers, cost creep, over-engineering — start
+with spec → oracle → 2 solvers → gates → human.
+
+**Compared with today:** one writer, `run-checks.sh` (rcmdcheck), a
+maintainability and a disclosure reviewer, up to two correction rounds; no
+separate oracle, no candidates, no comparator. Reviewers already only
+report (except the correction round).
+
+**Assessment (Claude, 2026-11-11), for the discussion:**
+
+- The **independent oracle** is the biggest gain and the cheapest step: a
+  test written without seeing the fix, failing first, plus pooled vs
+  federated comparison, checks correctness instead of plausibility. Worth
+  building before solvers.
+- **N = 3:** the value is in the comparison, so it needs the oracle and
+  the comparator first, else three candidates just triple the review. Cost
+  is mainly subscription quota (three runs per issue hit the 5-hour limit
+  sooner, `implementer-timer.yml` waits more often) and Actions minutes
+  (three jobs installing R packages; a shared cache helps). Diversity
+  matters more than N: with one model on the subscription, vary framing
+  (minimal fix / rewrite of the function / test-first).
+- Scaling N by risk fits the triage: `bug` with a clear spec → N = 1,
+  `enhancement` or server-side change → N = 3.
+- Isolation fits what exists: the writer job already has no writing
+  token; matrix jobs per candidate, the publish job picks one.
+- Open: who picks when the candidates disagree but all pass (smallest
+  diff, or the human chooses in the PR from a table); whether the losing
+  candidates stay visible (draft branches, or only a summary); how the
+  oracle gets pooled data for packages without DSLite mock data.
+
 ## Open
 
 1. **New functions:** see above, for another day.
