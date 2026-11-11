@@ -241,6 +241,79 @@ not aimed at a specific package.
   without boxes ("already tracked: #12, 41 papers, rising") ends the PR;
   no monthly comments on issues.
 
+#### Researcher pipeline sketch (Claude, 2026-11-11; not decided)
+
+Reusable workflows and R functions here, like the other bots; the hub holds
+a thin caller, its configs and the data files (another community could run
+its own hub). Claude only where code can't decide; cheap before expensive.
+
+```
+                    monthly schedule / manual run (dry-run option)
+                                     |
+methods-scan
+ 0 State      R      last run date, decisions (scans/*.yml), hub issues
+                     and their method markers, vocabulary
+ 1 Fetch      R      PubMed/PMC E-utilities per query since last run
+ 2 Extract    Haiku  batches of ~20 papers -> method keys (enum from the
+                     vocabulary) or "new: <name>"
+ 3 Count      R      per method: papers, share of all papers, trend
+ 4 Exists?    R      catalogue, function inventory, vocabulary map;
+                     Claude only for unclear cases, verdict cached
+ 5 Rank       R      drop filtered -> top max_candidates (10)
+ 6 Research   Sonnet only those: description, federated approaches in
+                     the literature, native R package, first disclosure
+                     view (web search)
+ 7 Propose    R      scans/YYYY-MM.yml + PR, three boxes per candidate
+PR edited -> methods-choices: exactly one box each -> commit status
+PR merged -> methods-issues: open issues (method marker), record decisions
+```
+
+- **Fetch:** NCBI allows 3 requests/s without a key, 10 with a free key
+  (optional secret); a cap per query in the config.
+- **Extract:** the Message Batches API suits a monthly job (results within
+  hours, cheaper; check current prices before deciding).
+- **Count:** relative to the month's total, else a month with more papers
+  looks like rising demand.
+- **Exists?:** `config/methods.yml` maps method → known DataSHIELD functions
+  and R packages, so most answers are lookups; Claude's verdicts are stored
+  and re-checked only when the catalogue changes.
+- **Propose:** the PR ends with "New method names" (frequent free-text
+  names, one decision box each, so the vocabulary is curated, not grown
+  by itself) and "Already tracked" (counts, no boxes).
+- **Files in the hub:** `config/methods-scan.yml` (queries,
+  `max_candidates`, doubling rule, caps), `config/methods.yml`
+  (vocabulary: key, synonyms, DataSHIELD functions, R packages),
+  `scans/YYYY-MM.yml` (counts, verdicts, decisions).
+- **Abstract or methods section — open, a pilot decides.** Structured
+  abstracts usually name the main model (Cox, logistic, mixed models) but
+  rarely secondary methods (imputation, splines, propensity scores,
+  weighting) — often exactly the DataSHIELD gaps. Full text only exists
+  for the PMC open-access subset (biased) and is much larger; the methods
+  section can be cut out of the JATS XML by code. Likely a hybrid: the
+  abstract for every paper, the methods section where open-access full
+  text exists, the source recorded per method.
+- **First run vs. regular runs (user: the first real run has a lot more to
+  do)** — phases, each ending with something the user looks at:
+  0. **Pilot:** ~100 open-access papers, methods from abstract vs. methods
+     section compared; a report, nothing committed.
+  1. **Vocabulary round:** seeded from the function inventory and the CRAN
+     task views; extraction on a sample (one month); the PR only proposes
+     method names, no candidates.
+  2. **Backfill:** e.g. 12 months, one chunk per month, each writing its
+     own `scans/YYYY-MM.yml`, so a failed run resumes at the next missing
+     month; counts only (no research step, no candidate PR); the 6-hour
+     job limit may need "submit batches" and "collect results" in separate
+     runs (batch IDs in a small state file); a cost cap (papers per run).
+  3. **First candidate PR** with trends from the start, still at most 10.
+
+  Then regular months are small. Manual-run input `mode`: `pilot` /
+  `vocabulary` / `backfill` / `monthly`, plus `since` for the backfill;
+  the schedule always runs `monthly`.
+- **Open:** API with WIF (fits structured, plain API work) or the
+  subscription for the research step; size of the first trial; how deep the
+  research step's disclosure view goes (a first impression; the real
+  disclosure work belongs in the design note later).
+
 ## Points to settle before building
 
 - **Prompt injection is mainly the implementer's risk**, not the
