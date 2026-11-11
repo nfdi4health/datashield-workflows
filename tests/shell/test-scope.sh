@@ -30,7 +30,7 @@ g() { git -c user.email=t@t -c user.name=dev "$@"; }
 scope() {  # scope <event> <ref_name> <review_scope> <allow_scheduled> <review_branch> [head_ref]
   : > "$WORK/out.txt"
   PATH="$BIN:$PATH" GITHUB_EVENT_NAME="$1" GITHUB_EVENT_PATH="$WORK/event.json" GITHUB_OUTPUT="$WORK/out.txt" \
-    GITHUB_REF="refs/heads/$2" REF_NAME="$2" HEAD_REF="${6:-}" ACTOR=someone \
+    GITHUB_REF="refs/heads/$2" REF_NAME="$2" HEAD_REF="${6:-}" ACTOR="${ACTOR:-someone}" SELF_TEST="${SELF_TEST:-false}" \
     REVIEW_SCOPE="$3" ALLOW_SCHEDULED="$4" REVIEW_BRANCH="$5" GITHUB_REPOSITORY=me/pkg \
     bash "$SCOPE/resolve-suggestion-scope.sh" > /dev/null 2>&1
   cat "$WORK/out.txt"
@@ -40,6 +40,8 @@ out="$(scope workflow_dispatch feature changed true "")"; grep -qx "branch=featu
 out="$(scope workflow_dispatch main all true "")";     grep -qx "mode=all" <<< "$out"; check "review-scope all: full review" $?
 out="$(scope schedule main changed false "")";            grep -qx "skip=true" <<< "$out"; check "authors: no scheduled runs" $?
 out="$(scope pull_request x changed true "" bot-suggest/tests/dev)"; grep -qx "skip=true" <<< "$out"; check "bot branch skipped" $?
+out="$(ACTOR='dependabot[bot]' scope pull_request x changed true "" dependabot/x)"; grep -qx "skip=true" <<< "$out"; check "Dependabot skipped (no secrets)" $?
+out="$(ACTOR='dependabot[bot]' SELF_TEST=true scope pull_request x changed true "" dependabot/x)"; grep -qx "skip=false" <<< "$out"; check "Dependabot not skipped in a self-test" $?
 echo '{"pull_request": {"draft": true}}' > "$WORK/event.json"
 out="$(scope pull_request x changed true "" agent-suggest/fix/issue-7)"; grep -qx "skip=true" <<< "$out"; check "draft pull request skipped" $?
 echo '{"pull_request": {"draft": false}}' > "$WORK/event.json"

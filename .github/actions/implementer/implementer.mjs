@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Refusal, githubApi, labelNames, parseTargets, splitLogins, writeOutputs } from "./lib.mjs";
 import { parseRequest, pickNext, verifyIssue } from "./queue.mjs";
-import { finalOutcome, nextRound, readJson } from "./outcome.mjs";
+import { finalOutcome, nextRound, readExecution, readJson } from "./outcome.mjs";
 import { publish, readResult, prepareBranch, setLabels } from "./publish.mjs";
 import { appendToLog, collectEvents, collectRuns, readEvents } from "./log.mjs";
 
@@ -43,8 +43,29 @@ export function promptValues(e) {
   const round = Number(e.ROUND || 0);
   const scope = round === 0
     ? `Review the whole change: \`git diff origin/${e.BASE}...HEAD\`.`
-    : `This is the check after correction round ${round}: review only the fixes, \`git diff ${e.SINCE}..HEAD\`, and whether the \`must_fix\` points of the previous review (\`.agent/review-maintainability.json\`, which you replace) are fixed. Points still open stay in \`must_fix\`.`;
+    : `This is the check after correction round ${round}: review only the fixes, \`git diff ${e.SINCE}..HEAD\`, and whether the \`must_fix\` points of the previous review (\`.agent/review-maintainability.json\`) are fixed. Points still open stay in \`must_fix\`.`;
   return { ROUND: round, BASE: e.BASE ?? "", SINCE: e.SINCE ?? "", SCOPE: scope };
+}
+
+// The maintainability reviewer answers with JSON, perhaps in a code fence or
+// with a sentence around it; anything unreadable becomes a comment, never a
+// must-fix point.
+export function parseReview(text) {
+  const raw = String(text ?? "");
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    try {
+      const review = JSON.parse(raw.slice(start, end + 1));
+      return {
+        must_fix: Array.isArray(review.must_fix) ? review.must_fix : [],
+        comments: Array.isArray(review.comments) ? review.comments : [],
+      };
+    } catch {
+      // fall through
+    }
+  }
+  return { must_fix: [], comments: raw.trim() ? [`The reviewer's answer was not valid JSON: ${raw.trim().slice(0, 500)}`] : [] };
 }
 
 export function sandboxSettings(hosts) {
@@ -99,6 +120,16 @@ const commands = {
 
   async settings() {
     writeFileSync(env.SETTINGS_FILE, JSON.stringify(sandboxSettings(env.ALLOWED_HOSTS)));
+  },
+
+  // A reviewer only reads; its final answer is the review, saved here.
+  async "save-review"() {
+    const { text } = readExecution(env.EXECUTION_FILE);
+    if (env.ROLE === "disclosure") {
+      writeFileSync(".agent/review-disclosure.md", `${text.trim()}\n`);
+      return;
+    }
+    writeFileSync(".agent/review-maintainability.json", `${JSON.stringify(parseReview(text))}\n`);
   },
 
   async round() {

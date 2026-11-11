@@ -258,6 +258,137 @@ that is settled.
   roxygen, test and authors bots run on these branches, unlike
   `bot-suggest/` (drafts excepted, see above).
 
+## Targets, branches, client/server pairs (user, 2026-11-10; not built yet)
+
+- **Other branch models:** not everyone works main / dev / feature. Each
+  target says where work starts and where the pull request goes, one
+  setting: **`branch`** (renamed from `base`, which only the runner's caller
+  used). Left out: the repository's default branch (read from GitHub),
+  never an assumed `dev`, and never a guess at "the latest branch". Setting
+  it explicitly is fine and expected (dsAnalysis may name one too).
+- **The server side as flat, individual settings**, not a nested object:
+  `server` (owner/name) and `server-branch` next to `branch` in a
+  target. A client/server pair has one owner
+  (user: always so in practice), so one App installation and one token
+  cover both; the App needs access to both repositories.
+- **Server-only changes** (e.g. performance): the issue is opened in the
+  server repository, which is then a target itself. Utility packages
+  (dsAnalysis) are targets without a server.
+- **Branch names and titles stay the standard:** `agent-suggest/<type>/issue-<n>`
+  and `fix:` / `feat:`, for every repository.
+- **Both `bug` and `enhancement`: feat beats fix** (user, 2026-11-10):
+  `type-labels` becomes an ordered list, the first match decides (default
+  `enhancement` → `feat`, then `bug` → `fix`); branch and pull request
+  title take that type, the writer is told both parts are wanted, and its
+  commits keep their own types. Today such an issue is refused.
+- **GitHub's issue type instead of labels** (user agrees, 2026-11-10; not
+  built): the issue type field (Bug, Feature, Task; set per organisation)
+  is one value, so it can't conflict like two labels. The runner would take
+  `fix` / `feat` from the type (Bug → fix, Feature → feat), and fall back to
+  the labels (feat beats fix) where a repository has no types (personal
+  accounts have none). Triage could set the type instead of, or besides,
+  the label.
+- **`open-pull-request`** (input, default `true`): `false` pushes the branch
+  only and puts the comparison link, summary and reviews in an issue comment;
+  labels as with a pull request; the cleanup never touches such a branch
+  (it acts on closed pull requests). Re-targeting a pull request
+  (Edit → base) keeps it open, so the cleanup doesn't touch it either.
+- **Names confirmed (user, 2026-11-10):** `server` and `server-branch`.
+- **Triage says which repositories are affected** (user, 2026-11-10), so the
+  question comes before `bot-proceed`, not after a run: the triage caller
+  gets the same input `server`; with it, the spec of a bug or idea ends with
+  an "Affects" line — *this repository only* (default), *this repository
+  and `owner/server`*, or *only `owner/server`* (then the issue belongs in
+  the server repository). A proposal from the documentation (a server
+  function `…DS` named, disclosure settings involved, results computed on
+  the server), corrected like the rest of the spec (comment, `bot-triage`);
+  visible text plus a hidden marker with the value, which the runner reads.
+  Without `server` (utility packages, servers themselves): no line.
+- **The implementer follows the line:** *this repository only* — as now,
+  and the writer stops and asks if the code shows a server change is needed
+  after all; *both* — no run until pair changes exist (a short note on the
+  issue, no minutes spent), then the pair run; *only the server* — no run,
+  a note to open the issue in the server repository.
+- **Now:** the writer stops and asks (`bot-needs-input`) when a fix would
+  need a server change; the server checkout is read-only, for the disclosure
+  reviewer.
+- **Later, after the first live test:** pair changes in one run — the issue
+  in the client repository, both checkouts writable, the changed server
+  installed for the tests, two pull requests with the same branch name
+  (server first, links both ways; the client PR's own CI tests against the
+  server's branch until the server PR is merged).
+
+## Disclosure review: deviations go back, judgement stays (user, 2026-11-10; not built yet)
+
+The first run showed the question: if writer and disclosure reviewer
+disagree, who corrects? Until now (decision of 2026-11-06) nothing went back
+to the writer, and the user settled everything in PR review.
+
+- **The disclosure reviewer sorts its findings:** *deviates from the spec*
+  — the code does what the approved spec doesn't cover (new data leaves the
+  server, a check removed or weakened, another threshold), checked against
+  the spec's disclosure part, which the user approved; and *judgement* —
+  doubts, alternatives, what the spec leaves open.
+- **Deviations go back to the writer** like a maintainability `must_fix`,
+  within the same correction rounds; the disclosure review therefore runs
+  after round 0 too, and later rounds check only whether its deviations are
+  fixed. One still open after the last round: a clear warning at the top of
+  the pull request, or `bot-needs-input` if it is fundamental.
+- **Judgement stays for the user** in the pull request, as before. The agents
+  don't decide disclosure among themselves; they only enforce what the user
+  approved.
+- **Later:** sending a pull request back for another round (e.g. a
+  `bot-revise` label set by the user, the review comments as input). A new
+  run refuses an issue with an open, non-draft pull request today. Open:
+  what the agent may read from pull request comments.
+
+## The agents' definitions need refinement (user, 2026-11-10; later)
+
+The writer and reviewer prompts (`prompts/implementer-*.md`) are first
+drafts. The maintainability reviewer in particular should cover more than
+bugs and obvious maintainability problems, and not repeat what the roxygen
+and test bots already review on the same pull request:
+
+- **Linting and style:** the package's own style, `lintr` / `styler` where
+  the package uses them (a deterministic step may be better than the
+  reviewer reading for it).
+- **Human readability:** names, structure, length of functions, comments
+  where the code isn't self-explaining.
+- **Reuse:** use the package's existing helpers and the functions of its
+  dependencies (DataSHIELD client functions, `dsBaseClient`, …) instead of
+  re-implementing them in base R.
+- **Consistency** with the package's conventions (argument checks, messages,
+  file layout).
+
+Where the definitions live is part of it: the procedure may belong in
+`datashield-skills` (a reviewer skill or agent definition, usable locally
+too), the facts in this repository's config, the workflow only wiring them
+(see "Overlap with datashield-skills").
+
+## Triage, found in the first implementer test (2026-11-10)
+
+- dsSupportClient #83 (only the `method` part of the open #58) stayed
+  `duplicate` of #58 after the maintainer's comment that it is split out on
+  purpose. Wanted: an allowed login's objection to a duplicate verdict is
+  decisive (prompt and/or a field), so a deliberate split isn't blocked.
+  This time #83 was closed as a duplicate and #58 itself triaged with
+  `bot-triage`.
+- **Answers to open questions start a new triage** (user, 2026-11-10; not
+  built yet). Today, after `bug` or `idea`, only `bot-triage` repeats a
+  triage, so a spec's open questions (dsSupportClient #58) can't be answered
+  by comment. Wanted: a triage comment whose spec has open questions carries
+  a second hidden marker (e.g. `<!-- bot-triage-open-questions -->`; the
+  first-line marker stays, the gate, runner and related-issue reader rely on
+  it); then a comment by the issue's author or an allowed login starts a new
+  triage, with the usual wait. Other people's comments don't (the maintainer
+  approves the spec). The comment says so under the open questions. No
+  label: the issue keeps `bug` / `enhancement`. A spec without open
+  questions stays as it is.
+- **One answer-triage beyond the limit:** after a spec with open questions,
+  one such triage is always allowed, even when `max-triages` is reached; if
+  it again ends with open questions, the normal limit applies. `bot-triage`
+  stays unlimited.
+
 ## Open
 
 1. **New functions:** see above, for another day.

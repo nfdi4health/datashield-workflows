@@ -64,8 +64,14 @@ const CLOSING = /\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)(:?\s+)((?:[A-Za-z0-9_
 export function stripClosingKeywords(text) {
   return String(text ?? "").replace(CLOSING, (_, _kw, _sep, ref) => `refs ${ref}`);
 }
+// Mentions are neutralised outside code only: in `code` and fenced blocks an
+// @ never notifies anyone, and an entity there would show literally
+// (roxygen tags like `@param`).
 export function safeText(text) {
-  return stripClosingKeywords(text).replace(/@(?=[A-Za-z0-9_-])/g, "&#64;");
+  return stripClosingKeywords(text)
+    .split(/(```[\s\S]*?```|`[^`\n]*`)/)
+    .map((part, i) => (i % 2 === 1 ? part : part.replace(/@(?=[A-Za-z0-9_-])/g, "&#64;")))
+    .join("");
 }
 
 export async function writeOutputs(values) {

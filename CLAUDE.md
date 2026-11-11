@@ -43,7 +43,9 @@ the live caller used to validate changes before wider rollout.
   - `create-issue.yml` — opens an issue on check failure from
     `.github/pr-issue-template.md`.
   - `commitlint.yml` — conventional-commit lint using
-    `config/commitlint-config.mjs`.
+    `config/commitlint-config.mjs`. Only what versioning needs (user,
+    2026-11-11): a known type in lower case and a subject; subject case,
+    lengths and blank lines are free. Dependabot's messages are ignored.
   - `authors-suggest.yml` — resolves each PR commit's author to
     their GitHub profile name and credits them in `DESCRIPTION` via a
     `bot-suggest/authors` sub-PR: `aut` if any of their commits changed
