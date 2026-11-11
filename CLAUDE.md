@@ -689,6 +689,16 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   selected function with Opus). Forced tool calls with thinking work on the
   Claude API; they would 400 on Opus 5.5 / Fable 5.1 (use `auto` then).
 - Shared caching for `r-cmd-check.yml` — flagged, not started.
+- **Refactoring before v1: fewer self-test and CI runs** (user, 2026-11-11).
+  `self-test.yml` and `ci.yml` run on every `push` (any branch) *and* every
+  `pull_request`, so a PR's checks run twice: 6 self-test jobs (roxygen,
+  tests, authors × both events) plus 2 "Check the results", and CI twice.
+  Options: `push` only for `dev` and `main`, `pull_request` for the rest; the
+  self-tests (not required by the rulesets) also only when `R/`, `config/`,
+  `prompts/`, `.github/` or `tests/` change — not `ci.yml`, whose jobs are
+  required checks (a required check skipped by a path filter never reports
+  and blocks the PR, seen on dsSupportClient #75). Part of the refactoring
+  pass with the agents' definitions and the cross-repo overlaps.
 - **Claude prompt caching — checked, set aside (2026-09-26).** Console logs
   of dsSupportClient runs: test review (Opus 5) ~4–8k input / ~1.2–1.9k
   output tokens per function, failure classification ~1.9k / ~170;
