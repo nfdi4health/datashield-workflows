@@ -154,7 +154,15 @@ the live caller used to validate changes before wider rollout.
     answers would only give its author more tries; a listed login can still
     ask with `bot-triage`. Hidden text alone sets no label (issue templates'
     HTML comments are hidden text too), and `spam` keeps its repeat (may be
-    a vague report, not ill-meant).
+    a vague report, not ill-meant). **Bot issues** (user, 2026-11-11): issues by
+    bots listed in the input `triage-bots` (exact logins, e.g. the App's
+    `<slug>[bot]`) are triaged like a person's, except those labelled
+    `bot-created`; a `bot-triage` request works on any open issue, bots'
+    included. The roxygen and test bots open their issues with the App's
+    token (step `issue_token`, env `ISSUE_TOKEN`, `post_issue_once()`, falls
+    back to `GITHUB_TOKEN`): issues opened with `GITHUB_TOKEN` start no
+    workflow, so triage would never see them. `create-issue.yml` stays on
+    `GITHUB_TOKEN` (release failures aren't tasks).
   - `release-issues.yml` — closes issues with the release that ships
     their fix (2026-11-09, user's design): input `step`. `mark` (caller on
     `pull_request: closed` into `dev`, merged): issues the PR's description
@@ -689,6 +697,16 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   selected function with Opus). Forced tool calls with thinking work on the
   Claude API; they would 400 on Opus 5.5 / Fable 5.1 (use `auto` then).
 - Shared caching for `r-cmd-check.yml` — flagged, not started.
+- **Refactoring before v1: fewer self-test and CI runs** (user, 2026-11-11).
+  `self-test.yml` and `ci.yml` run on every `push` (any branch) *and* every
+  `pull_request`, so a PR's checks run twice: 6 self-test jobs (roxygen,
+  tests, authors × both events) plus 2 "Check the results", and CI twice.
+  Options: `push` only for `dev` and `main`, `pull_request` for the rest; the
+  self-tests (not required by the rulesets) also only when `R/`, `config/`,
+  `prompts/`, `.github/` or `tests/` change — not `ci.yml`, whose jobs are
+  required checks (a required check skipped by a path filter never reports
+  and blocks the PR, seen on dsSupportClient #75). Part of the refactoring
+  pass with the agents' definitions and the cross-repo overlaps.
 - **Claude prompt caching — checked, set aside (2026-09-26).** Console logs
   of dsSupportClient runs: test review (Opus 5) ~4–8k input / ~1.2–1.9k
   output tokens per function, failure classification ~1.9k / ~170;

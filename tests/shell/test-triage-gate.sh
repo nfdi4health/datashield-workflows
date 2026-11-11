@@ -33,9 +33,9 @@ esac
 STANDIN
 chmod +x "$BIN/gh"
 
-issue() {  # issue [state] [user type] [labels as a JSON array of names]
-  jq -n --arg state "${1:-open}" --arg type "${2:-User}" --argjson labels "${3:-[]}" \
-    '{state: $state, user: {type: $type, login: "author"}, title: "$(touch pwned)", labels: ($labels | map({name: .}))}' > "$WORK/issue.json"
+issue() {  # issue [state] [user type] [labels as a JSON array of names] [author login]
+  jq -n --arg state "${1:-open}" --arg type "${2:-User}" --argjson labels "${3:-[]}" --arg login "${4:-author}" \
+    '{state: $state, user: {type: $type, login: $login}, title: "$(touch pwned)", labels: ($labels | map({name: .}))}' > "$WORK/issue.json"
 }
 bot_triage() {  # bot_triage <category>: a page with the bot's comment for it
   printf '[{"user": {"login": "github-actions[bot]"}, "body": "<!-- bot-triage: %s -->\\n**Triage**"}]\n' "$1"
@@ -51,7 +51,7 @@ gate() {
       comment: {user: {login: $who, type: $type}}, label: {name: $label}, sender: {login: $sender}}' > "$WORK/event.json"
   (cd "$WORK" && PATH="$BIN:$PATH" GITHUB_EVENT_NAME="${EVENT_NAME:-issues}" GITHUB_EVENT_PATH="$WORK/event.json" \
     GITHUB_OUTPUT="$WORK/out.txt" GITHUB_REPOSITORY=me/pkg APPROVAL_LABEL=bot-proceed MAX_TRIAGES=3 \
-    TRIAGE_LABEL=bot-triage ALLOWED_LOGINS="${ALLOWED-FlorianSchw}" \
+    TRIAGE_LABEL=bot-triage ALLOWED_LOGINS="${ALLOWED-FlorianSchw}" TRIAGE_BOTS="${BOTS:-}" \
     bash "$ACTION/issue-triage-gate.sh" > "$WORK/log.txt" 2>&1)
 }
 runs()  { grep -qx 'run=true' "$WORK/out.txt"; }
@@ -181,6 +181,26 @@ gate edited; skips; check "suspicious in another case: none either" $?
 LABEL=bot-triage SENDER=FlorianSchw gate labeled; runs; check "suspicious: a listed login can still ask by label" $?
 issue
 echo '[]' > "$WORK/comments.json"
+
+# --- issues by bots ---------------------------------------------------------------
+
+echo '[]' > "$WORK/comments.json"
+issue open Bot '[]' 'app[bot]'
+BOTS='app[bot]' gate opened; runs; check "a listed bot's new issue: triaged" $?
+BOTS='other[bot], app[bot]' gate opened; runs; check "a listed bot among several: triaged" $?
+gate opened; skips; check "a bot not listed: no triage" $?
+BOTS='App[bot]' gate opened; skips; check "bot logins are compared exactly" $?
+issue open Bot '["bot-created"]' 'app[bot]'
+BOTS='app[bot]' gate opened; skips; check "a listed bot's issue labelled bot-created: no triage" $?
+issue open Bot '[]' 'app[bot]'
+LABEL=bot-triage SENDER=FlorianSchw gate labeled; runs; check "a request works on an unlisted bot's issue" $?
+issue open Bot '["bot-created"]' 'app[bot]'
+LABEL=bot-triage SENDER=FlorianSchw gate labeled; runs; check "a request works on a bot-created issue" $?
+issue closed Bot '[]' 'app[bot]'
+LABEL=bot-triage SENDER=FlorianSchw gate labeled; skips; check "a request on a closed issue: no triage" $?
+issue open Bot '["bot-proceed"]' 'app[bot]'
+LABEL=bot-triage SENDER=FlorianSchw gate labeled; skips; check "a request on an approved issue: no triage" $?
+issue
 
 echo "$passed passed, $failed failed"
 [ "$failed" = 0 ]

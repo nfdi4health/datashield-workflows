@@ -18,6 +18,10 @@ inputs:
   max-triages:
     description: 'At most this many triage comments per issue.'
     required: true
+  triage-bots:
+    description: 'Bot logins whose issues are triaged like a person''s (exact, separated by commas or spaces). Empty: no bot''s issues, except on request.'
+    required: false
+    default: ''
   suspicious-label:
     description: 'An issue carrying this label (text tried to steer the bot) gets one triage only.'
     required: false
@@ -50,4 +54,5 @@ runs:
         ALLOWED_LOGINS: ${{ inputs.allowed-logins }}
         MAX_TRIAGES: ${{ inputs.max-triages }}
         SUSPICIOUS_LABEL: ${{ inputs.suspicious-label }}
+        TRIAGE_BOTS: ${{ inputs.triage-bots }}
       run: bash "$GITHUB_ACTION_PATH/issue-triage-gate.sh"
