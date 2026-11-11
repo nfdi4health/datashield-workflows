@@ -470,6 +470,14 @@ report (except the correction round).
   packages for the same step are worth showing the analyst, not just one
   winner. How (all scripts in the PR, one chosen plus the others folded
   in the description, …) is open.
+- **Input idea (user, 2026-11-11):** the solvers as a list of models, one
+  team per entry, e.g. `solver-models: '["claude-opus-5-5",
+  "claude-sonnet-5-5", "claude-fable-5-2"]'` → three solvers. A JSON array
+  string like `os-list` in `r-cmd-check.yml`, so it goes straight into
+  `strategy.matrix` with `fromJSON()`. The same model may appear twice
+  (different framings). Open: framing per entry (by position, or objects
+  `{model, framing}`), and scaling by risk (e.g. a second list for small
+  bugs, or only the first entry for them).
 
 ## Open
 
