@@ -33,7 +33,9 @@ if [ "$event" = "pull_request" ]; then
   # `ready_for_review` and determine-changes.sh treats like `opened`.
   [ "$(field '.pull_request.draft')" = "true" ] && skip "the pull request is a draft; it is reviewed once it is marked ready."
 fi
-[ "$ACTOR" = "dependabot[bot]" ] && skip "Dependabot runs get no secrets."
+# A self-test needs no secrets (recorded answers), so it also checks
+# Dependabot's updates of the actions.
+[ "$ACTOR" = "dependabot[bot]" ] && [ "${SELF_TEST:-false}" != "true" ] && skip "Dependabot runs get no secrets."
 
 # --- Mode ------------------------------------------------------------------------
 

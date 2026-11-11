@@ -20,6 +20,10 @@ inputs:
     description: '"false" for workflows that run on pull requests and pushes only (authors): schedule and manual runs are skipped.'
     required: false
     default: 'true'
+  self-test:
+    description: '"true" in a self-test run (recorded answers, no secrets): Dependabot is not skipped then.'
+    required: false
+    default: 'false'
 outputs:
   skip:
     description: '"true" if the run should do nothing.'
@@ -46,4 +50,5 @@ runs:
         HEAD_REF: ${{ github.head_ref }}
         REF_NAME: ${{ github.ref_name }}
         ACTOR: ${{ github.actor }}
+        SELF_TEST: ${{ inputs.self-test }}
       run: bash "$GITHUB_ACTION_PATH/resolve-suggestion-scope.sh"

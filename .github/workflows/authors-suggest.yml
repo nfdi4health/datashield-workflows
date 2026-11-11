@@ -50,6 +50,7 @@ jobs:
         with:
           review-scope: changed
           allow-scheduled: 'false'
+          self-test: ${{ inputs.self-test-fixture != '' }}
 
       # The calling repository first — actions/checkout empties the folder
       # it checks out into, so the shared scripts can only come after it.
