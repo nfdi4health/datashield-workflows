@@ -713,6 +713,9 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   a bot PR's description when it closes; analysing them comes after v1.
   [dev-notes/feedback-loop.md](dev-notes/feedback-loop.md), items K/L in
   [dev-notes/v1-planning.md](dev-notes/v1-planning.md).
+- **Before v1 also: the implementer's next batch** (user, 2026-11-12),
+  item M in [dev-notes/v1-planning.md](dev-notes/v1-planning.md); the
+  decisions are in [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md).
 - **Claude prompt caching — checked, set aside (2026-09-26).** Console logs
   of dsSupportClient runs: test review (Opus 5) ~4–8k input / ~1.2–1.9k
   output tokens per function, failure classification ~1.9k / ~170;

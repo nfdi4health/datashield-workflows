@@ -221,6 +221,15 @@ items, **all of A–J before v1**:
   repository. Est. 2–3 days plus tests and docs. Design in
   [feedback-loop.md](feedback-loop.md).
 
+- **M** The implementer's next batch (user, 2026-11-12: before v1), all
+  decided in [implementer-plan.md](implementer-plan.md): disclosure
+  deviations go back to the writer; inputs `branch` / `server` /
+  `server-branch` and `open-pull-request`; the GitHub issue type before
+  labels, feature beating fix; the writer stops and asks on a server
+  change; the triage "Affects" line; answers to a spec's open questions
+  start a new triage, plus one extra triage beyond the limit; a
+  maintainer's objection overrides a duplicate verdict.
+
 ## 7. New workflows — after v1 (user's decision)
 
 None before v1: they build on the refactored foundation, and they are
