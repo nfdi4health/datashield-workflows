@@ -258,7 +258,17 @@ that is settled.
   roxygen, test and authors bots run on these branches, unlike
   `bot-suggest/` (drafts excepted, see above).
 
-## Targets, branches, client/server pairs (user, 2026-11-10; not built yet)
+## Targets, branches, client/server pairs (user, 2026-11-10)
+
+**Built 2026-11-12 (branch `agent-suggest/feat/implementer-batch`):**
+`branch` (old `base` still read) and `server-branch`, both defaulting to
+the repository's default branch; GitHub's issue type first
+(`issue-types`), then the labels in order (`type-labels`, feature beats
+fix, the writer gets a note to do both parts); `open-pull-request`;
+the writer is told to stop and ask when the server package needs a change;
+the runner reads the triage's `<!-- bot-triage-affects: … -->` marker
+(server-only and both are refused with a note). The triage side of the
+Affects line is a separate PR.
 
 - **Other branch models:** not everyone works main / dev / feature. Each
   target says where work starts and where the pull request goes, one
