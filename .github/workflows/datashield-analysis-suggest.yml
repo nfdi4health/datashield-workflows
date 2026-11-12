@@ -34,15 +34,18 @@ on:
         type: string
         default: ''
     secrets:
+      claude-code-oauth-token:
+        description: 'Token of your Claude subscription (claude setup-token). Use this or the three Anthropic IDs below; with it, Claude Code drafts the scripts as an agent, on your subscription. Only for projects you run yourself.'
+        required: false
       anthropic-organization-id:
-        description: 'Anthropic organization ID.'
-        required: true
+        description: 'Anthropic organization ID (WIF; instead of claude-code-oauth-token).'
+        required: false
       anthropic-service-account-id:
-        description: 'svac_... ID of the service account for this repo.'
-        required: true
+        description: 'svac_... ID of the service account for this repo (WIF).'
+        required: false
       anthropic-federation-rule-id:
-        description: 'fdrl_... ID of the federation rule for this repo and workflow.'
-        required: true
+        description: 'fdrl_... ID of the federation rule for this repo and workflow (WIF).'
+        required: false
       app-client-id:
         description: 'GitHub App Client ID (Iv23li...); its token lets bot PRs trigger checks (optional).'
         required: false
@@ -62,8 +65,11 @@ jobs:
     concurrency:
       group: datashield-analysis-${{ github.repository }}-${{ github.ref }}
       cancel-in-progress: true
-    # Installs + up to two Claude rounds with test runs; caps a hanging test run.
-    timeout-minutes: 60
+    # Installs + per step an agent run (config agent.timeout_minutes) or
+    # Claude calls, with test runs; caps a hanging run.
+    timeout-minutes: 180
+    env:
+      USE_WIF: ${{ secrets.anthropic-organization-id != '' }}
     permissions:
       id-token: write
       contents: write
@@ -93,10 +99,22 @@ jobs:
         with:
           packages: >-
             any::httr2, any::jsonlite, any::purrr, any::yaml,
-            any::pak, any::callr, any::here, any::stringr, any::DSI, any::DSLite
+            any::pak, any::callr, any::processx, any::here, any::stringr, any::DSI, any::DSLite
+
+      # Claude Code for the agent (config engine: agent, always with a
+      # subscription token), pinned. Its sandbox runs the agent's commands
+      # with bubblewrap; Ubuntu's AppArmor blocks the user namespaces
+      # bubblewrap needs unless this is turned off.
+      - name: Claude Code and its sandbox
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bubblewrap socat > /dev/null
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312
 
       - name: Get Anthropic access token
         id: anthropic_auth
+        if: env.USE_WIF == 'true'
         uses: $/.github/actions/anthropic-token
         with:
           organization-id: ${{ secrets.anthropic-organization-id }}
@@ -106,6 +124,7 @@ jobs:
       - name: Draft and test the analysis scripts
         env:
           ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
           CLAUDE_MODEL_DATASHIELD_ANALYSIS: ${{ inputs.model }}
           CLAUDE_MAX_TOKENS_DATASHIELD_ANALYSIS: ${{ inputs.max-tokens }}
           CLAUDE_EFFORT_DATASHIELD_ANALYSIS: ${{ inputs.effort }}

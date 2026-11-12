@@ -16,9 +16,13 @@ jobs:
     # with:
     #   plan-file: config/analysis-plan.yml
     secrets:
-      anthropic-organization-id: ${{ secrets.ANTHROPIC_ORG_ID }}
-      anthropic-service-account-id: ${{ secrets.ANTHROPIC_SVAC_ID }}
-      anthropic-federation-rule-id: ${{ secrets.ANTHROPIC_FDRL_ANALYSIS }}
+      # Either your Claude subscription (run `claude setup-token` and save
+      # the token as a repository secret) ...
+      claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      # ... or an Anthropic organization through WIF (three IDs):
+      # anthropic-organization-id: ${{ secrets.ANTHROPIC_ORG_ID }}
+      # anthropic-service-account-id: ${{ secrets.ANTHROPIC_SVAC_ID }}
+      # anthropic-federation-rule-id: ${{ secrets.ANTHROPIC_FDRL_ANALYSIS }}
       # Optional: a GitHub App token lets the bot's PRs trigger your checks.
       app-client-id: ${{ secrets.APP_CLIENT_ID }}
       app-private-key: ${{ secrets.APP_PRIVATE_KEY }}

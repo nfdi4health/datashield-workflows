@@ -791,3 +791,39 @@ Package:
     `01_DS_Login.R`; R checks that mechanically
     (`builder$append(server = …)`, `symbol = …`) without sending the
     file to Claude.
+
+### Built (2026-11-12, branch `agent-suggest/feat/analysis-agent`): the agent (item O)
+
+- Settings `engine: agent` (default) or `calls`; with the secret
+  `claude-code-oauth-token` (the analyst's subscription) always `agent`.
+  The three WIF secrets are optional now; the agent then runs on the WIF
+  access token (`ANTHROPIC_AUTH_TOKEN`, Bearer, as our own calls send it —
+  not yet tried with Claude Code).
+- `ask_claude_for_scripts()` builds the prompt (`analysis_prompt()`) and
+  either calls the API or `ask_agent_for_scripts()`: `claude -p --bare`
+  (Claude Code 2.1.312, pinned in the workflow) with the same prompt plus
+  `prompts/analysis-agent.md`, the same tool schema via `--json-schema`,
+  `--permission-mode dontAsk`, tools Read/Glob/Grep, Edit only in
+  `.agent/`, Bash only `Rscript <shared>/R/try_analysis_code.R`.
+  Everything after (assembling files, checks, test run, repair rounds,
+  notes) is unchanged.
+- `R/try_analysis_code.R`: runs the DSLite setup, the scripts before the
+  step and the agent's file with echo, so the agent can look before it
+  answers (tried locally on a DSLite project).
+- Sandbox (`agent_settings()`): no network; the real login file and
+  `.Renviron` denied to tools and commands; commands write only to
+  `.agent/` and `results/`. Claude Code gets only its own credential, the
+  helper's R session none (`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`,
+  `credential_variables()` now also blanks the Claude Code variables).
+- Settings `agent.max_turns` (40), `agent.timeout_minutes` (20),
+  `agent.model` / `agent.effort` (empty: the profile's). Job timeout 180
+  minutes.
+- Flags checked against the installed CLI (it parses them; with the
+  sandbox it refuses to start without bubblewrap, as intended). **Not yet
+  run for real:** a real agent answer, the sandbox on a runner,
+  `denyWrite` / `allowWrite` together, the WIF token with Claude Code, the
+  subscription's model choice (`claude-opus-5` from the profile; set
+  `agent.model` if the plan doesn't include it).
+- Mock data: as decided, the agent sees it only through R in its try runs
+  (no Read of `.rda` is useful; a Read deny would also block the helper,
+  because Read denies are merged into the sandbox).
