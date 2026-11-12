@@ -12,12 +12,12 @@ test_that("agent_settings() denies the login file and .Renviron to tools and san
   expect_length(s$sandbox$filesystem$allowWrite, 2)
 })
 
-test_that("read_agent_result() returns the structured output or stops", {
+test_that("read_claude_code_result() returns the result or stops (the agent's answers)", {
   ok <- '{"type":"result","subtype":"success","is_error":false,"num_turns":3,"usage":{"input_tokens":10,"output_tokens":5},"structured_output":{"steps":[{"step_id":"a"}]}}'
-  expect_equal(read_agent_result(ok)$steps[[1]]$step_id, "a")
-  expect_error(read_agent_result('{"type":"result","subtype":"error_max_turns","is_error":true,"result":"limit"}'), "error_max_turns")
-  expect_error(read_agent_result('{"type":"result","subtype":"success","is_error":false}'), "without an answer")
-  expect_error(read_agent_result("You've hit your limit"), "no JSON")
+  expect_equal(read_claude_code_result(ok)$structured_output$steps[[1]]$step_id, "a")
+  expect_error(read_claude_code_result('{"type":"result","subtype":"error_max_turns","is_error":true,"result":"limit"}'), "error_max_turns")
+  expect_error(read_claude_code_result('{"type":"result","subtype":"success","is_error":false}'), "without an answer")
+  expect_error(read_claude_code_result("You've hit your limit"), "no JSON")
 })
 
 test_that("ask_agent_for_scripts() calls claude locked down and without other credentials", {

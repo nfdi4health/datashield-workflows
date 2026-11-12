@@ -47,5 +47,7 @@ ask_agent_for_scripts <- function(context, prompt, tool) {
   if (nzchar(run$stderr)) {
     message(substr(run$stderr, 1, 2000))
   }
-  read_agent_result(run$stdout)
+  result <- read_claude_code_result(run$stdout)
+  log_claude_code_usage(result, "analysis agent")
+  result$structured_output
 }

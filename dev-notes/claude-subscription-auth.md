@@ -186,7 +186,6 @@ into files (e.g. `schemas/*.yml`) lets non-R consumers use them.
   used); input `subscription-logins` (default: the repository owner) — a
   run started by anyone else is skipped with a notice. Claude Code is
   installed only for such runs.
-- Item O's analysis agent has its own `read_agent_result()` (PR #58);
-  once both are merged it should use the shared
-  `read_claude_code_result()` (one function per job).
+- The analysis agent (item O) uses the same `read_claude_code_result()`
+  and `log_claude_code_usage()`; its own `read_agent_result()` is gone.
 - Not yet run for real.
