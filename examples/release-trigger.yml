@@ -16,6 +16,17 @@ jobs:
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  # For a package on CRAN (optional): no release before the waiting time
+  # since the last CRAN submission is over (cran-hotfix label: an urgent
+  # fix may go earlier). Add it to on-success's `needs` and `if`.
+  # cran-waiting-time:
+  #   if: github.head_ref == 'dev'
+  #   permissions:
+  #     contents: read
+  #   uses: nfdi4health/datashield-workflows/.github/workflows/cran-wait-check.yml@main
+  #   with:
+  #     min-days: 60   # 90: quarterly
+
   # Writes `Closes #n` for each issue labelled next-release into this pull
   # request's description, so the merge closes them.
   link-issues:
