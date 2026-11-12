@@ -122,3 +122,22 @@ answer. It would hand a task to an agent that decides how to work on it.
 from small validated fields, the precision comes from the narrow, fully
 controlled call. An agent run would give that up. Open-ended tasks such as
 the analysis scripts would suit an agent better, if this is ever revisited.
+
+### Built (2026-11-12, branch `agent-suggest/feat/subscription-transport`)
+
+- `call_claude_tool()` switches to `call_claude_code_tool()` when
+  `CLAUDE_CODE_OAUTH_TOKEN` is set and the run has no API token: Claude
+  Code 2.1.312 with `--bare --tools "" --json-schema` (the tool's schema,
+  strict as for the API), `--max-turns 3`, the profile's model and effort,
+  in an empty temporary folder, with only its own credential. The prompt
+  goes as one text (no cache marker). `read_claude_code_result()`,
+  `log_claude_code_usage()`.
+- `roxygen-suggest.yml`, `test-suggest.yml`: secret
+  `claude-code-oauth-token`, the WIF secrets optional (with both, WIF is
+  used); input `subscription-logins` (default: the repository owner) — a
+  run started by anyone else is skipped with a notice. Claude Code is
+  installed only for such runs.
+- Item O's analysis agent has its own `read_agent_result()` (PR #58);
+  once both are merged it should use the shared
+  `read_claude_code_result()` (one function per job).
+- Not yet run for real.
