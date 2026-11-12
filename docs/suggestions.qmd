@@ -212,7 +212,9 @@ A comment isn't posted again on the next push if it says the same.
   skipped, for pull requests and pushes alike.
 - **Some runs do nothing, with a notice in the log:**
   - branch deletions and tag pushes;
-  - pull requests from forks and from Dependabot, which get no secrets.
+  - pull requests from forks and from Dependabot, which get no secrets;
+  - draft pull requests, until they are marked ready (add
+    `ready_for_review` to the caller's `pull_request` types).
 - **Runs of the same branch take turns:** a push run and a PR run for one
   branch never write the suggestion branch at the same time.
 - **Cleanup:** [Cleanup suggestion branch](cleanup-suggestion-branch.qmd)
@@ -224,6 +226,20 @@ A comment isn't posted again on the next push if it says the same.
   requiring them would block the merge.
 - **Generated code gets no tokens:** the test workflow runs the tests it
   writes in a separate R process without the Claude and GitHub tokens.
+
+## Where a suggestion comes from {#provenance}
+
+Each report ends with a small line naming the model, short fingerprints of
+the prompts and settings as used, and the workflow version, e.g.
+"Made with claude-sonnet-5-5 · prompts 3f2a… · config 91c0… ·
+datashield-workflows a1b2c3d". The same is stored, hidden, in the
+description. So a suggestion can later be traced to what made it, also
+after the prompts changed.
+
+When a suggestion PR is closed, the
+[suggestion choices](suggestion-choices.qmd#outcome) workflow adds a
+hidden record of what happened to each suggestion. Nothing leaves the
+repository.
 
 ## Adjusting the guidance {#adjusting-the-guidance}
 
