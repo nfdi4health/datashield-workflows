@@ -261,6 +261,14 @@ items, **all of A–J before v1**:
   falls under the consumer terms — check the "Help improve Claude"
   setting before a real plan goes in.
 
+- **To think about before v1 (user, 2026-11-12):** the roxygen, test and
+  authors bots skip the implementer's branches (`agent-suggest/<type>/issue-<n>`),
+  so a person's own commits pushed onto such a branch later aren't reviewed
+  either. Recorded as accepted for now ([implementer-plan.md](implementer-plan.md),
+  "Documentation and tests inside the run"); options: skip only commits by
+  the implementer (as `bot_names` does for the bots' own commits) instead of
+  the whole branch.
+
 ## 7. New workflows — after v1 (user's decision)
 
 None before v1: they build on the refactored foundation, and they are

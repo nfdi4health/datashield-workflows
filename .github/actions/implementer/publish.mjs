@@ -29,6 +29,8 @@ const read = (dir, name) => {
 export function readResult(dir) {
   return {
     summary: read(dir, "summary.md"),
+    oracle: read(dir, "oracle.md"),
+    docs: read(dir, "docs.md"),
     disclosure: read(dir, "review-disclosure.md"),
     deviations: deviations(readJson(join(dir, "review-disclosure.json"), {})),
     checks: read(dir, "checks.md"),
@@ -61,6 +63,8 @@ export function pullRequestBody({ issue, failed, needsDisclosureReview, result, 
     `Refs #${issue}. Built by the agent from the approved spec on that issue. Change \`Refs\` to \`Closes\` once the work is done; the issue then closes with the release.`,
     "",
     ...section("Summary from the agent", result.summary || "The agent left no summary."),
+    ...section("Tests from the spec", result.oracle),
+    ...section("Documentation", result.docs),
     ...section("Disclosure review", result.disclosure),
     ...section("Open points from the maintainability review", bullets(items)),
     ...section("Comments from the maintainability review", bullets(comments)),
