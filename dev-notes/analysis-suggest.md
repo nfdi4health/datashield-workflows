@@ -828,3 +828,50 @@ installed there to look at the generated scripts).
    the mock data leaves a variable out where a study lacks it; scripts use
    `datasources = conns[c(...)]`; derived variables exist only on those
    servers. A gate checks that a step's calls use the right connections.
+
+### What the generated scripts show (DataSHIELD_CONF_DEMO, bot branch, read 2026-11-12)
+
+Branch `bot-suggest/analysis/master`, plan with CNSIM-like variables, steps
+data management → descriptives → main model → sensitivity → figures.
+
+- **Calls whose output nobody uses:** `02_DataManagement.R` checks the
+  classes twice (5× `ds.class` on `D`, 4× on `D_analysis`), plus
+  `ds.colnames` three times, `ds.levels`, `ds.dim` — all only printed.
+- **Server-side objects never used:** `DIS_DIAB_F`, `GENDER_F`,
+  `MEDI_LPD_F` ("factor versions, kept as separate server-side vectors")
+  are created and never referenced in any later script; the models use
+  `D_analysis`'s columns. This is the "single vectors" the user saw.
+  Also `bmi_quant` / `tsc_quant` (computed, printed, not in Table 1),
+  `dim_all` / `dim_cc` (printed, not saved).
+- **Leftovers of debugging:** `03a` has a section "Inspect the shape of the
+  ds.mean/ds.var output before building the table" that prints column
+  names "so the column indices used below are easy to check".
+- **Defensive code:** `04` wraps every fit element in a `get1()` fallback
+  ("may be absent depending on the server version") — the version is
+  known and tested.
+- **Redundant work:** `04` recomputes ORs and CIs by hand although
+  `ds.glm(CI = 0.95)` returns them (its own comment says so); `05`
+  repeats the same block (copy, not a shared helper).
+- **Beyond the plan:** `06` adds a pooled histogram and writes per-study
+  bin counts to a CSV (not asked; counts are a disclosure-relevant
+  output, even if the smallCellsRule applied). The plan's study-level
+  meta-analysis and forest plot are missing (`ds.glmSLMA` / forest plots
+  are excluded in the test environment); check the report said so.
+- One step became two scripts (`03a`, `03b`).
+
+**Likely cause — and why an agent helps:** the one-shot bot can't look at
+anything, so it writes the looking into the script (print the classes,
+print the shape) and hedges (fallbacks); the repair round adds more. An
+agent can inspect objects in its own session and keep only the final code
+in the script.
+
+**Gates to add (code, no Claude):** server-side objects (`newobj`) never
+referenced later in any script; client objects assigned and never used
+(lintr's `object_usage_linter`); top-level calls whose result is only
+printed (allowed only where a step asks to show something); outputs not
+asked for by the step's `outputs`. **Guidance:** use the data frame's
+columns; no inspection calls; take what DataSHIELD functions return
+instead of recomputing; one helper for repeated table code; don't add
+outputs the plan doesn't ask for; say explicitly when a requested part
+(e.g. meta-analysis) is left out. **Reviewer:** a "clean code" pass that
+removes such things and cites the gate findings.
