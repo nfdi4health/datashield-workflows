@@ -32,7 +32,9 @@ the live caller used to validate changes before wider rollout.
     `resolve-push-token` App token → `commit-push-pat` → `GITHUB_TOKEN`.
     The shared config drafts the release and turns off the GitHub
     plugin's comments, labels and failure issue, so the App needs no
-    Issues permission.
+    Issues permission. Since 2026-11-12 it also writes the
+    release notes into the package's `NEWS.md` (`@semantic-release/changelog`,
+    committed with DESCRIPTION), which CRAN shows.
   - `trigger-release-publish.yml` — sends a `repository_dispatch`
     (`event_type: release-publish`) to the caller repo; the caller's own
     workflow listens for it and runs the release.
