@@ -23,4 +23,6 @@ if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
   sha=""
 fi
 echo "sha=$sha" >> "$GITHUB_OUTPUT"
+# For the reports' provenance line (provenance_footer()).
+printf '%s\n' "$sha" > "$TARGET/.commit"
 echo "Shared files from ${sha:-an unnamed ref} in $TARGET."

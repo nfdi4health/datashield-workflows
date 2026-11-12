@@ -12,27 +12,16 @@
 # calls of a run and is sent with a cache marker (split_cached_prompt()):
 # a run makes a call per step plus repair rounds, minutes apart.
 ask_claude_for_scripts <- function(context, step_ids, previous_attempt = "") {
-  gap_issues <- "(none)"
-  if (nrow(context$gap_issues) > 0) {
-    gap_issues <- paste(sprintf("- #%s: %s", context$gap_issues$number, context$gap_issues$title), collapse = "\n")
-  }
-  prompt <- fill_template(context$prompt_template, list(
-    CONNECTIONS        = context$connections,
-    SYMBOL             = context$symbol,
-    SERVERS            = paste(sprintf("`%s`", context$servers), collapse = ", "),
-    FUNCTION_REFERENCE = context$function_reference,
-    EXCLUDED_FUNCTIONS = context$excluded_functions %||% "(none)",
-    CATALOGUE          = context$catalogue_text,
-    GAP_ISSUES         = gap_issues,
-    EXISTING_STEPS     = context$existing_steps,
-    CREATED_OBJECTS    = context$created_objects %||% "(none known yet)",
-    PLAN               = context$plan_text,
-    REQUESTED_STEPS    = paste(sprintf("`%s` (%s)", step_ids, unlist(context$numbers[step_ids])), collapse = ", "),
-    MAX_LINES          = as.character(context$max_lines),
-    PREVIOUS_ATTEMPT   = previous_attempt
-  ))
+  prompt <- analysis_prompt(context, step_ids, previous_attempt)
   tool <- build_analysis_tool(context$all_step_ids %||% step_ids, context$catalogue_names, context$catalogue_functions, context$gap_issues$number)
-  result <- call_claude_tool(context$claude, tool, split_cached_prompt(prompt, "<!-- per request -->"))
+  # With the agent (context$agent, settings `engine: agent`), Claude Code
+  # writes the step and may try its code in DSLite first; the answer has
+  # the same shape (the tool's schema), so everything after is the same.
+  result <- if (is.null(context$agent)) {
+    call_claude_tool(context$claude, tool, split_cached_prompt(prompt, "<!-- per request -->"))
+  } else {
+    ask_agent_for_scripts(context, prompt, tool)
+  }
   # The tool is strict (call_claude_tool()), so `steps` is an array of
   # step objects; the check stays for profiles with `strict: false`.
   steps <- result$steps

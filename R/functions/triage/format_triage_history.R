@@ -5,7 +5,10 @@
 format_triage_history <- function(issue, settings) {
   replies <- ""
   if (length(issue$replies) > 0) {
-    who <- function(x) if (identical(x$author, issue$author)) "the issue's author" else "someone else"
+    maintainers <- unlist(settings$maintainers)
+    who <- function(x) {
+      if (x$author %in% maintainers) "a maintainer" else if (identical(x$author, issue$author)) "the issue's author" else "someone else"
+    }
     replies <- paste(vapply(issue$replies, function(x) {
       sprintf("<comment by=\"%s\">\n%s\n</comment>", who(x), x$body)
     }, character(1)), collapse = "\n")

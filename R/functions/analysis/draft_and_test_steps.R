@@ -8,7 +8,8 @@
 # `context` is the prompt context of ask_claude_for_scripts(), plus
 # `header_values` for the script headers and `repair_template`; `checks`
 # holds `reference` (client_function_reference()), the plan's
-# `variables` and the test `login_file`.
+# `variables`, the test `login_file` and `step_studies` (steps that run
+# only on some studies).
 # Returns list(answers, candidate, outcome, notes, attempts): Claude's
 # steps and the paths written per step id, the last test outcome, notes
 # for the report, and the number of attempts made (a failed repair call
@@ -55,7 +56,7 @@ draft_and_test_steps <- function(to_write, plan, steps, existing, context, check
     # Every other bot script runs too: kept steps, and requested steps that
     # have no new version (yet), so each step finds the objects it needs.
     others <- sort(existing$path[!existing$step %in% names(candidate)])
-    outcome <- test_step_scripts(candidate, answers, checks$reference, checks$variables, checks$login_file, others, settings, texts, context$connections)
+    outcome <- test_step_scripts(candidate, answers, checks$reference, checks$variables, checks$login_file, others, settings, texts, context$connections, checks$step_studies %||% list())
     if (length(outcome$problems) == 0 || round == attempts) {
       break
     }

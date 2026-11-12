@@ -85,6 +85,16 @@ the live caller used to validate changes before wider rollout.
     no Claude call. Entry script `R/apply_suggestion_choices.R`, functions
     in `R/functions/choices/`; design in
     [dev-notes/suggestion-choices.md](dev-notes/suggestion-choices.md).
+    On `pull_request: closed` (callers add the type) the job
+    `record-outcome` adds the outcome record (v1 item L, 2026-11-12;
+    `R/record_suggestion_outcome.R`): a hidden
+    `<!-- bot-suggest-outcome: <base64 JSON> -->` in the PR's own
+    description — final box and outcome per suggestion, accepted ones
+    edited before merging (both texts, `finding_outcome()`), people's
+    review comments on the findings' files (`match_review_comments()`),
+    the provenance marker. Collecting only; `outcome_record: false` in
+    `config/suggestion-policy.yml` turns it off. **Docs pending:**
+    `suggestion-choices.qmd` (the `closed` type, what is recorded).
   - `workflow-keepalive.yml` — wraps `liskin/gh-workflow-keepalive@v1`
     (user's choice over custom `gh api` code). Inside a reusable workflow
     `GITHUB_WORKFLOW_REF` is the caller's, so it re-enables the calling
@@ -391,6 +401,14 @@ Details per workflow: [dev-notes/roxygen-suggest.md](dev-notes/roxygen-suggest.m
   `claude-setup.qmd` (choosing a model, effort, thinking counts towards
   `max-tokens`), roadmap "Recent changes". Every Claude call goes through
   `call_claude_tool()` (forced tool call; it sets the tool name from config).
+- **Provenance** (v1 item K, 2026-11-12): roxygen, test and analysis
+  reports end with a small line and a hidden
+  `<!-- bot-suggest-provenance: {...} -->` marker — models per profile,
+  short hashes of the prompts and merged configs as used, and the
+  workflow commit (`.commit`, written by `shared-files`). Recorded on the
+  way by `claude_client()`, `read_text_file()` and `read_config_yaml()`
+  (`record_provenance()`), written by `provenance_footer()`; read later by
+  the outcome record (item L).
 - **Claude returns fields, R assembles the output.** Never trust prompt
   wording where a structural constraint (schema field, `maxItems`, enum)
   is possible.
@@ -707,6 +725,27 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   required checks (a required check skipped by a path filter never reports
   and blocks the PR, seen on dsSupportClient #75). Part of the refactoring
   pass with the agents' definitions and the cross-repo overlaps.
+- **Before v1 also: provenance and outcome records** (user, 2026-11-12):
+  model / prompt hash / config version in every bot PR's report, and a
+  hidden outcome record (choices, edit diffs, review comments) written into
+  a bot PR's description when it closes; analysing them comes after v1.
+  [dev-notes/feedback-loop.md](dev-notes/feedback-loop.md), items K/L in
+  [dev-notes/v1-planning.md](dev-notes/v1-planning.md).
+- **Before v1 also: the implementer's next batch** (user, 2026-11-12),
+  item M in [dev-notes/v1-planning.md](dev-notes/v1-planning.md); the
+  decisions are in [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md).
+- **Before v1 also: a subscription pathway** for roxygen, tests and
+  analysis (user, 2026-11-12; item N in
+  [dev-notes/v1-planning.md](dev-notes/v1-planning.md)): same prompts,
+  schemas and config, transport `api` (WIF) or `claude-code` (owner's
+  `CLAUDE_CODE_OAUTH_TOKEN`, runs only for listed logins). Design in
+  [dev-notes/claude-subscription-auth.md](dev-notes/claude-subscription-auth.md).
+- **High priority (user, 2026-11-12): the analysis bot as an agent**
+  (item O in [dev-notes/v1-planning.md](dev-notes/v1-planning.md)):
+  Claude Code writes and repairs the scripts step by step, R keeps plan,
+  mock data, gates and PR; the sandbox denies the login file and
+  `.Renviron`; runs on the analyst's subscription or WIF. A colleague's
+  real trial run follows her analysis plan (from 2026-11-13).
 - **Claude prompt caching — checked, set aside (2026-09-26).** Console logs
   of dsSupportClient runs: test review (Opus 5) ~4–8k input / ~1.2–1.9k
   output tokens per function, failure classification ~1.9k / ~170;
@@ -1017,8 +1056,8 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   a researcher agent (gap catalogue → design with disclosure analysis →
   client/server pair). Fit with this repo and open points in
   [dev-notes/issue-agents.md](dev-notes/issue-agents.md).
-- **Claude Pro/Max subscription instead of WIF** (asked 2026-10-14, not
-  pursued): the workflows call the Messages API directly, which a
+- ~~**Claude Pro/Max subscription instead of WIF** (asked 2026-10-14, not
+  pursued)~~ Superseded 2026-11-12 by the subscription pathway (item N, above): the workflows call the Messages API directly, which a
   subscription doesn't cover. A plain API-key alternative to WIF is not
   wanted (user); running the Claude step through Claude Code would let a
   subscription pay but gives up the controlled, schema-forced call.

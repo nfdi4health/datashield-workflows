@@ -1,10 +1,11 @@
 # Ends a bot PR's merged report (roxygen and tests): the report's lines
 # (`body`), then `legacy` — the description of a bot PR from before this
 # report format — collapsed, and the hidden state for the next run
-# (encode_suggestion_state()). The visible part is cut to fit GitHub's
+# (encode_suggestion_state()), after the run's provenance
+# (provenance_footer()). The visible part is cut to fit GitHub's
 # 65536-character limit together with the state.
 finish_suggestion_report <- function(body, state, legacy = NULL) {
-  hidden <- encode_suggestion_state(state)
+  hidden <- paste(c(provenance_footer(), encode_suggestion_state(state)), collapse = "\n")
   body <- paste(body, collapse = "\n")
   room <- 62000 - nchar(hidden)
   if (!is.null(legacy)) {

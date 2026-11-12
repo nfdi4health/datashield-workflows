@@ -26,7 +26,7 @@ on:
   workflow_call:
     inputs:
       targets:
-        description: 'The repositories the runner works on, as JSON: {"owner/name": {"base": "dev", "setup": "r", "server": "owner/server-package"}}. One owner (one App installation). `server` (optional) is checked out for the disclosure reviewer.'
+        description: 'The repositories the runner works on, as JSON: {"owner/name": {"branch": "dev", "setup": "r", "server": "owner/server-package", "server-branch": "dev"}}. One owner (one App installation). `branch`: where work starts and the pull request goes (default: the repository''s default branch). `server` (optional) is checked out read-only at `server-branch` (default: its default branch) for the writer and the disclosure reviewer.'
         required: true
         type: string
       allowed-logins:
@@ -88,11 +88,21 @@ on:
         required: false
         type: string
         default: 'bug idea'
-      type-labels:
-        description: 'Issue label -> commit type, as JSON. The type decides the branch and the pull request title.'
+      issue-types:
+        description: 'GitHub issue type -> commit type, as JSON; used first. The type decides the branch and the pull request title.'
         required: false
         type: string
-        default: '{"bug": "fix", "enhancement": "feat"}'
+        default: '{"Feature": "feat", "Bug": "fix"}'
+      type-labels:
+        description: 'Issue label -> commit type, as JSON, for issues without one of those issue types. In order: the first label the issue carries decides (by default a feature beats a fix; the writer is told to do both parts).'
+        required: false
+        type: string
+        default: '{"enhancement": "feat", "bug": "fix"}'
+      open-pull-request:
+        description: 'false: push the branch only and put its comparison link and the report on the issue, without opening a pull request.'
+        required: false
+        type: boolean
+        default: true
       log-branch:
         description: "Branch of the caller's repository with the event log (empty: no log)."
         required: false
@@ -144,6 +154,8 @@ env:
   TRIAGE_AUTHOR: ${{ inputs.triage-author }}
   SPEC_CATEGORIES: ${{ inputs.spec-categories }}
   TYPE_LABELS: ${{ inputs.type-labels }}
+  ISSUE_TYPES: ${{ inputs.issue-types }}
+  OPEN_PULL_REQUEST: ${{ inputs.open-pull-request }}
   LABEL_PROCEED: ${{ inputs.label-proceed }}
   LABEL_IN_PROGRESS: ${{ inputs.label-in-progress }}
   LABEL_COMPLETED: ${{ inputs.label-completed }}
@@ -166,7 +178,9 @@ jobs:
       base: ${{ steps.pick.outputs.base }}
       setup: ${{ steps.pick.outputs.setup }}
       server: ${{ steps.pick.outputs.server }}
+      server_branch: ${{ steps.pick.outputs.server_branch }}
       type: ${{ steps.pick.outputs.type }}
+      type_note: ${{ steps.pick.outputs.type_note }}
       branch: ${{ steps.pick.outputs.branch }}
       spec_sha: ${{ steps.pick.outputs.spec_sha }}
       existing_pr: ${{ steps.pick.outputs.existing_pr }}
@@ -175,7 +189,8 @@ jobs:
         id: owner
         run: |
           echo "owner=$(jq -r 'keys[0] | split("/")[0]' <<< "$TARGETS")" >> "$GITHUB_OUTPUT"
-          echo "names=$(jq -r '[keys[] | split("/")[1]] | join(",")' <<< "$TARGETS")" >> "$GITHUB_OUTPUT"
+          # The targets and their server packages (pick reads their default branches).
+          echo "names=$(jq -r '[(keys[] | split("/")[1]), (.[] | .server // empty | split("/")[1])] | unique | join(",")' <<< "$TARGETS")" >> "$GITHUB_OUTPUT"
 
       - name: Token for the target repositories
         id: token
@@ -217,6 +232,10 @@ jobs:
     timeout-minutes: ${{ inputs.timeout-minutes }}
     permissions:
       contents: read
+    # For the writer's prompt (promptValues()).
+    env:
+      SERVER: ${{ needs.pick.outputs.server }}
+      TYPE_NOTE: ${{ needs.pick.outputs.type_note }}
     steps:
       - name: Read-only token for the target repository
         id: token
@@ -242,6 +261,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ needs.pick.outputs.server }}
+          ref: ${{ needs.pick.outputs.server_branch }}
           path: .agent/server
           persist-credentials: false
 

@@ -140,6 +140,8 @@ No fine-tuning; three levels, each human-reviewed:
 Privacy: learnings stay in their repository (they contain its code);
 across repositories only counts, as with usage counting.
 
+More concrete version (2026-11-12): [feedback-loop.md](feedback-loop.md).
+
 ### Refactor agent (several jobs, better split)
 
 1. **Performance of existing DataSHIELD functions**, with
@@ -176,6 +178,143 @@ papers for federated methods.
   by the agent.
 - **Surface:** a real agent (web search, papers, code, test runs, hours),
   so Claude Code (subscription) or Managed Agents, not single API calls.
+
+### A central hub for wishes and gaps (brainstorm with the user, 2026-11-11)
+
+Not built; no repository yet. Problem: the community had no natural place
+for gaps, demand and who works on what (an Excel file in someone's cloud,
+hard to keep up). Idea: one public repository as the entry point for wishes
+not aimed at a specific package.
+
+- **Owner:** `nfdi4health` (the user's funder; the user co-leads the
+  statistical development theme). Transfer possible later. **Name: TBD.**
+- **Content:** issues for concrete wishes (two templates: analysis method /
+  other, e.g. utilities), maybe Discussions for vague ones; a GitHub
+  Project as the overview (theme, status, target package, who works on it,
+  demand). Demand: reactions, paper counts, the analysis bot's gap issues.
+- **Scope of automation:** the researcher agent and the analysis bot only
+  produce analysis-function wishes; utility wishes come from people.
+- **The analysis bot's gap issues go there:** change `gap_issue_repo` in
+  `config/analysis-suggest.yml` and add an issue template in the hub.
+  Checked: the link carries only the step title and the note on what is
+  missing — no plan, study or repository name; the analyst opens the issue
+  under their own account (visible username, their own choice). The step
+  title can still reveal a research question: the template should ask for
+  the method only, and the title should be the method, not the step.
+- **Routing:** a label per topic package (e.g. `dsClusterAnalysis`) maps,
+  via a config list, to a repository; the workflow copies the issue there
+  (GitHub's transfer only works within one owner) with a link back; the
+  hub issue stays open as the demand record, status mirrored back. Who may
+  route: an `allowed-logins` label check as for `bot-proceed`. Light hub
+  triage (new? exists already? which package? duplicate?); the full spec
+  comes from the target repository's own triage. **Issues only** as the
+  first level; later perhaps fork → new function → PR via the implementer
+  for repositories the user doesn't control.
+- **Researcher, monthly:** PubMed and PMC (NCBI E-utilities, free) with
+  named queries in a config file (not settled yet; tried on the PubMed
+  site first, a dry run in the hub), only papers since the last run →
+  method extraction with a cheap model against a controlled list →
+  normalisation (synonym list, a stable method key) → exists in DataSHIELD
+  (catalogue, function inventory, hub issues) → exists in native R (CRAN
+  task views, CRAN database) → deeper research (federated approaches,
+  first disclosure view) only for the top candidates.
+- **No flood: a monthly PR**, like the roxygen and test bots' PRs. It adds
+  a data file (e.g. `scans/2026-11.yml`: methods, counts, existence,
+  decisions), which over the months is the trend record. The description
+  lists at most `max_candidates` (10, config) new candidates: name, short
+  description, paper count and trend, two or three example papers, exists
+  in DataSHIELD (no / partly, package), native R package.
+- **Three boxes per candidate (user, 2026-11-11):** *open issue* (on
+  merge), *not now*, *don't suggest again* (back only if its paper count
+  clearly rises, e.g. doubles, config). **Exactly one per candidate,
+  required** (user: "a fan of actually taking a decision"): a status check
+  fails while a candidate has none or more than one, so the PR can't be
+  merged undecided.
+- **"Not now"** candidates are listed every month in a "Deferred" section
+  outside the 10 slots, with their own boxes; staying deferred needs no
+  new tick there.
+- **Filtered before the top 10** (the next candidate moves up): an open
+  hub issue, one closed as completed or as not planned, *don't suggest
+  again*, deferred ones (in their own section). Exact via a hidden marker
+  with the method key in every issue the workflow opens; for issues people
+  opened, Claude matches against the open issues (an enum of real numbers,
+  like the analysis bot's `existing_issue`) and the marker is added. Demand
+  for tracked methods still goes into the data file, and a short list
+  without boxes ("already tracked: #12, 41 papers, rising") ends the PR;
+  no monthly comments on issues.
+
+#### Researcher pipeline sketch (Claude, 2026-11-11; not decided)
+
+Reusable workflows and R functions here, like the other bots; the hub holds
+a thin caller, its configs and the data files (another community could run
+its own hub). Claude only where code can't decide; cheap before expensive.
+
+```
+                    monthly schedule / manual run (dry-run option)
+                                     |
+methods-scan
+ 0 State      R      last run date, decisions (scans/*.yml), hub issues
+                     and their method markers, vocabulary
+ 1 Fetch      R      PubMed/PMC E-utilities per query since last run
+ 2 Extract    Haiku  batches of ~20 papers -> method keys (enum from the
+                     vocabulary) or "new: <name>"
+ 3 Count      R      per method: papers, share of all papers, trend
+ 4 Exists?    R      catalogue, function inventory, vocabulary map;
+                     Claude only for unclear cases, verdict cached
+ 5 Rank       R      drop filtered -> top max_candidates (10)
+ 6 Research   Sonnet only those: description, federated approaches in
+                     the literature, native R package, first disclosure
+                     view (web search)
+ 7 Propose    R      scans/YYYY-MM.yml + PR, three boxes per candidate
+PR edited -> methods-choices: exactly one box each -> commit status
+PR merged -> methods-issues: open issues (method marker), record decisions
+```
+
+- **Fetch:** NCBI allows 3 requests/s without a key, 10 with a free key
+  (optional secret); a cap per query in the config.
+- **Extract:** the Message Batches API suits a monthly job (results within
+  hours, cheaper; check current prices before deciding).
+- **Count:** relative to the month's total, else a month with more papers
+  looks like rising demand.
+- **Exists?:** `config/methods.yml` maps method → known DataSHIELD functions
+  and R packages, so most answers are lookups; Claude's verdicts are stored
+  and re-checked only when the catalogue changes.
+- **Propose:** the PR ends with "New method names" (frequent free-text
+  names, one decision box each, so the vocabulary is curated, not grown
+  by itself) and "Already tracked" (counts, no boxes).
+- **Files in the hub:** `config/methods-scan.yml` (queries,
+  `max_candidates`, doubling rule, caps), `config/methods.yml`
+  (vocabulary: key, synonyms, DataSHIELD functions, R packages),
+  `scans/YYYY-MM.yml` (counts, verdicts, decisions).
+- **Abstract or methods section — open, a pilot decides.** Structured
+  abstracts usually name the main model (Cox, logistic, mixed models) but
+  rarely secondary methods (imputation, splines, propensity scores,
+  weighting) — often exactly the DataSHIELD gaps. Full text only exists
+  for the PMC open-access subset (biased) and is much larger; the methods
+  section can be cut out of the JATS XML by code. Likely a hybrid: the
+  abstract for every paper, the methods section where open-access full
+  text exists, the source recorded per method.
+- **First run vs. regular runs (user: the first real run has a lot more to
+  do)** — phases, each ending with something the user looks at:
+  0. **Pilot:** ~100 open-access papers, methods from abstract vs. methods
+     section compared; a report, nothing committed.
+  1. **Vocabulary round:** seeded from the function inventory and the CRAN
+     task views; extraction on a sample (one month); the PR only proposes
+     method names, no candidates.
+  2. **Backfill:** e.g. 12 months, one chunk per month, each writing its
+     own `scans/YYYY-MM.yml`, so a failed run resumes at the next missing
+     month; counts only (no research step, no candidate PR); the 6-hour
+     job limit may need "submit batches" and "collect results" in separate
+     runs (batch IDs in a small state file); a cost cap (papers per run).
+  3. **First candidate PR** with trends from the start, still at most 10.
+
+  Then regular months are small. Manual-run input `mode`: `pilot` /
+  `vocabulary` / `backfill` / `monthly`, plus `since` for the backfill;
+  the schedule always runs `monthly`.
+- **Open:** API with WIF (fits structured, plain API work) or the
+  subscription for the research step; size of the first trial; how deep the
+  research step's disclosure view goes (a first impression; the real
+  disclosure work belongs in the design note later).
 
 ## Points to settle before building
 

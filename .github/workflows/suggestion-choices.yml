@@ -5,7 +5,10 @@ name: Suggestion Choices
 # don't want, or ticks one that wasn't applied, and this rebuilds the bot
 # branch to match — no Claude call. Called on `pull_request: edited` of a
 # bot PR, only when a person edited it (the bots' own edits come from a
-# Bot and would otherwise start it again).
+# Bot and would otherwise start it again). On `pull_request: closed` it
+# adds the outcome record instead (job record-outcome,
+# R/record_suggestion_outcome.R): collecting only, nothing is sent
+# anywhere.
 
 on:
   workflow_call:
@@ -24,7 +27,7 @@ jobs:
   apply-choices:
     if: >-
       (startsWith(github.head_ref, 'bot-suggest/tests') || startsWith(github.head_ref, 'bot-suggest/docs'))
-      && github.event.sender.type != 'Bot'
+      && github.event.sender.type != 'Bot' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     # The same group as the bot's own runs for the PR's base branch: a
     # choice and a bot run never write the bot branch at the same time.
@@ -131,3 +134,60 @@ jobs:
         run: |
           gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
             -f state=failure -f context="$STATUS_CONTEXT" -f description="Applying the choices failed — see the run." > /dev/null
+
+  # What became of the suggestions (dev-notes/feedback-loop.md, v1 item L):
+  # a hidden record in the closed PR's own description. The base branch is
+  # checked out (the merged result) and the bot branch's last commit
+  # fetched, to see whether accepted suggestions were edited before merging.
+  record-outcome:
+    if: >-
+      (startsWith(github.head_ref, 'bot-suggest/tests') || startsWith(github.head_ref, 'bot-suggest/docs'))
+      && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.base_ref }}
+          fetch-depth: 0
+
+      - name: Shared scripts
+        uses: $/.github/actions/shared-files
+
+      - name: Fetch the bot branch and the review comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git -c "http.https://github.com/.extraheader=" fetch --quiet \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "+refs/pull/${PR_NUMBER}/head:refs/bot-head"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/comments" | jq -s 'add // []' > review_comments.json
+          jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH" > pr_body.md
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          use-public-rspm: true
+
+      - name: Install R packages
+        run: Rscript -e 'install.packages(c("jsonlite", "yaml"))'
+
+      - name: Record the outcome
+        env:
+          KIND: ${{ startsWith(github.head_ref, 'bot-suggest/tests') && 'tests' || 'docs' }}
+          MERGED: ${{ github.event.pull_request.merged }}
+          BOT_SHA: refs/bot-head
+          PR_BODY_FILE: pr_body.md
+          COMMENTS_FILE: review_comments.json
+        run: Rscript .shared-workflows/R/record_suggestion_outcome.R
+
+      - name: Add it to the description
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -f new_body.md ]; then
+            gh pr edit "$PR_NUMBER" --body-file new_body.md > /dev/null
+          fi

@@ -119,7 +119,7 @@ export function prepareBranch({ bundle, branch, base }) {
 
 // Publishes one result. Returns what the log records.
 export async function publish(api, ctx) {
-  const { repository, issue, branch, base, type, title, labels, outcome, result, runUrl, existingPr } = ctx;
+  const { repository, issue, branch, base, type, title, labels, outcome, result, runUrl, existingPr, openPullRequest = true } = ctx;
   const done = [labels.inProgress, labels.proceed];
 
   if (outcome.result === "limit") {
@@ -153,6 +153,15 @@ export async function publish(api, ctx) {
     } else {
       ctx.push();
       const body = pullRequestBody({ issue, failed, needsDisclosureReview: changes.needsDisclosureReview, result, runUrl });
+      // Without a pull request (open-pull-request: false): the branch is
+      // pushed, and its comparison link and the report go to the issue.
+      if (!openPullRequest) {
+        const compare = `https://github.com/${repository}/compare/${base}...${branch}`;
+        await comment(api, repository, issue, `Branch \`${branch}\` is pushed (no pull request opened): ${compare}\n\n${body}`);
+        const labelsNow = failed ? { remove: done, add: [labels.failed] } : { remove: [...done, labels.failed], add: [labels.completed] };
+        await setLabels(api, repository, issue, labelsNow);
+        return failed ? { result: "failed", reason, branch } : { result: "completed", branch };
+      }
       const prTitle = safeText(`${type}: ${title}`).slice(0, 200);
       const pull = existingPr
         ? await api(`repos/${repository}/pulls/${existingPr}`, { method: "PATCH", body: { title: prTitle, body } })

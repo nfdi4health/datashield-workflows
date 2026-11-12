@@ -19,8 +19,21 @@ export function parseRequest(targets, repository, issue) {
   const key = Object.keys(targets).find((name) => name.toLowerCase() === repository.toLowerCase());
   if (!key || !Object.hasOwn(targets, key)) throw new Refusal(`${repository} is not one of the target repositories.`);
   const [owner, name] = key.split("/");
-  const { base = "dev", setup = "r", server = "" } = targets[key];
-  return { repository: key, owner, name, issue: String(issue), base, setup, server };
+  const t = targets[key];
+  // An empty base / server branch is the repository's default branch,
+  // read from GitHub in verifyIssue().
+  return {
+    repository: key, owner, name, issue: String(issue),
+    base: String(t.branch ?? t.base ?? ""), setup: t.setup ?? "r", server: t.server ?? "", serverBranch: String(t["server-branch"] ?? ""),
+  };
+}
+
+// Which repositories the triage says a change affects: the hidden marker
+// `<!-- bot-triage-affects: this|both|server -->` of the spec ("this" when
+// it has none, e.g. without a server package).
+export const AFFECTS_MARKER = /<!-- bot-triage-affects: (this|both|server) -->/;
+export function affectedRepositories(spec) {
+  return (String(spec ?? "").match(AFFECTS_MARKER) ?? [])[1] ?? "this";
 }
 
 // The latest time the label was set, with who set it.
@@ -33,16 +46,27 @@ export function newestTriage(comments, author) {
   return comments.filter((c) => c.user?.login === author && TRIAGE_MARKER.test(c.body ?? "")).at(-1) ?? null;
 }
 
-// The commit type comes from the issue's label, never from Claude: it
-// decides the version. The label is how a person corrects triage.
-export function commitType(issue, typeLabels) {
-  const types = Object.entries(typeLabels).filter(([label]) => hasLabel(issue, label)).map(([, type]) => type);
-  const unique = [...new Set(types)];
-  if (unique.length === 0) {
-    throw new Refusal(`The issue carries none of the labels ${Object.keys(typeLabels).join(", ")}, so it is unclear whether this is a fix or a feature.`);
+// The commit type comes from the issue, never from Claude: it decides the
+// version. First GitHub's issue type (one value, `issueTypes`: type name ->
+// commit type), else the labels in the order of `typeLabels` (label ->
+// commit type; the first match decides, so with the default order a
+// feature beats a fix). Returns { type, note }: the note tells the writer
+// when the issue is both, so both parts are done.
+export function commitType(issue, typeLabels, issueTypes = {}) {
+  const typeName = issue.type?.name;
+  if (typeName) {
+    const key = Object.keys(issueTypes).find((k) => k.toLowerCase() === String(typeName).toLowerCase());
+    if (key) return { type: issueTypes[key], note: "" };
   }
-  if (unique.length > 1) throw new Refusal(`The issue carries labels for both ${unique.join(" and ")}. Keep one.`);
-  return unique[0];
+  const matches = Object.entries(typeLabels).filter(([label]) => hasLabel(issue, label));
+  const types = [...new Set(matches.map(([, type]) => type))];
+  if (types.length === 0) {
+    throw new Refusal(`The issue has no issue type of ${Object.keys(issueTypes).join(", ") || "-"} and none of the labels ${Object.keys(typeLabels).join(", ")}, so it is unclear whether this is a fix or a feature.`);
+  }
+  const note = types.length > 1
+    ? `The issue is labelled ${matches.map(([label]) => label).join(" and ")}: do both parts. The pull request is titled ${types[0]}; your commits keep their own types.`
+    : "";
+  return { type: types[0], note };
 }
 
 export async function verifyIssue(api, cfg, request) {
@@ -74,7 +98,16 @@ export async function verifyIssue(api, cfg, request) {
     throw new Refusal(`The spec of issue ${issue} changed after it was approved. Read it and approve again.`);
   }
 
-  const type = commitType(found, cfg.typeLabels);
+  // Where the change belongs (the triage's "Affects" line).
+  const affects = affectedRepositories(triage.body);
+  if (affects === "server") {
+    throw new Refusal(`The spec says only the server package ${request.server || ""} needs a change: open the issue there.`);
+  }
+  if (affects === "both") {
+    throw new Refusal(`The spec says both this repository and the server package ${request.server || ""} need changes; changes to both in one run aren't supported yet.`);
+  }
+
+  const { type, note: typeNote } = commitType(found, cfg.typeLabels, cfg.issueTypes);
   const branch = `${cfg.branchPrefix}${type}/issue-${issue}`;
   // A failed attempt leaves a draft pull request, which a new run replaces.
   // Anything else on that branch means the work is done or taken over.
@@ -83,7 +116,17 @@ export async function verifyIssue(api, cfg, request) {
   if (blocking) throw new Refusal(`${branch} already has pull request #${blocking.number}, so this issue seems done.`);
   const draft = pulls.find((p) => p.state === "open" && p.draft);
 
+  // Empty branches are the repositories' default branches.
+  const base = request.base || (await api(`repos/${repository}`))?.default_branch;
+  if (!base) throw new Error(`The default branch of ${repository} could not be read.`);
+  const serverBranch = request.server && !request.serverBranch
+    ? (await api(`repos/${request.server}`))?.default_branch ?? ""
+    : request.serverBranch;
+
   return {
+    base,
+    serverBranch,
+    typeNote,
     title: found.title,
     spec: triage.body,
     sha: createHash("sha256").update(triage.body).digest("hex"),
