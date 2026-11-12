@@ -13,7 +13,7 @@ jobs:
       actions: read
     uses: nfdi4health/datashield-workflows/.github/workflows/implementer-log.yml@main
     with:
-      targets: '{"your-org/your-package": {"base": "dev", "setup": "r"}}'
+      targets: '{"your-org/your-package": {"branch": "dev", "setup": "r"}}'
       allowed-logins: your-login
     secrets:
       app-client-id: ${{ secrets.APP_CLIENT_ID }}

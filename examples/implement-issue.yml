@@ -25,7 +25,7 @@ jobs:
       actions: write    # starts the next run
     uses: nfdi4health/datashield-workflows/.github/workflows/implement-issue.yml@main
     with:
-      targets: '{"your-org/your-package": {"base": "dev", "setup": "r"}}'
+      targets: '{"your-org/your-package": {"branch": "dev", "setup": "r"}}'
       allowed-logins: your-login
       repository: ${{ inputs.repository }}
       issue: ${{ inputs.issue }}

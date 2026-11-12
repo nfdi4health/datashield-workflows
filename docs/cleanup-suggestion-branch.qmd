@@ -1,12 +1,19 @@
 ---
 title: "Cleanup suggestion branch"
-description: "Deletes bot branches once their pull request is closed."
+description: "Deletes bot and agent branches once their pull request is closed."
 ---
 
 `cleanup-suggestion-branch.yml` deletes the branch of a closed pull
-request — merged or not — if it is a `bot-suggest/*` branch and no other
-open pull request still uses it. Branches of your own pull requests are
-never touched.
+request — merged or not — if it is a branch of a bot or an agent and no
+other open pull request still uses it:
+
+- `bot-suggest/*`: the suggestion bots' branches;
+- `agent-suggest/*`: branches of coding agents, e.g. the issue
+  implementer's or a Claude Code session's (`agent-suggest/<type>/<topic>`).
+
+Branches with other names, e.g. your own feature branches, are never
+touched. Only branches of the repository itself are deleted, never a
+fork's.
 
 ## Example
 

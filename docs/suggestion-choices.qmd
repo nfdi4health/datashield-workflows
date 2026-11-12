@@ -47,6 +47,17 @@ The choices work on suggestion PRs into your branches and on
 [author suggestions](authors-suggest.qmd) have no boxes: each of their
 PRs is one change to `DESCRIPTION`.
 
+## What happened to the suggestions {#outcome}
+
+When a bot PR is merged or closed, the same caller (event type `closed`)
+adds a hidden record to the PR's description: for each suggestion its
+final box and whether it was kept, declined or never decided, the edits
+you made to an accepted suggestion before merging, and review comments on
+the files it touched, together with what made the suggestion
+([provenance](suggestions.qmd#provenance)). It is only collected, to tune
+the bots later; nothing leaves the repository. `outcome_record: false` in
+`config/suggestion-policy.yml` turns it off.
+
 ## Example
 
 {{< example suggestion-choices.yml >}}

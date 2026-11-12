@@ -1,0 +1,101 @@
+---
+title: "Implementer"
+description: "Turns an approved issue into a pull request: Claude Code writes the change, checks and reviewers look at it, you decide."
+---
+
+The implementer is the last step of the issue flow:
+[triage](issue-triage.qmd) writes a spec of a bug or an idea, you approve
+it with the label `bot-proceed`, the [label check](issue-label-check.qmd)
+makes sure only you can, and the implementer turns the spec into a pull
+request. It runs [Claude Code](https://code.claude.com) on your Claude
+subscription, from a **private runner repository** that holds the token,
+one issue at a time.
+
+::: {.callout-important}
+## You decide
+Bots never close issues and never merge. The pull request says `Refs #n`;
+change it to `Closes #n` once the work is done. Disclosure control is
+decided by people: the implementer follows the spec's choice, and its
+pull request shows what leaves the server so you can check it.
+:::
+
+## How a run goes
+
+1. **Pick:** the oldest approved issue (`bot-proceed`, not yet running) of
+   the target repositories. The approval is checked again: set by a login
+   in `allowed-logins`, the spec unchanged since. The issue gets
+   `bot-in-progress`.
+2. **Write:** Claude Code works on a branch `agent-suggest/<type>/issue-<n>`
+   in a sandbox (only package repositories and GitHub are reachable, no
+   writing token). It makes the change, tests and documentation, and
+   commits with `Refs #n`.
+3. **Check:** R CMD check with the tests.
+4. **Review:** a maintainability reviewer and a disclosure reviewer read
+   the change; they only read. Failing checks, clear problems and changes
+   beyond the spec's disclosure choice go back to the writer, for up to
+   two correction rounds. Matters of taste stay comments.
+5. **Publish:** on a clean machine that never ran the agent, after
+   checking the approval once more: a pull request into the target's
+   branch with the summary, the disclosure review, the reviewers' open
+   points and the checks. A failed attempt becomes a draft pull request.
+
+The issue's labels show where it stands:
+
+| State | Labels |
+|---|---|
+| waiting | `bot-proceed` |
+| running | `bot-proceed`, `bot-in-progress` |
+| done | `bot-completed` |
+| failed | `bot-failed` (a draft pull request and a comment) |
+| needs your decision | `bot-needs-input` (a comment with the question) |
+
+To retry, set `bot-proceed` again. After `bot-needs-input`, answer in a
+comment: a new triage updates the spec, then approve again.
+
+**Subscription limits:** at a 5-hour limit the issue keeps its approval and
+its place; a timer in the target repository (`implementer-timer.yml`)
+waits for the reset and starts the runner again. A weekly limit pauses
+the runner until the next approval or a manual start.
+
+## Setting it up
+
+1. **A private runner repository** (e.g. `your-login/agent-runner`) with
+   the caller below and the log caller, and the secrets
+   `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token`), `APP_CLIENT_ID` and
+   `APP_PRIVATE_KEY`.
+2. **The GitHub App** of your bots, installed on the target repositories
+   (contents, pull requests and issues: read and write) and on the runner
+   repository (actions: read and write).
+3. **In each target repository:** the [label check](issue-label-check.qmd)
+   with `runner-repository` set, [triage](issue-triage.qmd), the timer
+   caller below, and the labels.
+
+## Example
+
+{{< example implement-issue.yml >}}
+
+`targets` lists the repositories, per repository its `branch` (where work
+starts and the pull request goes), `setup` (`r`), and for a client package
+optionally its `server` package, checked out read-only for the writer and
+the disclosure reviewer.
+
+In each target repository:
+
+{{< example implementer-timer.yml >}}
+
+The runner's log (events per issue, a daily status table on a branch of
+the runner):
+
+{{< example implementer-log.yml >}}
+
+## Inputs
+
+{{< wf-inputs implement-issue.yml >}}
+
+## Secrets
+
+{{< wf-secrets implement-issue.yml >}}
+
+## Permissions
+
+{{< wf-permissions implement-issue.yml >}}

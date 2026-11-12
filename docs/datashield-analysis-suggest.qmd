@@ -33,8 +33,8 @@ flowchart TD
   end
   subgraph draft ["For each step, in plan order"]
     direction LR
-    claude["Claude drafts<br/>the step"] --> verify["Check every call,<br/>run the scripts so far in DSLite"]
-    verify -- "fails: one repair round" --> claude
+    claude["Claude drafts the step,<br/>trying its code in DSLite"] --> verify["Check every call,<br/>run the scripts so far in DSLite"]
+    verify -- "fails: repair rounds" --> claude
     verify -- "passes" --> next(["Next step"])
   end
   draft --> pr["Suggestion PR"]
@@ -46,15 +46,26 @@ flowchart TD
 - **The studies' server packages are installed,** at the versions you
   list, together with the matching client packages.
 - **Mock data is generated from your variables:** their names, types,
-  categories and ranges, so the scripts use your real variable names.
+  categories and ranges, so the scripts use your real variable names. Or
+  you name your own mock data in the plan (`mock-data`), e.g. made with
+  dsAnalysis's `initMockData()`.
+- **Claude works as an agent** (Claude Code): for each step it writes the
+  code, runs it in DSLite on the mock data together with the scripts
+  before it, looks at what comes back and corrects itself, before
+  answering. Its sandbox has no network and can't read your login file
+  or `.Renviron`.
 - **Every DataSHIELD call is checked** against the functions and arguments
   of the installed client packages. Every column has to be a variable of
-  your plan or one a step creates.
+  your plan or one a step creates. Calls that only look at something
+  (`ds.colnames()`, `ds.class()`, …) are sent back, and objects no script
+  uses are listed in the report.
 - **One step at a time,** in plan order: Claude sees the scripts before
   it and the objects they left on the servers, and the step is tested
   together with them in your project's testing mode (dsAnalysis's DSLite
-  setup with the mock data). A failing step gets one repair round; if it
+  setup with the mock data). A failing step gets up to two repair rounds; if it
   still fails, it isn't proposed.
+- **A step can run on some studies only** (its `studies` list): every
+  call of that step then has to pass those studies as `datasources`.
 - **A step waits for the steps it builds on:** by default all steps above
   it, or those named in its `depends_on`. If one of them failed in this
   run, the step isn't written yet; the report says so, and it is tried
@@ -82,8 +93,8 @@ completely different.
 - **`R/main.R` and `dependencies.R`** each get a marked block that the bot
   maintains: the `source()` lines of its scripts, and the packages to
   install.
-- **Mock data** in `utils/mock_data/bot-suggest/`, and your DSLite setup
-  pointed at it. To try the scripts, set
+- **Mock data** in `utils/mock_data/bot-suggest/` (unless you named your
+  own), and your DSLite setup pointed at it. To try the scripts, set
   `R_CONFIG_ACTIVE = 'testing'` in `.Renviron`, restart R and run
   `R/main.R`. That's the same setup the test run used.
 - **A report** in the pull request:
@@ -94,7 +105,9 @@ completely different.
   - steps **not possible with any known package**, with a link to an
     existing request for that function, or to open a new one;
   - limitations, and notes on your setup, e.g. credentials written into
-    your login file.
+    your login file;
+  - at the end, a small line saying which model, prompts and settings
+    made the scripts.
 
 **Your edits are safe:**
 - a script you changed is never overwritten, even when its step changes
@@ -105,18 +118,28 @@ completely different.
 
 - **The project** must have been set up with dsAnalysis, which provides
   the testing mode and the DSLite setup.
-- **Claude access:** three secrets and a federation rule for this
-  workflow, see [Claude setup](claude-setup.qmd).
+- **Claude access**, one of:
+  - **your Claude subscription:** run `claude setup-token` in a terminal
+    with [Claude Code](https://code.claude.com) installed, and save the
+    token as the repository secret `CLAUDE_CODE_OAUTH_TOKEN`. Usage counts
+    towards your subscription's limits. Only for your own projects: anyone
+    who can push to the plan uses your subscription;
+  - **an Anthropic organization** through WIF: three secrets and a
+    federation rule for this workflow, see [Claude setup](claude-setup.qmd).
 - **Pull requests:** either a [GitHub App](getting-started.qmd#github-app)
   or PAT, or the repository setting "Allow GitHub Actions to create and
   approve pull requests" (Settings → Actions → General).
 
 ::: {.callout-note}
 ## What leaves your project
-The plan's content is sent to the Claude API: variable names, categories,
-study names and the steps. Your data, credentials and your login file
-(`R/01_DS_Login.R`) are never sent. Don't put anything confidential in the
-plan.
+The plan's content is sent to Claude: variable names, categories, study
+names and the steps. Your data, credentials and your login file
+(`R/01_DS_Login.R`) are never sent; the agent's sandbox denies the login
+file and `.Renviron`. Don't put anything confidential in the plan.
+
+With a personal subscription (Pro, Max), Anthropic's consumer terms
+apply: check the "Help improve Claude" setting in your Claude account
+before a real plan goes in.
 :::
 
 ## Example
