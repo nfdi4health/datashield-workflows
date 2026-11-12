@@ -75,22 +75,7 @@ validate_analysis_plan <- function(plan, types, texts) {
   } else {
     for (i in seq_along(variables)) {
       v <- variables[[i]]
-      l <- label("label_variable", v$name, "variables", i)
-      if (!is_name(v$name)) {
-        add("variable_name", LABEL = l)
-      }
-      if (is.null(v$kind)) {
-        add("variable_type", LABEL = l, TYPES = paste(types, collapse = ", "))
-      } else if (v$kind == "categorical") {
-        if (length(v$categories) < 2) {
-          add("categories", LABEL = l)
-        }
-      } else {
-        r <- suppressWarnings(as.numeric(unlist(v$range)))
-        if (length(r) != 2 || anyNA(r) || r[1] >= r[2]) {
-          add("range", LABEL = l)
-        }
-      }
+      problems <- c(problems, check_plan_variable(v, label("label_variable", v$name, "variables", i), types, texts))
     }
     names_seen <- text_values(variables, "name")
     if (anyDuplicated(names_seen)) {

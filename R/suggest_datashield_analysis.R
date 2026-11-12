@@ -63,7 +63,8 @@ write_outputs <- function(report, updated) {
 
 # --- 1. The plan -----------------------------------------------------------------
 
-plan <- tryCatch(read_analysis_plan(plan_file, settings$variable_types, texts), error = function(e) {
+variables_file <- paths$variables %||% ""
+plan <- tryCatch(read_analysis_plan(plan_file, settings$variable_types, texts, variables_file), error = function(e) {
   msg <- conditionMessage(e)
   if (nzchar(summary_file)) {
     write(c(texts$report$plan_errors_heading, "", "```", msg, "```"), summary_file, append = TRUE)
@@ -71,6 +72,12 @@ plan <- tryCatch(read_analysis_plan(plan_file, settings$variable_types, texts), 
   stop(msg, call. = FALSE)
 })
 plan_text <- paste(readLines(plan_file, warn = FALSE), collapse = "\n")
+# The variables file (dsAnalysis's initVariables()) goes to Claude with the
+# plan: the plan's own variables entries only add to it.
+if (isTRUE(plan$variables_from_file)) {
+  plan_text <- paste0(plan_text, "\n\n# ---- ", variables_file, " (the plan's variables entries are merged on top) ----\n",
+                      paste(readLines(variables_file, warn = FALSE), collapse = "\n"))
+}
 
 # --- 2. What to write --------------------------------------------------------------
 
@@ -86,12 +93,19 @@ if (length(to_write) == 0) {
 # --- 3. Packages -------------------------------------------------------------------
 
 usable <- usable_server_packages(plan, texts)
+if (length(plan$variables_left_out) > 0) {
+  message("Variables of ", variables_file, " left out: ", paste(plan$variables_left_out, collapse = ", "))
+}
 catalogue <- read_package_catalogue(plan$`package-catalogue` %||% settings$package_catalogue)
 functions <- read_function_catalogue(settings$function_catalogue)
 # Which catalogue packages may be suggested: the plan's package-status, else the settings'.
 statuses <- unlist(plan$`package-status` %||% settings$package_status)
 installed <- install_study_packages(usable$packages, catalogue, settings$client_suffix, texts)
 notes <- c(usable$notes, installed$notes)
+if (length(plan$variables_left_out) > 0) {
+  notes <- c(notes, fill_template(texts$notes$variables_left_out, list(FILE = variables_file,
+    NAMES = paste(sprintf("`%s`", plan$variables_left_out), collapse = ", "))))
+}
 if ("retired" %in% statuses) {
   notes <- c(notes, texts$notes$retired_included)
 }
@@ -197,6 +211,13 @@ old_content <- setNames(lapply(rewritten$path, readLines, warn = FALSE), rewritt
 # shown in the job log before they are removed.
 drafted <- draft_steps_in_order(to_write, plan, steps, existing, context, checks, settings, texts, rewritten, old_content)
 notes <- c(notes, drafted$notes)
+# Variables a step uses that some of its studies don't have (the variables
+# file's `studies`): only a note, the analyst chose the studies.
+plan_servers <- vapply(plan$studies, function(s) s$server, character(1))
+for (id in names(drafted$candidate)) {
+  code <- paste(unlist(lapply(drafted$candidate[[id]][file.exists(drafted$candidate[[id]])], readLines, warn = FALSE)), collapse = "\n")
+  notes <- c(notes, check_variable_availability(id, code, checks$step_studies[[id]], plan$variables, plan$symbol, plan_servers, texts))
+}
 
 # --- 6. Results ------------------------------------------------------------------------
 

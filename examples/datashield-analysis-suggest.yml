@@ -3,7 +3,7 @@ name: DataSHIELD Analysis Suggestions
 on:
   push:
     # Must match the plan-file input (default config/analysis-plan.yml).
-    paths: ['config/analysis-plan.yml']
+    paths: ['config/analysis-plan.yml', 'config/variables.yml']
   workflow_dispatch:
 
 jobs:

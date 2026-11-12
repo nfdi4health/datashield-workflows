@@ -148,6 +148,10 @@ the live caller used to validate changes before wider rollout.
     project's own copy of either config is merged over the defaults key
     by key (`read_config_yaml()`), like every config file since v1 (before,
     the others replaced the whole file). Adjustments go there rather than into R.
+    The variables can come from `config/variables.yml` (dsAnalysis's
+    `initVariables()`, 2026-11-12; settings `paths.variables`), with the
+    plan's entries merged on top (`merge_variables_file()`); its fields are
+    an interface with dsAnalysis.
     Design, marker formats and the dsAnalysis checklist are in
     [dev-notes/analysis-suggest.md](dev-notes/analysis-suggest.md).
   - `ds-naming-check.yml`, `ds-naming-apply.yml` — DataSHIELD argument
