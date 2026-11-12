@@ -135,6 +135,7 @@ context <- list(
   servers = vapply(plan$studies, function(s) s$server, character(1)),
   function_reference = reference$text,
   excluded_functions = format_excluded_functions(excluded),
+  code_style = if (length(unlist(settings$code_style)) > 0) paste0("- ", unlist(settings$code_style), collapse = "\n"),
   catalogue_text = catalogue_prompt$text,
   catalogue_names = catalogue_prompt$names,
   catalogue_functions = catalogue_prompt$functions,
@@ -176,6 +177,13 @@ if (length(settled$written_files) > 0) {
   replaced <- setdiff(rewritten$path[!file.exists(rewritten$path)], settled$written_files)
   notes <- c(notes, update_project_blocks(steps, installed, catalogue, settings, texts))
   updated <- c(settled$written_files, replaced, mock_paths$written, mock_paths$removed, setup_file, paths$main, paths$dependencies)
+}
+
+# Objects the scripts create but never use (all bot scripts, since a later
+# step may use what an earlier one creates): reported for the analyst.
+unused <- find_unused_objects(sort(find_bot_step_files(paths$scripts)$path), unlist(settings$inspection_functions))
+for (f in names(unused)) {
+  notes <- c(notes, fill_template(texts$notes$unused_objects, list(FILE = f, OBJECTS = paste(sprintf("`%s`", unused[[f]]), collapse = ", "))))
 }
 
 report <- format_analysis_report(list(

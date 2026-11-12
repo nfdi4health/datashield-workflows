@@ -74,6 +74,7 @@ notes:
   credentials: "**`{{PATH}}` seems to contain credentials as plain text** (line {{LINES}}). Everyone with access to this repository can read them. Move them to `.Renviron` and read them with `Sys.getenv()`, as the dsAnalysis template does."
   servers_differ: "The servers in `{{PATH}}` ({{FOUND}}) differ from the plan ({{PLANNED}}). The scripts use the plan's names, e.g. for results per study."
   symbol_differs: "`{{PATH}}` assigns the data to `{{FOUND}}`, the plan says `{{PLANNED}}`. The scripts use `{{PLANNED}}`."
+  unused_objects: "`{{FILE}}` creates objects no script uses: {{OBJECTS}}. Remove them, or use them."
   existing_failed: "Your existing script `{{FILE}}` failed in the test run: {{ERROR}}"
   retired_included: "The plan's package-status includes `retired`, so retired packages may be suggested. They are no longer maintained; check before relying on one."
   block_damaged: "The bot's block in `{{PATH}}` is damaged (a marker line is missing, doubled or out of order), so it was left as it is. Please update it by hand, or remove both marker lines so the bot adds a new block."
@@ -86,6 +87,7 @@ checks:
   unknown_argument: "{{FUNCTION}}() has no argument {{GIVEN}} (its arguments: {{ARGUMENTS}})."
   unknown_column: "{{COLUMNS}} refers to a column that is neither a variable of the plan nor created by any step (plan variables: {{VARIABLES}})."
   runtime_error: "Error when running {{FILE}}: {{ERROR}}"
+  inspection_call: "{{FUNCTION}}() only looks at something and its result isn't used: remove it, or assign the result and use it."
   step_datasources: "This step runs only on {{STUDIES}} (the plan's studies list): pass datasources = {{CONNECTIONS}}[c({{QUOTED}})] to {{FUNCTION}}(), not all connections."
   timeout: "The test run took longer than {{SECONDS}} seconds and was stopped; the code may loop or do far more work than needed."
 

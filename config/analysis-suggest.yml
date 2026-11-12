@@ -92,6 +92,23 @@ excluded_functions:
   ds.glmSLMA: study-level meta-analysis isn't available in the test environment; fit pooled models with ds.glm()
   ds.forestplot: forest plots aren't available in the test environment
 
+# Rules for clean scripts, written into the prompt as a list (a project's
+# own config replaces the list). From the first trial runs: scripts
+# printed classes and column names, copied columns into single vectors,
+# hedged with fallbacks and recomputed what DataSHIELD returns.
+code_style:
+  - "Write only code the step needs. No calls that only look at something (classes, column names, dimensions, levels): you can't see their output, and the analyst doesn't need it in the script."
+  - "Use the data frame's columns directly (\"D$bmi\"). Don't copy a column into a separate server-side vector unless a function can't take the column."
+  - "Every object you create, on the servers or in R, must be used later in this or another step, or written to an output file."
+  - "Take what DataSHIELD functions return (e.g. ds.glm() with CI gives odds-ratio limits) instead of recomputing it."
+  - "No defensive fallbacks for elements that 'may be missing': the installed versions are known and tested."
+  - "Repeated table code goes into one small helper function, defined once."
+  - "Don't add outputs the step doesn't ask for. If you leave out something it asks for, say so in a note."
+
+# Functions that only look at something: an unassigned top-level call to
+# one of them is reported as a problem and goes to the repair round.
+inspection_functions: [ds.class, ds.colnames, ds.dim, ds.levels, ds.length, ds.ls, ds.names, ds.isNA, ds.exists]
+
 # A line in the real login file matching this is reported as a possible
 # plain-text credential (case-insensitive; comments are ignored).
 credential_pattern: '(password|pwd|passwd|token|secret)\s*=\s*["''][^"'']+["'']'
