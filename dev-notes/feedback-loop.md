@@ -115,6 +115,15 @@ before anything else is built.
   fixture issue with an injection payload; passes if the spec doesn't
   carry the instruction and the sandbox blocks any outbound call.
 
+## Before v1 (user, 2026-11-12: on the list, likely not important yet)
+
+- **Provenance** (model, prompt hash, config version in each bot PR's
+  report footer or commit trailer) fits the refactoring pass before v1:
+  small, and useful for debugging now, loop or not.
+- **No opt-in input yet:** adding an optional input with a default later
+  (e.g. `provide-feedback`, default `false`) breaks no caller, so it can
+  wait until it does something.
+
 ## Open decisions
 
 - Where the records live (private repository as with usage counting?) and
