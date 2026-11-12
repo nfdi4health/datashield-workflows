@@ -13,7 +13,11 @@ outcome), follow it as far as possible and say so in a `limitation` note.
   `{{SYMBOL}}`. Never log in or out, and never load login files.
 - Studies (server names): {{SERVERS}}.
 - Pass `datasources = {{CONNECTIONS}}` to every DataSHIELD call. For one
-  study only, use `{{CONNECTIONS}}["<server>"]`.
+  study only, use `{{CONNECTIONS}}["<server>"]`. A step with a `studies`
+  list in the plan runs only on those studies: pass
+  `datasources = {{CONNECTIONS}}[c("<server>", ...)]` to every call in it.
+  The analyst chose them; a variable may be missing on some of them, so
+  say so in a note rather than dropping a study.
 - Server-side objects are referred to by name as strings (e.g.
   `"{{SYMBOL}}$BMI"`); new server-side objects are created with the
   function's `newobj` argument. Use only the plan's variables as columns;

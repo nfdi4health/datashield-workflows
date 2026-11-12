@@ -98,12 +98,26 @@ if (length(installed$clients) == 0) {
 
 # --- 4. Mock data, DSLite setup, login file -----------------------------------------
 
-mock <- generate_mock_data(plan, settings$mock_data)
-mock_paths <- write_mock_data(mock, file.path(paths$mock_data, settings$mock_data$folder))
+# The plan's mock-data: `plan` (default) generates it from the plan;
+# a folder name uses the analyst's own (dsAnalysis's initMockData()),
+# checked first, never replaced, and not committed by the bot.
+mock_choice <- plan$`mock-data` %||% "plan"
+if (identical(mock_choice, "plan")) {
+  mock <- generate_mock_data(plan, settings$mock_data)
+  mock_folder <- settings$mock_data$folder
+  mock_paths <- write_mock_data(mock, file.path(paths$mock_data, mock_folder))
+  mock_servers <- names(mock)
+  notes <- c(notes, texts$report$mock_data_plan)
+} else {
+  mock_folder <- check_project_mock_data(mock_choice, plan, paths$mock_data, settings$mock_data$folder, texts)
+  mock_paths <- list(written = character(0), removed = character(0))
+  mock_servers <- vapply(plan$studies, function(s) s$server, character(1))
+  notes <- c(notes, fill_template(texts$report$mock_data_project, list(FOLDER = file.path(paths$mock_data, mock_folder))))
+}
 login_files <- project_login_files(paths, settings$profiles)
 login <- check_login_file(login_files$production, plan, settings$credential_pattern, texts)
 notes <- c(notes, login$notes)
-setup_file <- update_dslite_setup(login_files$testing, dsanalysis_dir, settings$mock_data$folder, names(mock),
+setup_file <- update_dslite_setup(login_files$testing, dsanalysis_dir, mock_folder, mock_servers,
   installed$servers, settings$markers$dslite_mock_data, plan$symbol, login$connections)
 if (is.null(setup_file)) {
   stop(sprintf("The project needs the dsAnalysis DSLite setup (%s) for the test run.", login_files$testing), call. = FALSE)
@@ -139,7 +153,9 @@ context <- list(
 checks <- list(
   reference = reference,
   variables = vapply(plan$variables, function(v) v$name, character(1)),
-  login_file = login_files$testing
+  login_file = login_files$testing,
+  # Steps that run only on some studies (the step's `studies` list).
+  step_studies = Filter(length, setNames(lapply(plan$steps, function(s) unlist(s$studies)), vapply(plan$steps, function(s) s$id, character(1))))
 )
 
 # Scripts of steps being rewritten, to restore them if the new version fails.
