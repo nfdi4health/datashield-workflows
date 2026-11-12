@@ -79,3 +79,16 @@ test_that("excluded functions reach the prompt with their reasons; a project can
   expect_match(text, "`datashield.login` (the login has already run)", fixed = TRUE)
   expect_equal(format_excluded_functions(list()), "(none)")
 })
+
+test_that("draft_steps_in_order() goes on when a step's Claude call fails, without scripts to clean up", {
+  local_global_mock(draft_and_test_steps = function(...) stop("Claude Code ended without an answer: Not logged in"))
+  plan <- list(steps = list(list(id = "a", title = "A")))
+  steps <- list(a = list(status = "new"))
+  existing <- data.frame(path = character(0), step = character(0))
+  context <- list(connections = "conns")
+  out <- expect_message(
+    draft_steps_in_order("a", plan, steps, existing, context, list(), list(), list(), existing, list()),
+    "Claude call for step a failed")
+  expect_null(out$candidate$a)
+  expect_null(out$answers$a)
+})

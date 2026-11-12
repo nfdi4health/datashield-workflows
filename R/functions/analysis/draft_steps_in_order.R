@@ -55,13 +55,15 @@ draft_steps_in_order <- function(to_write, plan, steps, existing, context, check
       if (!is.null(d)) {
         out$outcome$problems[[id]] <- d$outcome$problems[[id]]
       }
-      # Shown in the job log before the scripts are removed.
-      for (f in out$candidate[[id]][file.exists(out$candidate[[id]])]) {
+      # Shown in the job log before the scripts are removed. A step whose
+      # Claude call failed has no scripts.
+      written <- out$candidate[[id]] %||% character(0)
+      for (f in written[file.exists(written)]) {
         cat(sprintf("::group::Failed script %s (step %s)\n", f, id))
         cat(readLines(f, warn = FALSE), sep = "\n")
         cat("\n::endgroup::\n")
       }
-      unlink(out$candidate[[id]])
+      unlink(written)
       for (p in rewritten$path[rewritten$step == id]) {
         writeLines(old_content[[p]], p)
       }

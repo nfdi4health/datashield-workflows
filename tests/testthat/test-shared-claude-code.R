@@ -19,7 +19,8 @@ test_that("call_claude_tool() goes through Claude Code with a subscription token
   out <- call_claude_tool(claude, tool, list(cached = "SHARED PART", rest = "PER FUNCTION"))
   expect_equal(out$title, "A title")
   call <- readLines(log)
-  expect_true(all(c("-p", "--bare", "--no-session-persistence", "claude-sonnet-5-5", "medium") %in% call))
+  expect_true(all(c("-p", "--setting-sources", "--strict-mcp-config", "--no-session-persistence", "claude-sonnet-5-5", "medium") %in% call))
+  expect_false("--bare" %in% call)   # --bare ignores the OAuth token
   expect_true("--tools" %in% call && call[which(call == "--tools") + 1] == "")
   expect_true(any(grepl("^OAUTH=sub GH= KEY= PWD=.*claude-call-", call)))
   expect_true("SHARED PART" %in% call && "PER FUNCTION" %in% call)
