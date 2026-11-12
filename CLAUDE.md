@@ -722,6 +722,12 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   schemas and config, transport `api` (WIF) or `claude-code` (owner's
   `CLAUDE_CODE_OAUTH_TOKEN`, runs only for listed logins). Design in
   [dev-notes/claude-subscription-auth.md](dev-notes/claude-subscription-auth.md).
+- **High priority (user, 2026-11-12): the analysis bot as an agent**
+  (item O in [dev-notes/v1-planning.md](dev-notes/v1-planning.md)):
+  Claude Code writes and repairs the scripts step by step, R keeps plan,
+  mock data, gates and PR; the sandbox denies the login file and
+  `.Renviron`; runs on the analyst's subscription or WIF. A colleague's
+  real trial run follows her analysis plan (from 2026-11-13).
 - **Claude prompt caching — checked, set aside (2026-09-26).** Console logs
   of dsSupportClient runs: test review (Opus 5) ~4–8k input / ~1.2–1.9k
   output tokens per function, failure classification ~1.9k / ~170;

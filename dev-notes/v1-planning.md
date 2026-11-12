@@ -239,6 +239,28 @@ items, **all of A–J before v1**:
   [claude-subscription-auth.md](claude-subscription-auth.md), section
   "Subscription pathway (2026-11-12)".
 
+- **O — high priority** The analysis bot becomes an agent (user,
+  2026-11-12). Roxygen and tests stay single calls driven by R (on either
+  transport, item N); the analysis scripts are open-ended work and suit an
+  agent: Claude Code looks at the mock data objects itself, tries and
+  repairs code over several rounds, reads the installed client packages'
+  help. **R keeps the frame:** reading the plan, building the mock data,
+  the gates (every DataSHIELD call checked against the installed client
+  functions, the DSLite run), never overwriting scripts the analyst
+  edited, the PR. Step by step as today, so a run can resume at the next
+  step after a usage limit. **Privacy promise kept by the sandbox:** deny
+  `R/01_DS_Login.R` and `.Renviron` (dsAnalysis's README promises the
+  login file and credentials are never sent) — tested before release.
+  Transport: Claude Code takes either the analyst's subscription token or
+  WIF, so this also gives the analysis bot its subscription pathway.
+  **Why high:** a colleague of the user (DataSHIELD analyst, own Claude
+  subscription) is introduced on 2026-11-13 and prepares her real
+  analysis plan over the following days; the plan format
+  (`examples/analysis-plan.yml`) stays the interface, so her work carries
+  over. To tell her: with a consumer subscription, her plan's content
+  falls under the consumer terms — check the "Help improve Claude"
+  setting before a real plan goes in.
+
 ## 7. New workflows — after v1 (user's decision)
 
 None before v1: they build on the refactored foundation, and they are
