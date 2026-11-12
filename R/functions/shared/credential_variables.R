@@ -5,7 +5,7 @@
 # "") or system2()'s `env` ("NAME=" entries). Deliberately not a setting,
 # so no repository override can hand credentials to generated code.
 credential_variables <- function() {
-  c("ANTHROPIC_API_KEY", "GH_TOKEN", "GITHUB_TOKEN",
+  c("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "GH_TOKEN", "GITHUB_TOKEN",
     "ANTHROPIC_ORG_ID", "ANTHROPIC_SERVICE_ACCOUNT_ID", "ANTHROPIC_FEDERATION_RULE_ID",
     "ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN")
 }

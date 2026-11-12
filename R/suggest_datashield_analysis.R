@@ -34,6 +34,7 @@ walk(list.files(file.path(functions_dir, c("shared", "analysis")), pattern = "\\
 # The Claude client (profile "datashield-analysis" of config/claude.yml);
 # the prompt templates are in the context below.
 analysis_claude <- claude_client("datashield-analysis")
+shared_root <- dirname(dirname(functions_dir))  # "." or ".shared-workflows"
 # Project files at the same paths are merged over the shared defaults.
 settings <- check_analysis_settings(read_config_yaml("config/analysis-suggest.yml"))
 texts <- read_config_yaml("config/analysis-texts.yml")
@@ -157,6 +158,32 @@ checks <- list(
   # Steps that run only on some studies (the step's `studies` list).
   step_studies = Filter(length, setNames(lapply(plan$steps, function(s) unlist(s$studies)), vapply(plan$steps, function(s) s$id, character(1))))
 )
+
+# The agent (settings `engine`): Claude Code on the analyst's subscription
+# (CLAUDE_CODE_OAUTH_TOKEN, always the agent) or on the WIF token.
+oauth <- Sys.getenv("CLAUDE_CODE_OAUTH_TOKEN")
+api_key <- Sys.getenv("ANTHROPIC_API_KEY")
+engine <- if (nzchar(oauth)) "agent" else settings$engine %||% "agent"
+if (!nzchar(oauth) && !nzchar(api_key)) {
+  stop("No Claude credential: pass claude-code-oauth-token, or the three Anthropic WIF secrets.", call. = FALSE)
+}
+if (engine == "agent") {
+  profile <- analysis_claude$config
+  context$agent <- list(
+    bin = Sys.getenv("CLAUDE_BIN", "claude"),
+    model = if (nzchar(settings$agent$model %||% "")) settings$agent$model else profile$model %||% "",
+    effort = if (nzchar(settings$agent$effort %||% "")) settings$agent$effort else profile$effort %||% "",
+    max_turns = settings$agent$max_turns %||% 40,
+    timeout_seconds = 60 * (settings$agent$timeout_minutes %||% 20),
+    deny = c(login_files$production, ".Renviron"),
+    env = if (nzchar(oauth)) c(CLAUDE_CODE_OAUTH_TOKEN = oauth) else c(ANTHROPIC_AUTH_TOKEN = api_key),
+    login_file = login_files$testing,
+    profile = settings$profiles$testing,
+    helper = file.path(shared_root, "R", "try_analysis_code.R"),
+    template = read_text_file("prompts/analysis-agent.md")
+  )
+  message(sprintf("Drafting with the agent (Claude Code, %s).", if (nzchar(oauth)) "subscription" else "WIF token"))
+}
 
 # Scripts of steps being rewritten, to restore them if the new version fails.
 rewritten <- existing[existing$step %in% to_write, ]
