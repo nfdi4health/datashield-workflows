@@ -137,6 +137,7 @@ context <- list(
   servers = vapply(plan$studies, function(s) s$server, character(1)),
   function_reference = reference$text,
   excluded_functions = format_excluded_functions(excluded),
+  untestable_functions = format_excluded_functions(settings$dslite_untestable),
   code_style = if (length(unlist(settings$code_style)) > 0) paste0("- ", unlist(settings$code_style), collapse = "\n"),
   catalogue_text = catalogue_prompt$text,
   catalogue_names = catalogue_prompt$names,

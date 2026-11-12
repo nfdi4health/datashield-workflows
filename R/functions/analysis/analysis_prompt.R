@@ -12,6 +12,7 @@ analysis_prompt <- function(context, step_ids, previous_attempt = "") {
     SERVERS            = paste(sprintf("`%s`", context$servers), collapse = ", "),
     FUNCTION_REFERENCE = context$function_reference,
     EXCLUDED_FUNCTIONS = context$excluded_functions %||% "(none)",
+    UNTESTABLE_FUNCTIONS = context$untestable_functions %||% "(none)",
     CODE_STYLE         = context$code_style %||% "(none)",
     CATALOGUE          = context$catalogue_text,
     GAP_ISSUES         = gap_issues,

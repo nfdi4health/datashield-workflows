@@ -7,8 +7,10 @@
 # project's other bot scripts, so each step runs with the objects of the
 # steps before it. `settings` gives the test profile and timeout, `texts`
 # the wording of the problems.
-# Returns list(problems, broken_other, objects): problems per step id with any
-# (only failing steps), errors of other_files (named by path), and what is
+# Returns list(problems, broken_other, untested, objects): problems per step
+# id with any (only failing steps), errors of other_files (named by path),
+# statements DSLite couldn't run per step id (settings dslite_untestable,
+# skipped instead of failing), and what is
 # on the servers afterwards (run_analysis_scripts(); `connections` names
 # the connections object).
 # `step_studies` (step id -> servers) holds the steps that run only on
@@ -24,8 +26,9 @@ test_step_scripts <- function(candidate, answers, reference, variables, login_fi
       check_step_datasources(code, step_studies[[id]], connections %||% "conns", reference, texts))
   })
 
+  untestable <- names(Filter(Negate(is.null), settings$dslite_untestable))
   run <- run_analysis_scripts(login_file, sort(c(other_files, unlist(candidate, use.names = FALSE))),
-    settings$profiles$testing, settings$test_run_timeout_seconds, connections)
+    settings$profiles$testing, settings$test_run_timeout_seconds, connections, untestable)
   if (!is.na(run$login_error)) {
     stop(sprintf("The DSLite test setup (%s) failed: %s", login_file, run$login_error), call. = FALSE)
   }
@@ -44,5 +47,8 @@ test_step_scripts <- function(candidate, answers, reference, variables, login_fi
     }
   }
   broken <- run$errors[other_files]
-  list(problems = Filter(length, problems), broken_other = broken[!is.na(broken)], objects = run$objects %||% "")
+  # Statements DSLite couldn't run (settings dslite_untestable), per step.
+  untested <- lapply(setNames(ids, ids), function(id) unlist(run$untested[candidate[[id]]], use.names = FALSE))
+  list(problems = Filter(length, problems), broken_other = broken[!is.na(broken)], untested = Filter(length, untested),
+       objects = run$objects %||% "")
 }

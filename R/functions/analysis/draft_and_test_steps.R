@@ -64,6 +64,12 @@ draft_and_test_steps <- function(to_write, plan, steps, existing, context, check
     previous <- format_repair_request(outcome$problems, answers, context$repair_template)
   }
 
+  untestable <- Filter(Negate(is.null), settings$dslite_untestable)
+  for (id in setdiff(names(outcome$untested), names(outcome$problems))) {
+    notes <- c(notes, fill_template(texts$notes$dslite_untested, list(
+      STEP = id, FUNCTIONS = format_excluded_functions(untestable),
+      STATEMENTS = paste(sprintf("`%s`", outcome$untested[[id]]), collapse = "; "))))
+  }
   for (f in names(outcome$broken_other)) {
     notes <- c(notes, fill_template(texts$notes$existing_failed, list(FILE = f, ERROR = outcome$broken_other[[f]])))
   }

@@ -50,6 +50,10 @@ outcome), follow it as far as possible and say so in a `limitation` note.
 - Not available here, and why: {{EXCLUDED_FUNCTIONS}}. If a step needs
   one of them, add a `limitation` note naming the function instead of
   writing that code.
+- Usable, but they can't be tested here: {{UNTESTABLE_FUNCTIONS}}. Use them
+  where the plan asks for what they do. The test run skips a failing call
+  to one of them and everything that uses its result, so keep that part
+  short and don't build further steps on it.
 
 ## Clean code
 
