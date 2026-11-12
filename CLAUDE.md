@@ -74,7 +74,10 @@ the live caller used to validate changes before wider rollout.
     Claude Code sessions here (e.g. `agent-suggest/feat/…`), which the
     roxygen, test and authors bots do review — except the implementer's
     `agent-suggest/<type>/issue-<n>`, which brings its own tests and
-    documentation (user, 2026-11-12). **Decided (user,
+    documentation (user, 2026-11-12). **Docs pending** (once the implementer page
+    of the docs pass, PR #73, is on `dev`): `implementer.qmd` (tests from
+    the spec, the documentation step, lints, Follow-ups, the `oracle`
+    input), `suggestions.qmd` housekeeping (implementer branches skipped). **Decided (user,
     2026-11-09): Claude Code sessions name every branch
     `agent-suggest/<type>/<topic>`** (type as in Conventional Commits:
     `fix`, `feat`, `ci`, `docs`, …), in this repository and in callers;
