@@ -99,6 +99,11 @@ after that, breaking changes only come with a new major version.
   your own: see [Claude setup](claude-setup.qmd#subscription). The model,
   token limit and effort of each Claude call are inputs now
   ([choosing a model](claude-setup.qmd#model)).
+- **Variables from your servers:** dsAnalysis's `initVariables()` writes
+  `config/variables.yml` (types, categories, ranges, labels from the Opal
+  dictionary, which study has what); the analysis plan builds on it and
+  only adds roles and corrections. Add `config/variables.yml` to the
+  caller's `paths`, see the example.
 - **Analysis scripts by an agent:** Claude Code writes each step, tries it
   in DSLite on the mock data and corrects itself before answering. Steps
   can run on some studies only (`studies`), the plan can name your own

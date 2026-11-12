@@ -857,6 +857,23 @@ installed there to look at the generated scripts).
    `datasources = conns[c(...)]`; derived variables exist only on those
    servers. A gate checks that a step's calls use the right connections.
 
+   **Built 2026-11-12 (user chose to do it now, not as the implementer's
+   cross-repository test):** dsAnalysis `initVariables()` writes
+   `config/variables.yml` (type, categories or pooled 5%/95% range,
+   `studies`, labels, category labels and `missing_codes` from the Opal
+   dictionary, else `ds.metadata()` labels); the bot reads it first
+   (settings `paths.variables`, `merge_variables_file()`), the plan's
+   entries merged on top field by field, file entries failing
+   `check_plan_variable()` left out with a note. Mock data per study
+   (`variable_in_study()`; a `studies` list naming none of the plan's
+   servers is ignored), missing codes fill half the gaps of a categorical
+   variable, `check_variable_availability()` notes used variables a step's
+   study lacks; the file is appended to the plan text Claude gets.
+   Consequence: `step_plan_hash()` covers all variables, so a changed
+   label in the file regenerates every untouched step — revisit if
+   re-runs of `initVariables()` cause churn. Callers trigger on
+   `config/variables.yml` too.
+
    **User (2026-11-12): the analyst decides.** A study can be included
    even if one variable is missing there, so: an explicit `studies:` per
    step, set by the analyst. Availability in the variables file only

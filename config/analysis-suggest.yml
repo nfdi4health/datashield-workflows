@@ -34,6 +34,10 @@ paths:
   mock_data: utils/mock_data   # dsAnalysis's update_MockData() expects this folder
   login_production: R/01_DS_Login.R
   login_testing: utils/setup/01_DSLite_Setup.R
+  # The variables, written by dsAnalysis's initVariables() from the servers'
+  # metadata; the plan's own variables entries are merged on top. Not
+  # there: the plan lists all variables itself.
+  variables: config/variables.yml
 
 # Profile names in the project's config.yml: the real login, and the DSLite
 # test setup the test run uses (R_CONFIG_ACTIVE). An interface with the
