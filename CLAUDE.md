@@ -707,6 +707,27 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   required checks (a required check skipped by a path filter never reports
   and blocks the PR, seen on dsSupportClient #75). Part of the refactoring
   pass with the agents' definitions and the cross-repo overlaps.
+- **Before v1 also: provenance and outcome records** (user, 2026-11-12):
+  model / prompt hash / config version in every bot PR's report, and a
+  hidden outcome record (choices, edit diffs, review comments) written into
+  a bot PR's description when it closes; analysing them comes after v1.
+  [dev-notes/feedback-loop.md](dev-notes/feedback-loop.md), items K/L in
+  [dev-notes/v1-planning.md](dev-notes/v1-planning.md).
+- **Before v1 also: the implementer's next batch** (user, 2026-11-12),
+  item M in [dev-notes/v1-planning.md](dev-notes/v1-planning.md); the
+  decisions are in [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md).
+- **Before v1 also: a subscription pathway** for roxygen, tests and
+  analysis (user, 2026-11-12; item N in
+  [dev-notes/v1-planning.md](dev-notes/v1-planning.md)): same prompts,
+  schemas and config, transport `api` (WIF) or `claude-code` (owner's
+  `CLAUDE_CODE_OAUTH_TOKEN`, runs only for listed logins). Design in
+  [dev-notes/claude-subscription-auth.md](dev-notes/claude-subscription-auth.md).
+- **High priority (user, 2026-11-12): the analysis bot as an agent**
+  (item O in [dev-notes/v1-planning.md](dev-notes/v1-planning.md)):
+  Claude Code writes and repairs the scripts step by step, R keeps plan,
+  mock data, gates and PR; the sandbox denies the login file and
+  `.Renviron`; runs on the analyst's subscription or WIF. A colleague's
+  real trial run follows her analysis plan (from 2026-11-13).
 - **Claude prompt caching — checked, set aside (2026-09-26).** Console logs
   of dsSupportClient runs: test review (Opus 5) ~4–8k input / ~1.2–1.9k
   output tokens per function, failure classification ~1.9k / ~170;
@@ -1017,8 +1038,8 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   a researcher agent (gap catalogue → design with disclosure analysis →
   client/server pair). Fit with this repo and open points in
   [dev-notes/issue-agents.md](dev-notes/issue-agents.md).
-- **Claude Pro/Max subscription instead of WIF** (asked 2026-10-14, not
-  pursued): the workflows call the Messages API directly, which a
+- ~~**Claude Pro/Max subscription instead of WIF** (asked 2026-10-14, not
+  pursued)~~ Superseded 2026-11-12 by the subscription pathway (item N, above): the workflows call the Messages API directly, which a
   subscription doesn't cover. A plain API-key alternative to WIF is not
   wanted (user); running the Claude step through Claude Code would let a
   subscription pay but gives up the controlled, schema-forced call.

@@ -140,6 +140,8 @@ No fine-tuning; three levels, each human-reviewed:
 Privacy: learnings stay in their repository (they contain its code);
 across repositories only counts, as with usage counting.
 
+More concrete version (2026-11-12): [feedback-loop.md](feedback-loop.md).
+
 ### Refactor agent (several jobs, better split)
 
 1. **Performance of existing DataSHIELD functions**, with
