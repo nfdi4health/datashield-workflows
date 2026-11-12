@@ -3,8 +3,9 @@
 # API: one source of truth for the work (prompt, tool schema, profile),
 # two transports (dev-notes/claude-subscription-auth.md, "Subscription
 # pathway"). Claude Code runs locked down so it behaves like one call: no
-# tools at all (--tools ""), no CLAUDE.md, hooks or plugins (--bare), an
-# empty working directory, its answer checked against the tool's schema
+# tools at all (--tools ""), no settings, hooks, plugins or MCP servers
+# (claude_code_isolation_args(); not --bare, which ignores the OAuth
+# token), an empty working directory, its answer checked against the tool's schema
 # (--json-schema). It gets only its own credential. What doesn't carry
 # over: the cache marker (the prompt is sent as one text), server-side
 # fallback, our retry rules; a usage limit ends the call with an error,
@@ -22,7 +23,7 @@ call_claude_code_tool <- function(claude, tool, prompt, bin = Sys.getenv("CLAUDE
   prompt_file <- file.path(dir, "prompt.md")
   writeLines(text, prompt_file, useBytes = TRUE)
 
-  args <- c("-p", "--bare", "--output-format", "json", "--no-session-persistence",
+  args <- c("-p", claude_code_isolation_args(), "--output-format", "json", "--no-session-persistence",
     "--tools", "", "--max-turns", "3",
     "--json-schema", paste(readLines(schema_file, warn = FALSE), collapse = ""))
   if (nzchar(config$model %||% "")) args <- c(args, "--model", config$model)

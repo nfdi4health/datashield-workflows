@@ -43,7 +43,8 @@ test_that("ask_agent_for_scripts() calls claude locked down and without other cr
   out <- ask_agent_for_scripts(context, "THE PROMPT", tool)
   expect_equal(out$steps[[1]]$step_id, "a")
   call <- readLines(log)
-  expect_true(all(c("-p", "--bare", "--no-session-persistence", "dontAsk", "7", "claude-opus-5", "high") %in% call))
+  expect_true(all(c("-p", "--setting-sources", "--strict-mcp-config", "--no-session-persistence", "dontAsk", "7", "claude-opus-5", "high") %in% call))
+  expect_false("--bare" %in% call)   # --bare ignores the OAuth token
   expect_true(any(grepl("Bash(Rscript .shared-workflows/R/try_analysis_code.R:*)", call, fixed = TRUE)))
   expect_true("OAUTH=sub-token GH= SCRUB=1" %in% call)
   expect_true("THE PROMPT" %in% call)

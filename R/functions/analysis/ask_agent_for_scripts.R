@@ -5,7 +5,9 @@
 # command it may run is the try helper (R/try_analysis_code.R), which runs
 # the DSLite setup, the scripts before this step and the agent's file, and
 # prints what happens. Everything runs in Claude Code's sandbox (no network;
-# agent_settings()), without CLAUDE.md, hooks or plugins (--bare).
+# agent_settings()), without the checkout's settings, hooks, plugins or MCP
+# servers (claude_code_isolation_args(); not --bare, which reads neither
+# the OAuth token nor ANTHROPIC_AUTH_TOKEN).
 #
 # `context$agent` holds: bin (the claude command), model, effort,
 # max_turns, timeout_seconds, deny (paths no tool may read), env (the
@@ -24,7 +26,7 @@ ask_agent_for_scripts <- function(context, prompt, tool) {
   agent_part <- fill_template(a$template, list(HELPER = a$helper, CONNECTIONS = context$connections))
   writeLines(c(prompt, "", agent_part), file.path(dir, "prompt.md"))
 
-  args <- c("-p", "--bare", "--output-format", "json", "--no-session-persistence",
+  args <- c("-p", claude_code_isolation_args(), "--output-format", "json", "--no-session-persistence",
     "--json-schema", paste(readLines(file.path(dir, "schema.json"), warn = FALSE), collapse = ""),
     "--settings", file.path(dir, "settings.json"),
     "--tools", "Read,Write,Edit,Glob,Grep,Bash",
