@@ -386,28 +386,33 @@ too), the facts in this repository's config, the workflow only wiring them
 **Built 2026-11-12** (branch `agent-suggest/feat/agent-definitions`, not yet
 run):
 
-- **Lints as a deterministic step:** `run-checks.sh` calls `lint-changes.R`
-  when the package has a `.lintr` (no style imposed on a package without
-  one): lintr with the package's configuration, only on the lines the change
-  added (`git diff -U0 origin/<base>...HEAD`), into `.agent/lint.md`. Lints
-  don't count in the checks' `ok`; the reviewer turns them into `must_fix`
-  points (or explains a false alarm), so the round logic stays as it is.
-  `styler` not used: lintr already reports the style, and a reformatting
-  step would touch lines the change didn't.
+- **Lints as a deterministic step:** `run-checks.sh` calls `lint-changes.R`,
+  only on the lines the change added (`git diff -U0 origin/<base>...HEAD`),
+  into `.agent/lint.md`: with the package's own `.lintr` if it has one,
+  else layout linters only (braces, spacing, parentheses, trailing
+  whitespace) — naming and assignment style stay the package's (the default
+  linters would flag dsBaseClient's `ds.mean` and `=`). Lints don't count in
+  the checks' `ok`; the reviewer turns them into `must_fix` points (or
+  explains a false alarm), so the round logic stays as it is. `styler` not
+  used: a reformatting step would touch lines the change didn't.
+- **Where the definitions live (user, 2026-11-12):** the standard is the
+  `r-code-style` skill in datashield-skills (usable locally too): the
+  package first, reuse before writing (package helper → dependency → base R
+  → a new dependency only for real work), efficiency where it matters
+  (server round trips on clients; local work on aggregates: readability
+  wins), readable names and functions, layout (blank lines between steps,
+  braces, spacing). Its sync sources: `lint-changes.R` and the
+  maintainability prompt. The prompts name the skill and keep only what is
+  workflow-specific (scope, what not to review, the JSON answer).
 - **Maintainability reviewer** (`prompts/implementer-maintainability.md`):
-  reads the package first (`CLAUDE.md`, `DESCRIPTION`, `NAMESPACE`,
-  neighbouring files) and judges against it; looks for bugs, fidelity to the
-  spec, reuse (package helpers, `ds.*()` / `DSI` functions), consistency
-  (argument checks, messages, `datasources`, layout, naming), readability,
-  tests and the lints. Leaves out roxygen wording and further tests (the
-  roxygen and test bots review the same PR) and disclosure (its own
-  reviewer). A `must_fix` point names the helper or convention it means.
-- **Writer** (`prompts/implementer-writer.md`): the same expectations up
-  front, so fewer points come back.
-- **Where the definitions live:** in the prompts for now. Moving the review
-  procedure into `datashield-skills` (a reviewer skill, usable locally too)
-  is still open: worth it once someone wants the same review outside the
-  runner; the prompt would then only name the skill.
+  reads the package and the skill first; looks for bugs, fidelity to the
+  spec, reuse and efficiency, consistency (argument checks, messages,
+  `datasources`, layout, naming), readability and layout, tests and the
+  lints. Leaves out roxygen wording and further tests (the roxygen and test
+  bots review the same PR) and disclosure (its own reviewer). A `must_fix`
+  point names the helper or convention it means.
+- **Writer** (`prompts/implementer-writer.md`): the skill up front, so
+  fewer points come back.
 
 ## Triage, found in the first implementer test (2026-11-10)
 

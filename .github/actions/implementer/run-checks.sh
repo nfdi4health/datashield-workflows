@@ -4,9 +4,9 @@
 # .agent/checks.json ({"ok": …, "errors": n, "warnings": n}; ok = no error,
 # failing tests included: warnings the package had before must not doom a run) and
 # .agent/checks.md, the part of the output the next round and the pull
-# request show. With a `.lintr` in the package, also .agent/lint.md: lints
-# on the changed lines (lint-changes.R), for the maintainability reviewer;
-# they don't count in "ok". Never fails the step: the result is in the files.
+# request show. Also .agent/lint.md: lints on the changed lines
+# (lint-changes.R, with the package's `.lintr` or layout linters only), for
+# the maintainability reviewer; they don't count in "ok". Never fails the step: the result is in the files.
 set -uo pipefail
 mkdir -p .agent
 case "${SETUP:-r}" in
@@ -38,7 +38,7 @@ RSCRIPT
 esac
 cat .agent/checks.md
 rm -f .agent/lint.md
-if [ "${SETUP:-r}" = r ] && [ -f .lintr ] && [ -n "${BASE:-}" ]; then
+if [ "${SETUP:-r}" = r ] && [ -n "${BASE:-}" ]; then
   Rscript "$(dirname "$0")/lint-changes.R" "$BASE"
   cat .agent/lint.md
 fi
