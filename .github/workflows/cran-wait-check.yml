@@ -1,0 +1,51 @@
+name: CRAN waiting time
+
+# A guardrail for packages released to CRAN: on a pull request into the
+# release branch (main), fails while the last CRAN submission is less than
+# `min-days` ago. CRAN's policy asks for updates "no more than every 1–2
+# months" once a package is established. The last submission is the later
+# of the package's publication date on CRAN (crandb) and the newest
+# `cran-*` tag, which cran-submit.yml sets. A label (`override-label`) on
+# the pull request lets an urgent fix through. Not on CRAN yet: passes.
+on:
+  workflow_call:
+    inputs:
+      min-days:
+        description: 'Days that must pass between CRAN submissions (60 = two months, 90 = quarterly).'
+        required: false
+        type: number
+        default: 60
+      override-label:
+        description: 'A pull request carrying this label passes anyway, for an urgent fix (the policy allows those).'
+        required: false
+        type: string
+        default: 'cran-hotfix'
+
+
+jobs:
+  waiting-time:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # the cran-* tags
+
+      - name: Shared scripts
+        uses: $/.github/actions/shared-files
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          use-public-rspm: true
+
+      - name: Install R packages
+        run: Rscript -e 'install.packages(c("httr2", "jsonlite"))'
+
+      - name: Time since the last CRAN submission
+        env:
+          MIN_DAYS: ${{ inputs.min-days }}
+          OVERRIDE: ${{ contains(github.event.pull_request.labels.*.name, inputs.override-label) }}
+        run: Rscript .shared-workflows/R/check_cran_wait.R
