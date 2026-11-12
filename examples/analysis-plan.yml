@@ -42,6 +42,13 @@ package-catalogue: https://packages.datashield.org/packages.json
 # Add development if you'd consider packages that are still being built.
 package-status: [production]
 
+# Mock data for the test run: `plan` (default) generates it from this
+# file. Or name a folder under utils/mock_data with your own, made by
+# dsAnalysis's initMockData() (one <server>.rda per study). Mock data
+# built from your servers' aggregates is closer to reality, but it is
+# your choice whether the workflow may use it.
+mock-data: plan
+
 variables:                        # shaped like an Opal/Armadillo dictionary
   - name: DIS_DIAB
     label: History of diabetes
@@ -105,6 +112,7 @@ steps:
     title: Sensitivity analysis
     description: "Main model without MEDI_LPD."
     # depends_on: [data_management]   # not held up if the main model fails
+    # studies: [study1, study2]        # only these studies (default: all)
 
   - id: figures                   # stage 3
     title: Figures

@@ -23,6 +23,9 @@ triage_spec_lines <- function(answer, settings) {
     section("What was reported", answer$reported),
     section("Acceptance criteria", answer$acceptance_criteria),
     section("Open questions", answer$open_questions),
-    triage_disclosure_lines(answer, settings, text)
+    triage_disclosure_lines(answer, settings, text),
+    triage_affects_lines(answer, settings),
+    # Answers to open questions start a new triage (the gate reads this marker).
+    if (length(unlist(answer$open_questions)) > 0) c("", settings$open_questions_note, "<!-- bot-triage-open-questions -->")
   )
 }

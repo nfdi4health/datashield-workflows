@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { safeText } from "./lib.mjs";
-import { mustFix, readJson } from "./outcome.mjs";
+import { deviations, mustFix, readJson } from "./outcome.mjs";
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
 
@@ -30,6 +30,7 @@ export function readResult(dir) {
   return {
     summary: read(dir, "summary.md"),
     disclosure: read(dir, "review-disclosure.md"),
+    deviations: deviations(readJson(join(dir, "review-disclosure.json"), {})),
     checks: read(dir, "checks.md"),
     needsInput: read(dir, "needs-input.md"),
     review: readJson(join(dir, "review-maintainability.json"), {}),
@@ -50,6 +51,9 @@ export function pullRequestBody({ issue, failed, needsDisclosureReview, result, 
   return safeText([
     needsDisclosureReview
       ? "> [!WARNING]\n> **Disclosure review needed.** This changes disclosure settings, checks or registered methods. People decide these, so read them line by line.\n"
+      : "",
+    result.deviations?.length
+      ? `> [!WARNING]\n> **Deviates from the approved spec's disclosure choice** (still open after the correction rounds):\n${result.deviations.map((d) => `> - ${d}`).join("\n")}\n`
       : "",
     failed
       ? `> [!CAUTION]\n> **Failed attempt, kept as a draft.** The checks still fail after the correction rounds. See the comment on #${issue}.\n`
@@ -115,7 +119,7 @@ export function prepareBranch({ bundle, branch, base }) {
 
 // Publishes one result. Returns what the log records.
 export async function publish(api, ctx) {
-  const { repository, issue, branch, base, type, title, labels, outcome, result, runUrl, existingPr } = ctx;
+  const { repository, issue, branch, base, type, title, labels, outcome, result, runUrl, existingPr, openPullRequest = true } = ctx;
   const done = [labels.inProgress, labels.proceed];
 
   if (outcome.result === "limit") {
@@ -149,6 +153,15 @@ export async function publish(api, ctx) {
     } else {
       ctx.push();
       const body = pullRequestBody({ issue, failed, needsDisclosureReview: changes.needsDisclosureReview, result, runUrl });
+      // Without a pull request (open-pull-request: false): the branch is
+      // pushed, and its comparison link and the report go to the issue.
+      if (!openPullRequest) {
+        const compare = `https://github.com/${repository}/compare/${base}...${branch}`;
+        await comment(api, repository, issue, `Branch \`${branch}\` is pushed (no pull request opened): ${compare}\n\n${body}`);
+        const labelsNow = failed ? { remove: done, add: [labels.failed] } : { remove: [...done, labels.failed], add: [labels.completed] };
+        await setLabels(api, repository, issue, labelsNow);
+        return failed ? { result: "failed", reason, branch } : { result: "completed", branch };
+      }
       const prTitle = safeText(`${type}: ${title}`).slice(0, 200);
       const pull = existingPr
         ? await api(`repos/${repository}/pulls/${existingPr}`, { method: "PATCH", body: { title: prTitle, body } })

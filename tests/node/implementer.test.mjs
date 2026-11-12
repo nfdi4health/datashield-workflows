@@ -8,7 +8,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { Refusal, githubApi, labelNames, listAll, parseTargets, safeText, stripClosingKeywords } from "../../.github/actions/implementer/lib.mjs";
 import { commitType, listQueue, parseRequest, pickNext, verifyIssue } from "../../.github/actions/implementer/queue.mjs";
-import { finalOutcome, nextRound, parseLimit, readExecution } from "../../.github/actions/implementer/outcome.mjs";
+import { finalOutcome, nextRound, parseLimit, readExecution, splitDisclosureReview } from "../../.github/actions/implementer/outcome.mjs";
 import { failureComment, needsInputComment, publish, pullRequestBody, reviewChanges } from "../../.github/actions/implementer/publish.mjs";
 import { mergeEvents, statusRows, timelineEvents, toCsv } from "../../.github/actions/implementer/log.mjs";
 import { fillPrompt, pausedUntil, sandboxSettings } from "../../.github/actions/implementer/implementer.mjs";
@@ -18,7 +18,8 @@ const cfg = {
   allowedLogins: ["owner-login"],
   triageAuthor: "github-actions[bot]",
   specCategories: ["bug", "idea"],
-  typeLabels: { bug: "fix", enhancement: "feat" },
+  typeLabels: { enhancement: "feat", bug: "fix" },
+  issueTypes: { Feature: "feat", Bug: "fix" },
   branchPrefix: "agent-suggest/",
 };
 const targets = { "org/pkg": { base: "dev", setup: "r" } };
@@ -124,10 +125,38 @@ test("a spec edited after the approval is refused", async () => {
   await assert.rejects(verifyIssue(fakeApi({ comments: [triage({ updated_at: "2026-11-05T13:00:00Z" })] }), cfg, request), /changed after/);
 });
 
-test("the commit type comes from the issue's labels", () => {
-  assert.equal(commitType({ labels: [{ name: "Enhancement" }] }, cfg.typeLabels), "feat");
-  assert.throws(() => commitType({ labels: [{ name: "question" }] }, cfg.typeLabels), /fix or a feature/);
-  assert.throws(() => commitType({ labels: [{ name: "bug" }, { name: "enhancement" }] }, cfg.typeLabels), /both/);
+test("the commit type comes from the issue type, else the labels in order (feature beats fix)", () => {
+  const order = { enhancement: "feat", bug: "fix" };
+  const types = { Feature: "feat", Bug: "fix" };
+  assert.equal(commitType({ labels: [{ name: "Enhancement" }] }, order, types).type, "feat");
+  assert.throws(() => commitType({ labels: [{ name: "question" }] }, order, types), /fix or a feature/);
+  const both = commitType({ labels: [{ name: "bug" }, { name: "enhancement" }] }, order, types);
+  assert.equal(both.type, "feat");
+  assert.match(both.note, /do both parts/);
+  // The issue type wins over the labels.
+  assert.deepEqual(commitType({ type: { name: "bug" }, labels: [{ name: "enhancement" }] }, order, types), { type: "fix", note: "" });
+  // An unknown issue type falls back to the labels.
+  assert.equal(commitType({ type: { name: "Task" }, labels: [{ name: "bug" }] }, order, types).type, "fix");
+});
+
+test("the triage's Affects line: server-only or both are refused with a note", async () => {
+  const comments = (value) => [triage({ body: `<!-- bot-triage: bug -->\nDo it.\n<!-- bot-triage-affects: ${value} -->` })];
+  await assert.rejects(verifyIssue(fakeApi({ comments: comments("server") }), cfg, request), /open the issue there/);
+  await assert.rejects(verifyIssue(fakeApi({ comments: comments("both") }), cfg, request), /aren't supported yet/);
+  assert.equal((await verifyIssue(fakeApi({ comments: comments("this") }), cfg, request)).type, "fix");
+});
+
+test("targets: branch (or the old base), server-branch, else the default branches", async () => {
+  assert.equal(parseRequest({ "org/pkg": { branch: "main" } }, "org/pkg", "7").base, "main");
+  assert.equal(parseRequest({ "org/pkg": { base: "dev" } }, "org/pkg", "7").base, "dev");
+  assert.throws(() => parseTargets('{"a/b": {"server-branch": "dev"}}'), /no server/);
+  assert.throws(() => parseTargets('{"a/b": {"branch": "a b"}}'), /branch name/);
+  const req = parseRequest({ "org/pkg": { server: "org/pkgServer" } }, "org/pkg", "7");
+  const api = fakeApi();
+  const withDefaults = async (path, o) => (/^repos\/org\/pkg(Server)?$/.test(path) ? { default_branch: path.endsWith("Server") ? "master" : "main" } : api(path, o));
+  const spec = await verifyIssue(withDefaults, cfg, req);
+  assert.equal(spec.base, "main");
+  assert.equal(spec.serverBranch, "master");
 });
 
 test("a merged or ready pull request on the branch means done; a draft is retried", async () => {
@@ -206,6 +235,10 @@ test("another round only while checks fail or something must be fixed, and round
   assert.equal(nextRound({ checks: { ok: true }, review: { must_fix: [{ problem: "x" }] }, round: 1, maxRounds: 2 }), true);
   assert.equal(nextRound({ checks: { ok: true }, review: { must_fix: [] }, round: 0, maxRounds: 2 }), false);
   assert.equal(nextRound({ checks: { ok: false }, review: {}, round: 2, maxRounds: 2 }), false);
+  // Disclosure deviations from the spec go back after round 0 only (a re-check follows at the end).
+  const dev = { deviations: ["returns subgroup counts"] };
+  assert.equal(nextRound({ checks: { ok: true }, review: {}, disclosure: dev, round: 0, maxRounds: 2 }), true);
+  assert.equal(nextRound({ checks: { ok: true }, review: {}, disclosure: dev, round: 1, maxRounds: 2 }), false);
 });
 
 test("the final outcome", () => {
@@ -288,6 +321,15 @@ test("failed: a draft pull request, a comment saying why, bot-failed", async () 
   assert.equal(calls.find((c) => c.path === "repos/org/pkg/pulls").body.draft, true);
   assert.match(calls.find((c) => c.path.endsWith("/comments")).body.body, /Checks still fail/);
   assert.deepEqual(calls.find((c) => c.path.endsWith("/labels") && c.method === "POST").body.labels, ["bot-failed"]);
+});
+
+test("open-pull-request false: the branch is pushed, the link goes to the issue, no pull request", async () => {
+  const calls = [];
+  const out = await publish(recorder(calls), publishCtx({ openPullRequest: false }));
+  assert.equal(out.result, "completed");
+  assert.ok(!calls.some((c) => c.path === "repos/org/pkg/pulls"));
+  assert.match(calls.find((c) => c.path.endsWith("/comments")).body.body, /compare\/dev\.\.\.agent-suggest\/fix\/issue-7/);
+  assert.deepEqual(calls.find((c) => c.path.endsWith("/labels") && c.method === "POST").body.labels, ["bot-completed"]);
 });
 
 test("forbidden files: nothing pushed, failed", async () => {
@@ -430,4 +472,20 @@ test("a reviewer's final answer becomes the review file's content", async () => 
 test("mentions are neutralised outside code only", () => {
   assert.equal(safeText("Roxygen `@param x` and @someone"), "Roxygen `@param x` and &#64;someone");
   assert.equal(safeText("```r\n#' @details\n```\n@me"), "```r\n#' @details\n```\n&#64;me");
+});
+
+test("the disclosure review's JSON block becomes the deviations; the Markdown stays for people", () => {
+  const text = "**What the server returns**: counts.\n\n```json\n{\"deviations\": [\"new counts leave the server\"]}\n```";
+  const out = splitDisclosureReview(text);
+  assert.deepEqual(out.deviations, ["new counts leave the server"]);
+  assert.equal(out.markdown, "**What the server returns**: counts.");
+  assert.deepEqual(splitDisclosureReview("Nothing leaves a server.").deviations, []);
+  assert.deepEqual(splitDisclosureReview("x\n```json\n{broken\n```").deviations, []);
+});
+
+test("deviations still open after the rounds put a warning on the pull request", () => {
+  const body = pullRequestBody({ issue: 7, failed: false, needsDisclosureReview: false, runUrl: "",
+    result: { summary: "s", disclosure: "d", checks: "", review: {}, deviations: ["a check was removed"] } });
+  assert.match(body, /Deviates from the approved spec/);
+  assert.match(body, /a check was removed/);
 });

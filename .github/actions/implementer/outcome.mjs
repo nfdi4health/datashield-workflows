@@ -76,11 +76,36 @@ export function mustFix(review) {
   return Array.isArray(review?.must_fix) ? review.must_fix.filter((item) => item && (item.problem || typeof item === "string")) : [];
 }
 
-// Another correction round when a check failed or the reviewer found
-// something that must be fixed, while rounds are left.
-export function nextRound({ checks, review, round, maxRounds }) {
+// Findings of the disclosure review that deviate from the approved spec
+// (review-disclosure.json, saveDisclosureReview()).
+export function deviations(disclosure) {
+  return Array.isArray(disclosure?.deviations) ? disclosure.deviations.filter((d) => typeof d === "string" && d.trim()) : [];
+}
+
+// Another correction round when a check failed, the reviewer found
+// something that must be fixed, or (after round 0, the only disclosure
+// review before the re-check at the end) the disclosure review found a
+// deviation from the spec — while rounds are left.
+export function nextRound({ checks, review, disclosure = {}, round, maxRounds }) {
   if (round >= maxRounds) return false;
-  return checks?.ok === false || mustFix(review).length > 0;
+  return checks?.ok === false || mustFix(review).length > 0 || (round === 0 && deviations(disclosure).length > 0);
+}
+
+// The disclosure reviewer's answer: Markdown ending in a fenced JSON block
+// {"deviations": [...]}. Returns the Markdown without the block, and the
+// deviations (none if the block is missing or unreadable: then the review
+// is still shown, nothing goes back to the writer).
+export function splitDisclosureReview(text) {
+  const raw = String(text ?? "").trim();
+  const match = raw.match(/```json\s*(\{[\s\S]*?\})\s*```\s*$/);
+  if (!match) return { markdown: raw, deviations: [] };
+  let parsed = {};
+  try {
+    parsed = JSON.parse(match[1]);
+  } catch {
+    parsed = {};
+  }
+  return { markdown: raw.slice(0, match.index).trim(), deviations: deviations(parsed) };
 }
 
 // The run's result from the agent steps (in order), the last checks, and

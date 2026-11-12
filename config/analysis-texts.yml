@@ -35,6 +35,12 @@ plan:
   duplicate_steps: "steps: ids must be unique ({{NAMES}}); give steps with the same title an explicit id."
   depends_on: "step '{{TITLE}}': depends_on may only list ids of steps above it in the plan (not: {{STEPS}})."
   package_status: "package-status may only list {{ALLOWED}} (found: {{FOUND}})."
+  step_studies: "step '{{TITLE}}': studies must list one or more of the plan's servers ({{SERVERS}}), each once."
+  mock_data: "mock-data must be plan (generated from this file) or the name of a folder under utils/mock_data, e.g. MockData_New."
+  mock_folder_missing: "mock-data: the folder {{FOLDER}} doesn't exist. Create it with dsAnalysis's initMockData(), or set mock-data: plan."
+  mock_folder_reserved: "mock-data: {{FOLDER}} is the workflow's own folder; name the folder your mock data is in, or set mock-data: plan."
+  mock_files: "mock-data: {{FOLDER}} needs one file per study, named after its server ({{EXPECTED}}); missing: {{MISSING}}."
+  mock_object: "mock-data: {{FILE}} must hold one data frame named {{SERVER}} (found: {{FOUND}})."
 
 script:
   header:
@@ -68,6 +74,7 @@ notes:
   credentials: "**`{{PATH}}` seems to contain credentials as plain text** (line {{LINES}}). Everyone with access to this repository can read them. Move them to `.Renviron` and read them with `Sys.getenv()`, as the dsAnalysis template does."
   servers_differ: "The servers in `{{PATH}}` ({{FOUND}}) differ from the plan ({{PLANNED}}). The scripts use the plan's names, e.g. for results per study."
   symbol_differs: "`{{PATH}}` assigns the data to `{{FOUND}}`, the plan says `{{PLANNED}}`. The scripts use `{{PLANNED}}`."
+  unused_objects: "`{{FILE}}` creates objects no script uses: {{OBJECTS}}. Remove them, or use them."
   existing_failed: "Your existing script `{{FILE}}` failed in the test run: {{ERROR}}"
   retired_included: "The plan's package-status includes `retired`, so retired packages may be suggested. They are no longer maintained; check before relying on one."
   block_damaged: "The bot's block in `{{PATH}}` is damaged (a marker line is missing, doubled or out of order), so it was left as it is. Please update it by hand, or remove both marker lines so the bot adds a new block."
@@ -80,12 +87,16 @@ checks:
   unknown_argument: "{{FUNCTION}}() has no argument {{GIVEN}} (its arguments: {{ARGUMENTS}})."
   unknown_column: "{{COLUMNS}} refers to a column that is neither a variable of the plan nor created by any step (plan variables: {{VARIABLES}})."
   runtime_error: "Error when running {{FILE}}: {{ERROR}}"
+  inspection_call: "{{FUNCTION}}() only looks at something and its result isn't used: remove it, or assign the result and use it."
+  step_datasources: "This step runs only on {{STUDIES}} (the plan's studies list): pass datasources = {{CONNECTIONS}}[c({{QUOTED}})] to {{FUNCTION}}(), not all connections."
   timeout: "The test run took longer than {{SECONDS}} seconds and was stopped; the code may loop or do far more work than needed."
 
 report:
   nothing_to_do: "Nothing to do: every step of the plan already has an up-to-date script."
-  intro: "Starter scripts for your DataSHIELD analysis, drafted from your analysis plan. Each script ran in DSLite on mock data generated from the plan. That checks the code runs, not that the analysis is right: please read and adapt it. The analysis stays your responsibility."
+  intro: "Starter scripts for your DataSHIELD analysis, drafted from your analysis plan. Each script ran in DSLite on mock data (see below which). That checks the code runs, not that the analysis is right: please read and adapt it. The analysis stays your responsibility."
   tested_with: "**Tested with:** {{TESTED_WITH}}."
+  mock_data_plan: "**Mock data:** generated from the plan."
+  mock_data_project: "**Mock data:** your own, from `{{FOLDER}}`."
   scripts_heading: "### Scripts"
   notes_only_suffix: " (notes only: not possible with the installed packages)"
   try_it: "**Try it yourself:** set `R_CONFIG_ACTIVE = '{{TESTING}}'` in `.Renviron`, restart R and run `{{MAIN}}`. It uses the same DSLite setup and mock data as this test run. You get the same results if you install the versions listed in `{{DEPENDENCIES}}`. Switch back to `{{PRODUCTION}}` for the real analysis."

@@ -1,0 +1,9 @@
+# zizmor's settings for this repository (found here automatically).
+rules:
+  # Claude Code is installed with npm at an exact version, inside a
+  # multi-line run block, where an inline ignore comment can't go.
+  adhoc-packages:
+    ignore:
+      - datashield-analysis-suggest.yml
+      - roxygen-suggest.yml
+      - test-suggest.yml

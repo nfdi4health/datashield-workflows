@@ -5,7 +5,10 @@
 # need a title and a unique id, and an optional `depends_on` may only name
 # steps earlier in the plan; everything else in a step is free and goes
 # to Claude as written. An optional `package-status` list may only use
-# package_statuses(). Unknown top-level entries are allowed. `types` are
+# package_statuses(). An optional `mock-data` is `plan` or the name of a
+# folder under utils/mock_data (check_project_mock_data() checks its
+# files); an optional `studies` list in a step may only name the plan's
+# servers. Unknown top-level entries are allowed. `types` are
 # the variable types the settings allow; read_analysis_plan() has already
 # set each known type's `kind`.
 validate_analysis_plan <- function(plan, types, texts) {
@@ -125,6 +128,23 @@ validate_analysis_plan <- function(plan, types, texts) {
         add("depends_on", TITLE = s$title, STEPS = paste(setdiff(deps, earlier), collapse = ", "))
       }
     }
+  }
+
+  # studies: the servers a step runs on (default: all); the analyst's choice
+  servers <- text_values(plan$studies, "server")
+  for (s in plan$steps) {
+    if (!is.list(s) || !"studies" %in% names(s)) {
+      next
+    }
+    chosen <- unlist(s$studies)
+    if (!is.character(chosen) || length(chosen) == 0 || anyDuplicated(chosen) || length(setdiff(chosen, servers)) > 0) {
+      add("step_studies", TITLE = s$title %||% s$id %||% "?", SERVERS = paste(servers, collapse = ", "))
+    }
+  }
+
+  mock <- plan$`mock-data`
+  if (!is.null(mock) && !(is.character(mock) && length(mock) == 1 && grepl("^[A-Za-z0-9][A-Za-z0-9._-]*$", mock))) {
+    add("mock_data")
   }
 
   statuses <- plan$`package-status`

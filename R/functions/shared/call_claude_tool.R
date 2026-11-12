@@ -27,9 +27,20 @@
 # shared part (and the same tool definition, which comes before it) reads
 # it from the prompt cache. Every call logs its token usage — the
 # measurement channel for what a run costs (dev-notes/claude-costs.md).
+#
+# With a Claude subscription token (CLAUDE_CODE_OAUTH_TOKEN) and no API
+# token, the same call goes through Claude Code instead
+# (call_claude_code_tool()).
 call_claude_tool <- function(claude, tool, prompt) {
   config <- claude$config
   tool$name <- config$tool_name
+  if (nzchar(Sys.getenv("CLAUDE_CODE_OAUTH_TOKEN")) && !nzchar(claude$auth$api_key %||% "")) {
+    if (!isFALSE(config$strict)) {
+      strict <- strict_tool_schema(tool$input_schema)
+      if (strict$ok) tool$input_schema <- strict$schema
+    }
+    return(call_claude_code_tool(claude, tool, prompt))
+  }
   forced <- !identical(config$tool_choice_type, "auto")
   if (!isFALSE(config$strict)) {
     strict <- strict_tool_schema(tool$input_schema)

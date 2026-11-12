@@ -52,3 +52,5 @@ task, don't, and say so in your summary.
   consequences, and exactly which answer you need. Commit nothing for the
   part that depends on the answer.
 - An honest partial result is better than a guess.
+{{SERVER}}
+{{TYPE_NOTE}}

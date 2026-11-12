@@ -37,8 +37,10 @@ issue() {  # issue [state] [user type] [labels as a JSON array of names] [author
   jq -n --arg state "${1:-open}" --arg type "${2:-User}" --argjson labels "${3:-[]}" --arg login "${4:-author}" \
     '{state: $state, user: {type: $type, login: $login}, title: "$(touch pwned)", labels: ($labels | map({name: .}))}' > "$WORK/issue.json"
 }
-bot_triage() {  # bot_triage <category>: a page with the bot's comment for it
-  printf '[{"user": {"login": "github-actions[bot]"}, "body": "<!-- bot-triage: %s -->\\n**Triage**"}]\n' "$1"
+bot_triage() {  # bot_triage <category> [open]: a page with the bot's comment for it; "open": its spec has open questions
+  local marker=""
+  [ "${2:-}" = open ] && marker='\\n<!-- bot-triage-open-questions -->'
+  printf '[{"user": {"login": "github-actions[bot]"}, "body": "<!-- bot-triage: %s -->\\n**Triage**%s"}]\n' "$1" "$marker"
 }
 # gate [action]; EVENT_NAME overrides `issues`, COMMENTER and COMMENTER_TYPE
 # the comment's author, IS_PR makes it a pull request, LABEL and SENDER the
@@ -126,6 +128,22 @@ for verdict in bug idea question; do
   bot_triage "$verdict" > "$WORK/comments.json"
   COMMENTER=author comment; skips; check "$verdict: a comment starts nothing" $?
 done
+
+for verdict in duplicate spam out-of-scope; do
+  bot_triage "$verdict" > "$WORK/comments.json"
+  SENDER=FlorianSchw COMMENTER=FlorianSchw comment; runs; check "$verdict: a maintainer's comment can object" $?
+done
+
+# A spec with open questions: the author's or a maintainer's answer.
+bot_triage bug open > "$WORK/comments.json"
+SENDER=author COMMENTER=author comment; runs; check "open questions: the author's answer" $?
+SENDER=FlorianSchw COMMENTER=FlorianSchw comment; runs; check "open questions: a maintainer's answer" $?
+SENDER=someone comment; skips; check "open questions: someone else's comment starts nothing" $?
+SENDER=author gate edited; skips; check "open questions: an edit starts nothing" $?
+{ bot_triage needs-info; bot_triage needs-info; bot_triage idea open; } > "$WORK/comments.json"
+SENDER=author COMMENTER=author comment; runs; check "open questions: one answer beyond the most triages" $?
+{ bot_triage needs-info; bot_triage idea open; bot_triage idea open; } > "$WORK/comments.json"
+SENDER=author COMMENTER=author comment; skips; check "open questions again: the limit applies" $?
 
 { bot_triage needs-info; bot_triage duplicate; bot_triage duplicate; } > "$WORK/comments.json"
 COMMENTER=author comment; skips; check "the most triages reached: an objection starts nothing" $?

@@ -1,6 +1,7 @@
 # Checks the new scripts: every DataSHIELD call against the installed
 # clients (check_ds_calls()) and every "object$column" string against the
-# plan's variables (check_column_references()), then a test run of all
+# plan's variables (check_column_references()), calls that only look at
+# something (check_inspection_calls()), then a test run of all
 # scripts in file order (run_analysis_scripts()): the new ones
 # (`candidate`, step id -> paths) together with `other_files`, the
 # project's other bot scripts, so each step runs with the objects of the
@@ -10,13 +11,17 @@
 # (only failing steps), errors of other_files (named by path), and what is
 # on the servers afterwards (run_analysis_scripts(); `connections` names
 # the connections object).
+# `step_studies` (step id -> servers) holds the steps that run only on
+# some studies; their calls must pass a subset (check_step_datasources()).
 # Stops if the DSLite setup itself fails: then nothing can be judged.
-test_step_scripts <- function(candidate, answers, reference, variables, login_file, other_files, settings, texts, connections = NULL) {
+test_step_scripts <- function(candidate, answers, reference, variables, login_file, other_files, settings, texts, connections = NULL, step_studies = list()) {
   ids <- names(candidate)
   all_code <- paste(c(vapply(answers[ids], step_code, character(1)), unlist(lapply(other_files, readLines, warn = FALSE))), collapse = "\n")
   problems <- lapply(setNames(ids, ids), function(id) {
     code <- step_code(answers[[id]])
-    c(check_ds_calls(code, reference, texts), check_column_references(code, all_code, variables, texts))
+    c(check_ds_calls(code, reference, texts), check_column_references(code, all_code, variables, texts),
+      check_inspection_calls(code, unlist(settings$inspection_functions), texts),
+      check_step_datasources(code, step_studies[[id]], connections %||% "conns", reference, texts))
   })
 
   run <- run_analysis_scripts(login_file, sort(c(other_files, unlist(candidate, use.names = FALSE))),

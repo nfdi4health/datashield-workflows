@@ -10,9 +10,10 @@ name: Implement Issue
 #   pick       the next approved issue: the requested one, else the oldest
 #              approval; checks the approval, marks it as running
 #   implement  the agent on its own machine, with no token that can write:
-#              a writer, the checks, a maintainability reviewer, up to two
-#              correction rounds, a disclosure reviewer; the result is a git
-#              bundle and text files
+#              a writer, the checks, a maintainability and a disclosure
+#              reviewer, up to two correction rounds (must-fix points and
+#              disclosure deviations from the spec), a disclosure re-check;
+#              the result is a git bundle and text files
 #   publish    a clean machine that never runs the agent: checks the
 #              approval again, pushes, opens the pull request (a draft if
 #              the attempt failed), comments, sets the labels, starts the
@@ -25,7 +26,7 @@ on:
   workflow_call:
     inputs:
       targets:
-        description: 'The repositories the runner works on, as JSON: {"owner/name": {"base": "dev", "setup": "r", "server": "owner/server-package"}}. One owner (one App installation). `server` (optional) is checked out for the disclosure reviewer.'
+        description: 'The repositories the runner works on, as JSON: {"owner/name": {"branch": "dev", "setup": "r", "server": "owner/server-package", "server-branch": "dev"}}. One owner (one App installation). `branch`: where work starts and the pull request goes (default: the repository''s default branch). `server` (optional) is checked out read-only at `server-branch` (default: its default branch) for the writer and the disclosure reviewer.'
         required: true
         type: string
       allowed-logins:
@@ -87,11 +88,21 @@ on:
         required: false
         type: string
         default: 'bug idea'
-      type-labels:
-        description: 'Issue label -> commit type, as JSON. The type decides the branch and the pull request title.'
+      issue-types:
+        description: 'GitHub issue type -> commit type, as JSON; used first. The type decides the branch and the pull request title.'
         required: false
         type: string
-        default: '{"bug": "fix", "enhancement": "feat"}'
+        default: '{"Feature": "feat", "Bug": "fix"}'
+      type-labels:
+        description: 'Issue label -> commit type, as JSON, for issues without one of those issue types. In order: the first label the issue carries decides (by default a feature beats a fix; the writer is told to do both parts).'
+        required: false
+        type: string
+        default: '{"enhancement": "feat", "bug": "fix"}'
+      open-pull-request:
+        description: 'false: push the branch only and put its comparison link and the report on the issue, without opening a pull request.'
+        required: false
+        type: boolean
+        default: true
       log-branch:
         description: "Branch of the caller's repository with the event log (empty: no log)."
         required: false
@@ -143,6 +154,8 @@ env:
   TRIAGE_AUTHOR: ${{ inputs.triage-author }}
   SPEC_CATEGORIES: ${{ inputs.spec-categories }}
   TYPE_LABELS: ${{ inputs.type-labels }}
+  ISSUE_TYPES: ${{ inputs.issue-types }}
+  OPEN_PULL_REQUEST: ${{ inputs.open-pull-request }}
   LABEL_PROCEED: ${{ inputs.label-proceed }}
   LABEL_IN_PROGRESS: ${{ inputs.label-in-progress }}
   LABEL_COMPLETED: ${{ inputs.label-completed }}
@@ -165,7 +178,9 @@ jobs:
       base: ${{ steps.pick.outputs.base }}
       setup: ${{ steps.pick.outputs.setup }}
       server: ${{ steps.pick.outputs.server }}
+      server_branch: ${{ steps.pick.outputs.server_branch }}
       type: ${{ steps.pick.outputs.type }}
+      type_note: ${{ steps.pick.outputs.type_note }}
       branch: ${{ steps.pick.outputs.branch }}
       spec_sha: ${{ steps.pick.outputs.spec_sha }}
       existing_pr: ${{ steps.pick.outputs.existing_pr }}
@@ -174,7 +189,8 @@ jobs:
         id: owner
         run: |
           echo "owner=$(jq -r 'keys[0] | split("/")[0]' <<< "$TARGETS")" >> "$GITHUB_OUTPUT"
-          echo "names=$(jq -r '[keys[] | split("/")[1]] | join(",")' <<< "$TARGETS")" >> "$GITHUB_OUTPUT"
+          # The targets and their server packages (pick reads their default branches).
+          echo "names=$(jq -r '[(keys[] | split("/")[1]), (.[] | .server // empty | split("/")[1])] | unique | join(",")' <<< "$TARGETS")" >> "$GITHUB_OUTPUT"
 
       - name: Token for the target repositories
         id: token
@@ -216,6 +232,10 @@ jobs:
     timeout-minutes: ${{ inputs.timeout-minutes }}
     permissions:
       contents: read
+    # For the writer's prompt (promptValues()).
+    env:
+      SERVER: ${{ needs.pick.outputs.server }}
+      TYPE_NOTE: ${{ needs.pick.outputs.type_note }}
     steps:
       - name: Read-only token for the target repository
         id: token
@@ -241,6 +261,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ needs.pick.outputs.server }}
+          ref: ${{ needs.pick.outputs.server_branch }}
           path: .agent/server
           persist-credentials: false
 
@@ -380,6 +401,54 @@ jobs:
         env:
           ROLE: maintainability
           EXECUTION_FILE: ${{ steps.maintainability0.outputs.execution_file }}
+
+      # The disclosure review runs after round 0 too: findings that deviate
+      # from the approved spec go back to the writer with the must-fix points
+      # (dev-notes/implementer-plan.md, "Disclosure review").
+      - name: 'Prompt: disclosure'
+        id: prompt-disclosure0
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: disclosure
+          ROUND: '0'
+          BASE: ${{ needs.pick.outputs.base }}
+
+      - name: 'Agent: disclosure review'
+        id: disclosure0
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        continue-on-error: true
+        uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1.0.269
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
+          prompt: ${{ steps.prompt-disclosure0.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.review-model }}
+            --max-turns ${{ inputs.review-max-turns }}
+            --allowedTools "Read,Glob,Grep,Skill,Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      # Reviewers only read; their final answer is the review.
+      - name: 'Save the disclosure review'
+        if: steps.disclosure0.outcome == 'success'
+        uses: $/.github/actions/implementer
+        with:
+          command: save-review
+        env:
+          ROLE: disclosure
+          EXECUTION_FILE: ${{ steps.disclosure0.outputs.execution_file }}
 
       - name: Another correction round?
         id: round0
@@ -585,19 +654,22 @@ jobs:
           ROLE: maintainability
           EXECUTION_FILE: ${{ steps.maintainability2.outputs.execution_file }}
 
+      # After correction rounds: whether the deviations are fixed, and the
+      # review brought up to date with the code as it is now.
       - name: 'Prompt: disclosure'
-        id: prompt-disclosure
-        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        id: prompt-disclosure-recheck
+        if: steps.writer1.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
         uses: $/.github/actions/implementer
         with:
           command: prompt
         env:
           PROMPT: disclosure
+          ROUND: '1'
           BASE: ${{ needs.pick.outputs.base }}
 
-      - name: 'Agent: disclosure review'
-        id: disclosure
-        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+      - name: 'Agent: disclosure re-check'
+        id: disclosure-recheck
+        if: steps.writer1.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
         continue-on-error: true
         uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1.0.269
         env:
@@ -609,7 +681,7 @@ jobs:
           # workflow for the next issue, the timer); the approval is checked
           # in pick and publish, not by who started the run.
           allowed_bots: '*'
-          prompt: ${{ steps.prompt-disclosure.outputs.text }}
+          prompt: ${{ steps.prompt-disclosure-recheck.outputs.text }}
           settings: ${{ runner.temp }}/claude-settings.json
           plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
           plugins: datashield-skills@datashield-skills
@@ -621,13 +693,13 @@ jobs:
 
       # Reviewers only read; their final answer is the review.
       - name: 'Save the disclosure review'
-        if: steps.disclosure.outcome == 'success'
+        if: steps.disclosure-recheck.outcome == 'success'
         uses: $/.github/actions/implementer
         with:
           command: save-review
         env:
           ROLE: disclosure
-          EXECUTION_FILE: ${{ steps.disclosure.outputs.execution_file }}
+          EXECUTION_FILE: ${{ steps.disclosure-recheck.outputs.execution_file }}
 
       - name: Pack the result
         id: pack
@@ -637,7 +709,7 @@ jobs:
           OUT: ${{ runner.temp }}/out
         run: |
           mkdir -p "$OUT"
-          for file in summary.md checks.md checks.json review-maintainability.json review-disclosure.md needs-input.md; do
+          for file in summary.md checks.md checks.json review-maintainability.json review-disclosure.md review-disclosure.json needs-input.md; do
             cp ".agent/$file" "$OUT/$file" 2> /dev/null || true
           done
           if [ "$(git rev-list --count "origin/$BASE..HEAD")" -gt 0 ]; then

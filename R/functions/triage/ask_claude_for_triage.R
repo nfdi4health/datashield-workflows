@@ -20,7 +20,8 @@ ask_claude_for_triage <- function(claude, issue, settings) {
     TITLE = issue$title,
     BODY = if (nzchar(body)) body else "(empty)",
     HISTORY = format_triage_history(issue, settings),
-    DISCLOSURE = format_disclosure_guidance(settings)
+    DISCLOSURE = format_disclosure_guidance(settings),
+    AFFECTS = format_affects_guidance(settings)
   ))
   answer <- call_claude_tool(claude, build_triage_tool(settings), prompt)
   if (!is.null(answer$documentation) && !answer$documentation %in% names(settings$documentation_verdicts)) {
