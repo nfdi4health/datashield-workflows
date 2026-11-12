@@ -30,6 +30,7 @@ functions_dir <- if (dir.exists("R/functions/analysis")) {
   ".shared-workflows/R/functions"
 }
 walk(list.files(file.path(functions_dir, c("shared", "analysis")), pattern = "\\.R$", full.names = TRUE), source)
+use_recorded_answers()  # self-test mode only (input self-test-fixture)
 
 # The Claude client (profile "datashield-analysis" of config/claude.yml);
 # the prompt templates are in the context below.

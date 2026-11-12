@@ -66,8 +66,10 @@ draft_and_test_steps <- function(to_write, plan, steps, existing, context, check
 
   untestable <- Filter(Negate(is.null), settings$dslite_untestable)
   for (id in setdiff(names(outcome$untested), names(outcome$problems))) {
+    statements <- paste(outcome$untested[[id]], collapse = "\n")
+    used <- untestable[vapply(names(untestable), function(f) grepl(f, statements, fixed = TRUE), logical(1))]
     notes <- c(notes, fill_template(texts$notes$dslite_untested, list(
-      STEP = id, FUNCTIONS = format_excluded_functions(untestable),
+      STEP = id, FUNCTIONS = format_excluded_functions(if (length(used) > 0) used else untestable),
       STATEMENTS = paste(sprintf("`%s`", outcome$untested[[id]]), collapse = "; "))))
   }
   for (f in names(outcome$broken_other)) {

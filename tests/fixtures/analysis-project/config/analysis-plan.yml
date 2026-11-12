@@ -1,0 +1,48 @@
+# Self-test fixture of datashield-analysis-suggest.yml (tests/self-test/
+# make-analysis-project.sh puts it into a project built from dsAnalysis's
+# templates). Made-up variables, mock data from this plan; the answers
+# are recorded in tests/fixtures/claude-answers/analysis-project.json.
+
+project:
+  title: "Self-test: BMI and diabetes"
+
+symbol: D
+
+studies:                          # the server names of dsAnalysis's login templates
+  - server: DEMO_OBIBA_1
+    packages: {dsBase: "6.3.5"}
+  - server: DEMO_OBIBA_2
+    packages: {dsBase: "6.3.5"}
+  - server: DEMO_OBIBA_3
+    packages: {dsBase: "6.3.5"}
+
+package-catalogue: self-test-no-catalogue.json   # not there: no catalogue notes, no network
+package-status: [production]
+mock-data: plan
+
+variables:
+  - name: DIS_DIAB
+    type: categorical
+    categories: {"0": no, "1": yes}
+    role: outcome
+  - name: PM_BMI_CONTINUOUS
+    type: continuous
+    range: [15, 60]
+    role: exposure
+  - name: GENDER
+    type: categorical
+    categories: {"0": male, "1": female}
+    role: confounder
+
+steps:
+  - id: data_management
+    title: Data management
+    description: "Complete cases for outcome, exposure and confounder."
+
+  - id: descriptives
+    title: Descriptive statistics
+    description: "Mean BMI per study and pooled; table of DIS_DIAB."
+
+  - id: main_model
+    title: Main model
+    description: "Logistic regression of DIS_DIAB on BMI and GENDER, pooled and as study-level meta-analysis."
