@@ -9,8 +9,10 @@ claude_client <- function(profile, prompt_file = NULL, auth = claude_auth()) {
   if (!is.null(prompt_file)) {
     prompt <- read_text_file(prompt_file)
   }
+  config <- claude_settings(profile)$anthropic
+  record_provenance("model", profile, config$model %||% "")
   list(
-    config = claude_settings(profile)$anthropic,
+    config = config,
     prompt = prompt,
     auth = auth
   )

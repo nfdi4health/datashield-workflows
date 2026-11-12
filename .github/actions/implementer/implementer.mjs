@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Refusal, githubApi, labelNames, parseTargets, splitLogins, writeOutputs } from "./lib.mjs";
 import { parseRequest, pickNext, verifyIssue } from "./queue.mjs";
-import { finalOutcome, nextRound, readExecution, readJson } from "./outcome.mjs";
+import { finalOutcome, nextRound, readExecution, readJson, splitDisclosureReview } from "./outcome.mjs";
 import { publish, readResult, prepareBranch, setLabels } from "./publish.mjs";
 import { appendToLog, collectEvents, collectRuns, readEvents } from "./log.mjs";
 
@@ -22,7 +22,9 @@ export function config(e = env) {
     allowedLogins: splitLogins(e.ALLOWED_LOGINS),
     triageAuthor: e.TRIAGE_AUTHOR || "github-actions[bot]",
     specCategories: splitLogins(e.SPEC_CATEGORIES || "bug idea"),
-    typeLabels: JSON.parse(e.TYPE_LABELS || '{"bug":"fix","enhancement":"feat"}'),
+    typeLabels: JSON.parse(e.TYPE_LABELS || '{"enhancement":"feat","bug":"fix"}'),
+    issueTypes: JSON.parse(e.ISSUE_TYPES || '{"Feature":"feat","Bug":"fix"}'),
+    openPullRequest: e.OPEN_PULL_REQUEST !== "false",
     branchPrefix: e.BRANCH_PREFIX || "agent-suggest/",
   };
 }
@@ -41,10 +43,16 @@ export function fillPrompt(template, values) {
 
 export function promptValues(e) {
   const round = Number(e.ROUND || 0);
+  const disclosureScope = round === 0
+    ? "This is the first review of the change."
+    : "This is the re-check after the correction rounds: your earlier review is `.agent/review-disclosure.md`, its deviations `.agent/review-disclosure.json`. Check whether each deviation is fixed (keep it in `deviations` if not), and update the review to the code as it is now.";
   const scope = round === 0
     ? `Review the whole change: \`git diff origin/${e.BASE}...HEAD\`.`
     : `This is the check after correction round ${round}: review only the fixes, \`git diff ${e.SINCE}..HEAD\`, and whether the \`must_fix\` points of the previous review (\`.agent/review-maintainability.json\`) are fixed. Points still open stay in \`must_fix\`.`;
-  return { ROUND: round, BASE: e.BASE ?? "", SINCE: e.SINCE ?? "", SCOPE: scope };
+  const server = e.SERVER
+    ? `The server package \`${e.SERVER}\` is checked out read-only in \`.agent/server\`. If the change needs a change there too, stop and ask (\`.agent/needs-input.md\`): changes to both packages in one run aren't supported yet.`
+    : "";
+  return { ROUND: round, BASE: e.BASE ?? "", SINCE: e.SINCE ?? "", SCOPE: scope, DISCLOSURE_SCOPE: disclosureScope, SERVER: server, TYPE_NOTE: e.TYPE_NOTE ?? "" };
 }
 
 // The maintainability reviewer answers with JSON, perhaps in a code fence or
@@ -100,8 +108,11 @@ const commands = {
     writeFileSync(env.SPEC_FILE, next.spec);
     await setLabels(api, next.repository, next.issue, { remove: [cfg.labels.failed, cfg.labels.needsInput], add: [cfg.labels.inProgress] });
     console.log(`Working on ${next.repository}#${next.issue}.`);
-    const { repository, owner, name, issue, base, setup, server, type, branch, sha, existingPr } = next;
-    return writeOutputs({ found: "true", repository, owner, name, issue, base, setup, server, type, branch, spec_sha: sha, existing_pr: existingPr });
+    const { repository, owner, name, issue, base, setup, server, serverBranch, type, typeNote, branch, sha, existingPr } = next;
+    return writeOutputs({
+      found: "true", repository, owner, name, issue, base, setup, server, server_branch: serverBranch,
+      type, type_note: typeNote, branch, spec_sha: sha, existing_pr: existingPr,
+    });
   },
 
   // Again before publishing: a label removed or a spec edited during the run stops here.
@@ -126,7 +137,9 @@ const commands = {
   async "save-review"() {
     const { text } = readExecution(env.EXECUTION_FILE);
     if (env.ROLE === "disclosure") {
-      writeFileSync(".agent/review-disclosure.md", `${text.trim()}\n`);
+      const { markdown, deviations } = splitDisclosureReview(text);
+      writeFileSync(".agent/review-disclosure.md", `${markdown}\n`);
+      writeFileSync(".agent/review-disclosure.json", `${JSON.stringify({ deviations })}\n`);
       return;
     }
     writeFileSync(".agent/review-maintainability.json", `${JSON.stringify(parseReview(text))}\n`);
@@ -136,6 +149,7 @@ const commands = {
     const again = nextRound({
       checks: readJson(".agent/checks.json", {}),
       review: readJson(".agent/review-maintainability.json", {}),
+      disclosure: readJson(".agent/review-disclosure.json", {}),
       round: Number(env.ROUND),
       maxRounds: Number(env.MAX_ROUNDS),
     });
@@ -144,8 +158,8 @@ const commands = {
 
   async outcome() {
     const steps = Object.entries(JSON.parse(env.STEPS || "{}"))
-      .filter(([id]) => /^(writer|maintainability|disclosure)\d*$/.test(id))
-      .map(([id, s]) => ({ role: id.replace(/\d+$/, ""), ran: s.outcome !== "skipped", conclusion: s.outcome, executionFile: s.outputs?.execution_file }));
+      .filter(([id]) => /^(writer|maintainability|disclosure)(\d+|-recheck)?$/.test(id))
+      .map(([id, s]) => ({ role: id.replace(/(\d+|-recheck)$/, ""), ran: s.outcome !== "skipped", conclusion: s.outcome, executionFile: s.outputs?.execution_file }));
     const hasCommits = Number(execFileSync("git", ["rev-list", "--count", `origin/${env.BASE}..HEAD`], { encoding: "utf8" })) > 0;
     const outcome = finalOutcome({
       steps,
@@ -166,6 +180,7 @@ const commands = {
     const logged = await publish(githubApi(env.GH_TOKEN), {
       repository: env.REQUEST_REPOSITORY, issue: env.REQUEST_ISSUE, branch: env.BRANCH, base: env.BASE, type: env.TYPE,
       title: env.TITLE, labels: cfg.labels, outcome, result: readResult(out), runUrl: env.RUN_URL, existingPr: env.EXISTING_PR,
+      openPullRequest: cfg.openPullRequest,
       now: new Date(), timerEvent: env.TIMER_EVENT, timerMaxMinutes: Number(env.TIMER_MAX_MINUTES || 345),
       bundleExists: existsSync(bundle),
       prepare: () => prepareBranch({ bundle, branch: env.BRANCH, base: env.BASE }),

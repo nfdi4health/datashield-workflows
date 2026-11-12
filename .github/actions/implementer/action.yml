@@ -42,6 +42,12 @@ outputs:
   server:
     description: 'See implementer.mjs (server).'
     value: ${{ steps.run.outputs.server }}
+  server_branch:
+    description: 'See implementer.mjs (server_branch).'
+    value: ${{ steps.run.outputs.server_branch }}
+  type_note:
+    description: 'See implementer.mjs (type_note).'
+    value: ${{ steps.run.outputs.type_note }}
   type:
     description: 'See implementer.mjs (type).'
     value: ${{ steps.run.outputs.type }}

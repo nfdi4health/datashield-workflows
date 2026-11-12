@@ -123,6 +123,55 @@ from small validated fields, the precision comes from the narrow, fully
 controlled call. An agent run would give that up. Open-ended tasks such as
 the analysis scripts would suit an agent better, if this is ever revisited.
 
+## Subscription pathway (2026-11-12, user: before v1)
+
+Revisited: the earlier "API for everything others trigger" still holds,
+but many callers have one person who triggers everything — an analysis
+project, a package without collaborators. For them the WIF setup
+(Console organization, service account, federation rules, three secrets)
+is out of proportion to a Pro/Max subscription they already have.
+
+**Principle: one definition of the Claude work, two transports.**
+A task = prompt template + tool schema + profile (`config/claude.yml`).
+Both transports read the same; nothing about the task is duplicated.
+
+- **`api`** (today): `call_claude_tool()` → Messages API, token from WIF.
+- **`claude-code`** (new): the same assembled prompt and schema handed to
+  the unmodified Claude Code binary in print mode, locked down so it
+  behaves like one call: no tools, no settings or `CLAUDE.md` loaded, an
+  empty working directory, one turn, the answer as JSON checked against
+  the schema. Flags to verify against the current CLI docs before
+  building (`--tools`, `--setting-sources`, `--max-turns`, structured
+  output / `--json-schema`, `--model`, effort). `call_claude_tool()` gets
+  a backend switch; the callers of it don't change.
+
+**What carries over, what doesn't:**
+- Exact context: yes — no tools means Claude sees only what R sends, like
+  today.
+- Structure: checked after the answer, with one retry — the path that
+  already exists for models without a forced tool choice
+  (`tool_choice_type: auto`).
+- Model: yes, within the plan. Effort: probably. Cache breakpoints,
+  server-side fallback, our own retry rules: no. Token usage: from the
+  CLI's JSON output where present; cost is not visible on a subscription.
+- Long runs (sweeps, many functions) hit the five-hour limit; the run
+  should stop cleanly and leave a `retry` note, as for a failed call.
+
+**Workflow side:** secrets either the three WIF IDs or
+`claude-code-oauth-token`; the auth step picks the transport by which is
+set (the WIF secrets become optional — not breaking). Usage counting gets
+the transport as a dimension.
+
+**Terms guardrail** (re-check the current pages before building): only the
+token owner's own use. On the subscription transport the bot runs only for
+events by listed logins (an input, default: the repository owner); others'
+PRs get no run. Forks never see secrets anyway.
+
+**Agents and skills (the overlap):** the same rule — prompts, schemas and
+guidance live once (here), local Claude Code skills and the workflows read
+them. A prerequisite: the tool schemas are built in R today; moving them
+into files (e.g. `schemas/*.yml`) lets non-R consumers use them.
+
 ### Built (2026-11-12, branch `agent-suggest/feat/subscription-transport`)
 
 - `call_claude_tool()` switches to `call_claude_code_tool()` when

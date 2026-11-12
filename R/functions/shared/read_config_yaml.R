@@ -27,5 +27,7 @@ read_config_yaml <- function(rel_path, required = TRUE) {
     stop(sprintf("Config not found: %s", rel_path), call. = FALSE)
   }
   # An empty YAML file reads as NULL.
-  utils::modifyList(defaults %||% list(), own %||% list())
+  merged <- utils::modifyList(defaults %||% list(), own %||% list())
+  record_provenance("config", rel_path, short_hash(merged))
+  merged
 }

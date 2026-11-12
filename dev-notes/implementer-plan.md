@@ -258,7 +258,17 @@ that is settled.
   roxygen, test and authors bots run on these branches, unlike
   `bot-suggest/` (drafts excepted, see above).
 
-## Targets, branches, client/server pairs (user, 2026-11-10; not built yet)
+## Targets, branches, client/server pairs (user, 2026-11-10)
+
+**Built 2026-11-12 (branch `agent-suggest/feat/implementer-batch`):**
+`branch` (old `base` still read) and `server-branch`, both defaulting to
+the repository's default branch; GitHub's issue type first
+(`issue-types`), then the labels in order (`type-labels`, feature beats
+fix, the writer gets a note to do both parts); `open-pull-request`;
+the writer is told to stop and ask when the server package needs a change;
+the runner reads the triage's `<!-- bot-triage-affects: … -->` marker
+(server-only and both are refused with a note). The triage side of the
+Affects line is a separate PR.
 
 - **Other branch models:** not everyone works main / dev / feature. Each
   target says where work starts and where the pull request goes, one
@@ -318,7 +328,15 @@ that is settled.
   (server first, links both ways; the client PR's own CI tests against the
   server's branch until the server PR is merged).
 
-## Disclosure review: deviations go back, judgement stays (user, 2026-11-10; not built yet)
+## Disclosure review: deviations go back, judgement stays (user, 2026-11-10)
+
+**Built 2026-11-12 (branch `agent-suggest/feat/disclosure-deviations`):**
+the disclosure review runs after round 0 (ending in a JSON block of
+deviations, `splitDisclosureReview()` → `.agent/review-disclosure.json`);
+deviations start a correction round like a must-fix point
+(`nextRound()`, round 0 only); after correction rounds a re-check
+(`disclosure-recheck`) updates the review and the open deviations, which
+then appear as a warning at the top of the pull request.
 
 The first run showed the question: if writer and disclosure reviewer
 disagree, who corrects? Until now (decision of 2026-11-06) nothing went back
@@ -372,9 +390,12 @@ too), the facts in this repository's config, the workflow only wiring them
   purpose. Wanted: an allowed login's objection to a duplicate verdict is
   decisive (prompt and/or a field), so a deliberate split isn't blocked.
   This time #83 was closed as a duplicate and #58 itself triaged with
-  `bot-triage`.
-- **Answers to open questions start a new triage** (user, 2026-11-10; not
-  built yet). Today, after `bug` or `idea`, only `bot-triage` repeats a
+  `bot-triage`. **Built 2026-11-12:** a maintainer's comment (a login in
+  `allowed-logins`) is named "a maintainer" in the prompt, which says that
+  such a "not a duplicate" decides; such a comment also starts a new
+  triage after duplicate, spam or out-of-scope.
+- **Answers to open questions start a new triage** (user, 2026-11-10;
+  built 2026-11-12 on `agent-suggest/feat/triage-affects-questions`). Today, after `bug` or `idea`, only `bot-triage` repeats a
   triage, so a spec's open questions (dsSupportClient #58) can't be answered
   by comment. Wanted: a triage comment whose spec has open questions carries
   a second hidden marker (e.g. `<!-- bot-triage-open-questions -->`; the
@@ -388,6 +409,121 @@ too), the facts in this repository's config, the workflow only wiring them
   one such triage is always allowed, even when `max-triages` is reached; if
   it again ends with open questions, the normal limit applies. `bot-triage`
   stays unlimited.
+
+## Open for the refactoring: roles proposal (from another chat, 2026-11-11)
+
+Not decided. A proposal for how the implementer (and the analysis bot)
+could be structured, recorded as an open question for the refactoring pass.
+The user likes the three-solver setup.
+
+**Roles:**
+
+- **The workflow orchestrates**, not an LLM: fixed steps, artifacts handed
+  from job to job.
+- **Spec / plan agent:** turns the triage spec into a structured file
+  (`spec.json`: what changes, inputs, expected behaviour, edge cases).
+- **Test / oracle agent:** never sees solver code. Writes the reproducing
+  test and a reference result — for DataSHIELD, plain R on the pooled data
+  against the federated result in DSLite, within a tolerance. For a bug,
+  the test must be confirmed **failing before** any solver starts.
+- **N solvers** (usually 3; N by risk, N = 1 for small bugs), isolated
+  (`strategy.matrix` jobs or worktrees), deliberately diverse (framing,
+  model).
+- **Deterministic gates:** testthat, R CMD check, lintr, federated vs
+  pooled comparison, disclosure check.
+- **Comparator, mostly deterministic:** agreement across candidates, extra
+  edge-case inputs, old vs new on unrelated inputs, prefer the smallest
+  diff; disagreement goes to the human.
+- **Fresh, narrow reviewers** (statistical correctness, disclosure, simplicity):
+  they only flag, never gate.
+- **Human approves** from a structured report.
+
+**Analysis scripts from metadata** (`datashield-analysis-suggest.yml`):
+several independent plans → the human approves a plan (cheapest
+checkpoint) → synthetic data with a planted effect → N scripts in DSLite
+must recover the effect and agree → conformance review → the human runs on
+the real servers.
+
+**Mapping:** roles as skills in `datashield-skills`; handoffs via artifacts
+(`spec.json`, tests, `candidates/`); solver and reviewer jobs without
+secrets and read-only, only the final publish step writes.
+
+**Pitfalls named:** correlated errors (same model, same prompt → same
+mistake), rubber-stamping reviewers, cost creep, over-engineering — start
+with spec → oracle → 2 solvers → gates → human.
+
+**Compared with today:** one writer, `run-checks.sh` (rcmdcheck), a
+maintainability and a disclosure reviewer, up to two correction rounds; no
+separate oracle, no candidates, no comparator. Reviewers already only
+report (except the correction round).
+
+**Assessment (Claude, 2026-11-11), for the discussion:**
+
+- The **independent oracle** is the biggest gain and the cheapest step: a
+  test written without seeing the fix, failing first, plus pooled vs
+  federated comparison, checks correctness instead of plausibility. Worth
+  building before solvers.
+- **N = 3:** the value is in the comparison, so it needs the oracle and
+  the comparator first, else three candidates just triple the review. Cost
+  is mainly subscription quota (three runs per issue hit the 5-hour limit
+  sooner, `implementer-timer.yml` waits more often) and Actions minutes
+  (three jobs installing R packages; a shared cache helps). Diversity
+  matters more than N: with one model on the subscription, vary framing
+  (minimal fix / rewrite of the function / test-first).
+- Scaling N by risk fits the triage: `bug` with a clear spec → N = 1,
+  `enhancement` or server-side change → N = 3.
+- Isolation fits what exists: the writer job already has no writing
+  token; matrix jobs per candidate, the publish job picks one.
+- Open: how the oracle gets pooled data for packages without DSLite mock
+  data.
+
+**User's answers (2026-11-11):**
+
+- "Different models" means different LLM models (e.g. Sonnet vs Opus),
+  combined with different framings. All are Claude models: the run can
+  choose one per solver (Claude Code's model setting), within what the
+  subscription allows; other vendors would need API keys and are not
+  planned. Same-family models still share some mistakes, so the framing
+  stays varied too.
+- **Package code:** when all candidates pass and differ, the **smallest
+  diff** wins.
+- **Analysis scripts:** keep the alternatives — different approaches or
+  packages for the same step are worth showing the analyst, not just one
+  winner. How (all scripts in the PR, one chosen plus the others folded
+  in the description, …) is open.
+- **Input idea (user, 2026-11-11):** the solvers as a list of models, one
+  team per entry, e.g. `solver-models: '["claude-opus-5-5",
+  "claude-sonnet-5-5", "claude-fable-5-2"]'` → three solvers. A JSON array
+  string like `os-list` in `r-cmd-check.yml`, so it goes straight into
+  `strategy.matrix` with `fromJSON()`. The same model may appear twice
+  (different framings). Open: framing per entry (by position, or objects
+  `{model, framing}`), and scaling by risk (e.g. a second list for small
+  bugs, or only the first entry for them).
+- **Proposed shape (2026-11-11, after the user's wish: no extra workflows,
+  no constant caller changes, freedom for other users):** the teams per
+  kind of issue live in a config file, `config/implementer.yml`, read like
+  every other config (shared defaults, a target repository's own copy
+  merged over them key by key):
+
+  ```yaml
+  solvers:
+    bug: [claude-opus-5-5]
+    enhancement: [claude-opus-5-5, claude-sonnet-5-5, claude-fable-5-2]
+    default: [claude-opus-5-5]   # issues of no known kind
+  ```
+
+  The kind comes from what the implementer already reads (issue type,
+  else the type label). One reusable workflow, one caller; changing the
+  teams means editing that file in the target repository, never a
+  workflow. An optional input `solvers` (the same mapping as a JSON
+  string) could override it for a whole runner, but isn't needed at first.
+  Later kinds (e.g. `server` for changes on the server side) are new keys,
+  not new inputs.
+
+  **Unsolved (user, 2026-11-11):** the user is wary of the number of
+  config files across the workflows; a config file may still be the right
+  place, but input vs config file is left open. A target repository needs
+  no file of its own as long as the defaults suit it.
 
 ## Open
 
