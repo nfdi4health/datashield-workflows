@@ -40,12 +40,15 @@ out="$(scope workflow_dispatch feature changed true "")"; grep -qx "branch=featu
 out="$(scope workflow_dispatch main all true "")";     grep -qx "mode=all" <<< "$out"; check "review-scope all: full review" $?
 out="$(scope schedule main changed false "")";            grep -qx "skip=true" <<< "$out"; check "authors: no scheduled runs" $?
 out="$(scope pull_request x changed true "" bot-suggest/tests/dev)"; grep -qx "skip=true" <<< "$out"; check "bot branch skipped" $?
+out="$(scope pull_request x changed true "" agent-suggest/fix/issue-12)"; grep -qx "skip=true" <<< "$out"; check "implementer branch skipped" $?
+out="$(scope pull_request x changed true "" agent-suggest/feat/oracle)"; grep -qx "skip=false" <<< "$out"; check "session branch reviewed" $?
 out="$(ACTOR='dependabot[bot]' scope pull_request x changed true "" dependabot/x)"; grep -qx "skip=true" <<< "$out"; check "Dependabot skipped (no secrets)" $?
 out="$(ACTOR='dependabot[bot]' SELF_TEST=true scope pull_request x changed true "" dependabot/x)"; grep -qx "skip=false" <<< "$out"; check "Dependabot not skipped in a self-test" $?
 echo '{"pull_request": {"draft": true}}' > "$WORK/event.json"
 out="$(scope pull_request x changed true "" agent-suggest/fix/issue-7)"; grep -qx "skip=true" <<< "$out"; check "draft pull request skipped" $?
 echo '{"pull_request": {"draft": false}}' > "$WORK/event.json"
-out="$(scope pull_request x changed true "" agent-suggest/fix/issue-7)"; grep -qx "skip=false" <<< "$out"; check "ready pull request of an agent branch reviewed" $?
+out="$(scope pull_request x changed true "" agent-suggest/fix/typo)"; grep -qx "skip=false" <<< "$out"; check "ready pull request of a session branch reviewed" $?
+out="$(scope pull_request x changed true "" agent-suggest/fix/issue-7)"; grep -qx "skip=true" <<< "$out"; check "ready pull request of the implementer skipped" $?
 echo '{}' > "$WORK/event.json"
 
 # --- determine-changes.sh with review-history.sh ------------------------------------

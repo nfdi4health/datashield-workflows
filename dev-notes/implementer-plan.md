@@ -446,18 +446,23 @@ The "independent oracle" of the roles proposal below, built first
 - Open from the roles proposal: pooled data for packages without DSLite
   test data; a spec / plan agent; N solvers and the comparator.
 
-**Open (user, 2026-11-12): roxygen and test bots on the implementer's PR.**
-Today they review it like any PR and propose via a sub-PR into its branch
-(`bot-suggest/<kind>/agent-suggest-…`). The user wonders whether committing
-straight into the implementer's PR would be more natural. For: one PR to
-review, the agent's branch has no human author whose work needs protecting
-(the reason for sub-PRs), the person reviews the whole PR anyway. Against:
-the checkboxes (`suggestion-choices.yml`) and the outcome record live in
-the sub-PR's description, so declining a suggestion would mean reverting
-its commit (per-file commits make that easy), and the report would move to
-a PR comment. Would be a rule by head branch (`agent-suggest/*` →
-commit to the branch) in `resolve-suggestion-scope` and
-`commit-updated-files`. Not decided.
+**Documentation and tests inside the run (user, 2026-11-12).** Considered:
+the roxygen and test bots committing straight into the implementer's PR, with
+the report as a PR comment. Rejected: a comment with code in it doesn't get
+read, and updating documentation and tests belongs to fixing a function or
+adding a feature. So:
+
+- tests early: the tests from the spec (above) and the writer's own;
+- documentation last: a documentation step after the correction rounds
+  (`prompts/implementer-roxygen.md`, `roxygen-docs` skill, only the
+  functions the change touched, only `#'` lines, `roxygenise()`, `docs:`
+  commit). `run-docs.sh` drops its commits if they change anything but
+  roxygen lines, `man/` and the RoxygenNote, or if the checks, run again,
+  pass no longer. The PR gets a "Documentation" section (one line);
+- the roxygen, test and authors bots skip `agent-suggest/<type>/issue-<n>`
+  (`resolve-suggestion-scope.sh`); Claude Code sessions' agent-suggest
+  branches stay reviewed. A person's later commits on an implementer branch
+  aren't reviewed by the bots either — accepted.
 
 ## Triage, found in the first implementer test (2026-11-10)
 

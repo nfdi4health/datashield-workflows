@@ -500,6 +500,7 @@ test("the writer is told about the tests from the spec, and the pull request sho
   const writer = readFileSync(join("prompts", "implementer-writer.md"), "utf8");
   assert.match(writer, /\{\{ORACLE\}\}/);
   const body = pullRequestBody({ issue: 7, failed: false, needsDisclosureReview: false, runUrl: "",
-    result: { summary: "s", oracle: "Written from the spec.", checks: "", review: {}, deviations: [] } });
+    result: { summary: "s", oracle: "Written from the spec.", docs: "The documentation step updated: `R/f.R`.", checks: "", review: {}, deviations: [] } });
   assert.match(body, /## Tests from the spec\n\nWritten from the spec\./);
+  assert.match(body, /## Documentation\n\nThe documentation step updated/);
 });

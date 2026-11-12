@@ -72,7 +72,9 @@ the live caller used to validate changes before wider rollout.
     fork's) unless another open PR still uses it. `agent-suggest/<type>/…`
     (2026-11-09): branches of coding agents, the implementer's and those of
     Claude Code sessions here (e.g. `agent-suggest/feat/…`), which the
-    roxygen, test and authors bots do review. **Decided (user,
+    roxygen, test and authors bots do review — except the implementer's
+    `agent-suggest/<type>/issue-<n>`, which brings its own tests and
+    documentation (user, 2026-11-12). **Decided (user,
     2026-11-09): Claude Code sessions name every branch
     `agent-suggest/<type>/<topic>`** (type as in Conventional Commits:
     `fix`, `feat`, `ci`, `docs`, …), in this repository and in callers;

@@ -171,7 +171,7 @@ const commands = {
 
   async outcome() {
     const steps = Object.entries(JSON.parse(env.STEPS || "{}"))
-      .filter(([id]) => /^(oracle|writer|maintainability|disclosure)(\d+|-recheck)?$/.test(id))
+      .filter(([id]) => /^(oracle|writer|maintainability|disclosure|roxygen)(\d+|-recheck)?$/.test(id))
       .map(([id, s]) => ({ role: id.replace(/(\d+|-recheck)$/, ""), ran: s.outcome !== "skipped", conclusion: s.outcome, executionFile: s.outputs?.execution_file }));
     const hasCommits = Number(execFileSync("git", ["rev-list", "--count", `origin/${env.BASE}..HEAD`], { encoding: "utf8" })) > 0;
     const outcome = finalOutcome({
