@@ -16,3 +16,15 @@ jobs:
     secrets:
       app-client-id: ${{ secrets.APP_CLIENT_ID }}
       app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+  # For a package on CRAN (optional): after the release, submit the
+  # released version. The maintainer then confirms CRAN's email. Keep
+  # dry-run until the package is ready for CRAN.
+  # cran:
+  #   needs: release
+  #   permissions:
+  #     contents: write   # the cran-<version> tag
+  #   uses: nfdi4health/datashield-workflows/.github/workflows/cran-submit.yml@main
+  #   with:
+  #     ref: main          # the commit with the release's version
+  #     dry-run: true

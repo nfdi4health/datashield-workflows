@@ -1,0 +1,89 @@
+name: CRAN submission
+
+# Submits a released version of an R package to CRAN: checks out `ref`
+# (the release's tag), builds the package, uploads it with
+# cran-comments.md through CRAN's submission form (the steps of
+# devtools::submit_cran(), without its questions) and tags the commit
+# `cran-<version>`, which cran-wait-check.yml reads. CRAN then emails the
+# maintainer (cre in DESCRIPTION), who confirms the submission; that step
+# stays a person's. Meant to run after every other release step is done
+# and green (the caller chains it with `needs`), and as `dry-run` (the
+# default) until a package is ready: then it only builds and shows what
+# would be sent.
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'What to submit: the release tag or commit. Empty: the commit the run started on.'
+        required: false
+        type: string
+        default: ''
+      dry-run:
+        description: 'true: build and show what would be sent, submit nothing and set no tag.'
+        required: false
+        type: boolean
+        default: true
+      tag-prefix:
+        description: 'Prefix of the tag set on a submission (cran-wait-check.yml reads the same).'
+        required: false
+        type: string
+        default: 'cran-'
+
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write   # the cran-<version> tag
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.ref }}
+
+      - name: Shared scripts
+        uses: $/.github/actions/shared-files
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          extra-packages: any::desc, any::httr2, any::curl
+          needs: build
+
+      - name: Build the package
+        id: build
+        run: |
+          R CMD build --no-manual .
+          package="$(Rscript -e 'cat(read.dcf("DESCRIPTION", fields = "Package")[1, 1])')"
+          version="$(Rscript -e 'cat(read.dcf("DESCRIPTION", fields = "Version")[1, 1])')"
+          echo "tarball=${package}_${version}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cran-package
+          path: ${{ steps.build.outputs.tarball }}
+
+      - name: Submit to CRAN
+        env:
+          TARBALL: ${{ steps.build.outputs.tarball }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: Rscript .shared-workflows/R/cran_submit.R
+
+      - name: Tag the submission
+        if: ${{ !inputs.dry-run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag-prefix }}${{ steps.build.outputs.version }}
+        # An annotated tag: its date is the submission's, which
+        # cran-wait-check.yml reads.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Submitted to CRAN"
+          git -c "http.https://github.com/.extraheader=" push \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/$TAG"

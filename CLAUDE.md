@@ -32,10 +32,25 @@ the live caller used to validate changes before wider rollout.
     `resolve-push-token` App token → `commit-push-pat` → `GITHUB_TOKEN`.
     The shared config drafts the release and turns off the GitHub
     plugin's comments, labels and failure issue, so the App needs no
-    Issues permission.
+    Issues permission. Since 2026-11-12 it also writes the
+    release notes into the package's `NEWS.md` (`@semantic-release/changelog`,
+    committed with DESCRIPTION), which CRAN shows.
   - `trigger-release-publish.yml` — sends a `repository_dispatch`
     (`event_type: release-publish`) to the caller repo; the caller's own
     workflow listens for it and runs the release.
+  - `cran-wait-check.yml`, `cran-submit.yml` — CRAN (2026-11-12, user;
+    built, not yet run, not in a caller yet). The check fails a pull
+    request into main while the last CRAN submission (crandb's
+    publication date or the newest `cran-*` tag) is less than `min-days`
+    (60) ago; label `cran-hotfix` overrides; never on CRAN passes. The
+    submission (after the release, chained with `needs`) builds the
+    package, uploads it with `cran-comments.md` through CRAN's form (the
+    two steps of `devtools::submit_cran()`, `upload_to_cran()`), tags
+    `cran-<version>` (annotated); `dry-run` by default. The maintainer still
+    confirms CRAN's email. Entry scripts `R/check_cran_wait.R`,
+    `R/cran_submit.R`, functions `R/functions/cran/`. `r-cmd-check.yml`'s
+    `as-cran` input is the matching check. **Docs pending:** a page
+    (Release section) and the release examples' commented jobs.
   - `merge-pull-request.yml` — merges a PR via `gh pr merge`. No PAT needed
     (`release` runs via `needs:`, not a fresh `push` event).
   - `require-head-branch.yml` — fails a PR whose head branch isn't
