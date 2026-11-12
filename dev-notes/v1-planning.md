@@ -295,3 +295,22 @@ so a release pull request repeats them. To review after v1:
   many bot and keepalive jobs on every pull request, most skipped).
 Required checks can't take path filters (a skipped required check blocks
 the merge), so trimming happens on the optional ones.
+
+## 9. Release merges and the dev ruleset (user, 2026-11-12: fix at some point)
+
+Found on #80: the live `workflows-main` ruleset had "Require branches to be
+up to date before merging" switched on (`strict_required_status_checks_policy:
+true`), although repo-governance's file says `false`. Each `dev` → `main`
+merge leaves a merge commit only on `main`, so every release pull request
+was "out of date"; "Update branch" pushes `main` into `dev` directly, which
+the `dev` ruleset refuses (pull request and `commit-messages / lint`
+required). Switched off by hand for #80. To fix properly:
+- **Back-merge after each release:** a job at the end of the release chain
+  merges `main` into `dev` with the App token; the App becomes a bypass
+  actor on `workflows-dev` (none today). Then `dev` carries the release
+  merges and, once releases run, `CHANGELOG.md`; "strict" could be switched
+  back on.
+- **Drift between the rulesets in GitHub and repo-governance's files:** a
+  check (scheduled or with the apply step) that compares the live rules
+  (`GET /repos/{owner}/{repo}/rules/branches/{branch}`) with the files and
+  reports differences, so a change made by hand doesn't go unnoticed.
