@@ -1032,8 +1032,8 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   a researcher agent (gap catalogue → design with disclosure analysis →
   client/server pair). Fit with this repo and open points in
   [dev-notes/issue-agents.md](dev-notes/issue-agents.md).
-- **Claude Pro/Max subscription instead of WIF** (asked 2026-10-14, not
-  pursued): the workflows call the Messages API directly, which a
+- ~~**Claude Pro/Max subscription instead of WIF** (asked 2026-10-14, not
+  pursued)~~ Superseded 2026-11-12 by the subscription pathway (item N, above): the workflows call the Messages API directly, which a
   subscription doesn't cover. A plain API-key alternative to WIF is not
   wanted (user); running the Claude step through Claude Code would let a
   subscription pay but gives up the controlled, schema-forced call.
