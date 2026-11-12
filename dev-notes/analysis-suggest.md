@@ -849,6 +849,26 @@ installed there to look at the generated scripts).
    agent may use it is the analyst's call, and the README's data
    protection note has to say what happens with it.
 
+   **How it is chosen (proposal, user prefers a config file over a
+   workflow input — workflow files are more sensitive):** one field in
+   the plan's core, where the analyst already reads what is sent:
+
+   ```yaml
+   mock-data: plan        # plan (default): generated from this file
+                          # project: dsAnalysis's own mock data
+   ```
+
+   - `plan` stays the default: nothing derived from real data is used
+     unless the analyst says so.
+   - `project`: the `.rda` files under `paths$mock_data`
+     (`utils/mock_data`, outside the bot's own `bot-suggest/` folder);
+     missing files stop the run with a clear message instead of falling
+     back silently.
+   - The report states which mock data the scripts were tested on.
+   - The project's own `config/analysis-suggest.yml` could hold it
+     instead, but the plan keeps the decision next to the data protection
+     note.
+
 ### What the generated scripts show (DataSHIELD_CONF_DEMO, bot branch, read 2026-11-12)
 
 Branch `bot-suggest/analysis/master`, plan with CNSIM-like variables, steps
