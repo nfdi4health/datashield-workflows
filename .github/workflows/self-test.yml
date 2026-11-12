@@ -6,10 +6,25 @@ name: Self-test
 # no Claude call, no token, nothing pushed or counted, GitHub requests of
 # the scripts answered locally.
 # Then tests/self-test/check-results.sh checks what they produced. Not
-# reusable; runs on every push and pull request, like ci.yml.
+# reusable. Runs on pull requests and on pushes to dev and main, and only
+# when something it exercises changed (not a required check, so a path
+# filter can't block a pull request).
 on:
   push:
+    branches: [dev, main]
+    paths:
+      - 'R/**'
+      - 'config/**'
+      - 'prompts/**'
+      - '.github/**'
+      - 'tests/**'
   pull_request:
+    paths:
+      - 'R/**'
+      - 'config/**'
+      - 'prompts/**'
+      - '.github/**'
+      - 'tests/**'
 
 permissions:
   contents: read

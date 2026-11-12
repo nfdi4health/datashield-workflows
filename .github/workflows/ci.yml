@@ -2,10 +2,14 @@ name: CI
 
 # This repository's own checks (not reusable): unit tests of the R
 # functions, tests of the shell and Node scripts, and static checks of the
-# workflows and scripts. Runs on every push and pull request; none of it
-# calls Claude or costs anything but runner minutes.
+# workflows and scripts. Runs on pull requests, and on pushes to dev and
+# main (a push to a feature branch with a pull request would otherwise run
+# everything twice). No path filter: its jobs are required checks, and a
+# required check skipped by a filter never reports and blocks the pull
+# request. None of it calls Claude or costs anything but runner minutes.
 on:
   push:
+    branches: [dev, main]
   pull_request:
 
 permissions:
