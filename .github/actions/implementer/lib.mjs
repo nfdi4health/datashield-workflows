@@ -85,7 +85,10 @@ export async function writeOutputs(values) {
   await appendFile(process.env.GITHUB_OUTPUT, lines.join(""));
 }
 
-// {"owner/name": {"base": "dev", "setup": "r", "server": "owner/server"}}.
+// {"owner/name": {"branch": "dev", "setup": "r", "server": "owner/server", "server-branch": "dev"}}.
+// `branch` (where work starts and the pull request goes) and `server-branch`
+// may be left out: the repository's default branch is used. `base` is the
+// old name of `branch`, still read.
 export function parseTargets(json) {
   let targets;
   try {
@@ -99,6 +102,11 @@ export function parseTargets(json) {
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(name)) throw new Error(`${name} is not owner/name.`);
     const server = targets[name].server;
     if (server && !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(server)) throw new Error(`The server of ${name} is not owner/name.`);
+    for (const key of ["branch", "base", "server-branch"]) {
+      const value = targets[name][key];
+      if (value !== undefined && !/^[A-Za-z0-9_./-]+$/.test(String(value))) throw new Error(`The ${key} of ${name} is not a branch name.`);
+    }
+    if (targets[name]["server-branch"] && !server) throw new Error(`${name} has a server-branch but no server.`);
   }
   const owners = new Set(names.map((n) => n.split("/")[0].toLowerCase()));
   if (owners.size > 1) throw new Error("All target repositories must have the same owner (one App installation).");
