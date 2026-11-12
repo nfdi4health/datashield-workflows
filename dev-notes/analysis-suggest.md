@@ -897,7 +897,8 @@ data management → descriptives → main model → sensitivity → figures.
   output, even if the smallCellsRule applied). The plan's study-level
   meta-analysis and forest plot are missing (`ds.glmSLMA` / forest plots
   are excluded in the test environment); check the report said so.
-- One step became two scripts (`03a`, `03b`).
+- One step became two scripts (`03a`, `03b`): `max_script_lines` (150)
+  splits longer steps; the garbage above is part of why it was long.
 
 **Likely cause — and why an agent helps:** the one-shot bot can't look at
 anything, so it writes the looking into the script (print the classes,
