@@ -85,6 +85,16 @@ the live caller used to validate changes before wider rollout.
     no Claude call. Entry script `R/apply_suggestion_choices.R`, functions
     in `R/functions/choices/`; design in
     [dev-notes/suggestion-choices.md](dev-notes/suggestion-choices.md).
+    On `pull_request: closed` (callers add the type) the job
+    `record-outcome` adds the outcome record (v1 item L, 2026-11-12;
+    `R/record_suggestion_outcome.R`): a hidden
+    `<!-- bot-suggest-outcome: <base64 JSON> -->` in the PR's own
+    description — final box and outcome per suggestion, accepted ones
+    edited before merging (both texts, `finding_outcome()`), people's
+    review comments on the findings' files (`match_review_comments()`),
+    the provenance marker. Collecting only; `outcome_record: false` in
+    `config/suggestion-policy.yml` turns it off. **Docs pending:**
+    `suggestion-choices.qmd` (the `closed` type, what is recorded).
   - `workflow-keepalive.yml` — wraps `liskin/gh-workflow-keepalive@v1`
     (user's choice over custom `gh api` code). Inside a reusable workflow
     `GITHUB_WORKFLOW_REF` is the caller's, so it re-enables the calling
