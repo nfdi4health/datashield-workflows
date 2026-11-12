@@ -209,10 +209,22 @@ items, **all of A–J before v1**:
   [prompt-audit.md](prompt-audit.md). Flags 7–9 stay, each with the
   condition to revisit.
 
+- **K** Provenance on every bot output (user, 2026-11-12): model, prompt
+  hash, config version and workflow commit in each bot PR's report footer
+  (or commit trailer); roxygen, tests, analysis. Nothing records it today
+  and it can't be reconstructed later. Est. ½–1 day.
+- **L** Outcome record, collecting only (user, 2026-11-12; analysis after
+  v1): when a bot PR is closed or merged, `suggestion-choices.yml` (also on
+  `closed`) writes a hidden record into its description — choices per
+  finding, the edit diff of accepted findings, review line comments matched
+  to findings, provenance. No storage, no secret, nothing leaves the
+  repository. Est. 2–3 days plus tests and docs. Design in
+  [feedback-loop.md](feedback-loop.md).
+
 ## 7. New workflows — after v1 (user's decision)
 
 None before v1: they build on the refactored foundation, and they are
 the first real use of the new branch model (feature → dev → main,
-release). Order: label integrity → learning loop (collecting only) →
+release). Order: label integrity → learning loop (collecting moved before v1, see K/L) →
 issue triage → spec review → central agent repo with implementer,
 researcher, refactor agent. Design in [issue-agents.md](issue-agents.md).

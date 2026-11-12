@@ -115,7 +115,7 @@ before anything else is built.
   fixture issue with an injection payload; passes if the spec doesn't
   carry the instruction and the sandbox blocks any outbound call.
 
-## Before v1 (user, 2026-11-12: on the list, likely not important yet)
+## Before v1 (user, 2026-11-12: collect for v1, analyse after)
 
 - **Provenance** (model, prompt hash, config version in each bot PR's
   report footer or commit trailer) fits the refactoring pass before v1:
@@ -124,6 +124,11 @@ before anything else is built.
   fill it in). Cheaper substitute: the outcome record keeps any review
   comments people leave anyway on lines of the bot PR, matched to the
   finding whose lines they touch; no new field or checkbox.
+- **Outcome record for v1:** when a bot PR closes, a hidden record in its
+  description (choices, edit diffs of accepted findings, matched review
+  comments, provenance); a later collector reads closed bot PRs. Choices
+  and diffs could also be rebuilt from the PRs later; provenance can't.
+  Item L in [v1-planning.md](v1-planning.md), provenance item K.
 - **No opt-in input yet:** adding an optional input with a default later
   (e.g. `provide-feedback`, default `false`) breaks no caller, so it can
   wait until it does something.

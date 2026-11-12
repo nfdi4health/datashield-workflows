@@ -707,6 +707,12 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   required checks (a required check skipped by a path filter never reports
   and blocks the PR, seen on dsSupportClient #75). Part of the refactoring
   pass with the agents' definitions and the cross-repo overlaps.
+- **Before v1 also: provenance and outcome records** (user, 2026-11-12):
+  model / prompt hash / config version in every bot PR's report, and a
+  hidden outcome record (choices, edit diffs, review comments) written into
+  a bot PR's description when it closes; analysing them comes after v1.
+  [dev-notes/feedback-loop.md](dev-notes/feedback-loop.md), items K/L in
+  [dev-notes/v1-planning.md](dev-notes/v1-planning.md).
 - **Claude prompt caching — checked, set aside (2026-09-26).** Console logs
   of dsSupportClient runs: test review (Opus 5) ~4–8k input / ~1.2–1.9k
   output tokens per function, failure classification ~1.9k / ~170;
