@@ -391,6 +391,14 @@ Details per workflow: [dev-notes/roxygen-suggest.md](dev-notes/roxygen-suggest.m
   `claude-setup.qmd` (choosing a model, effort, thinking counts towards
   `max-tokens`), roadmap "Recent changes". Every Claude call goes through
   `call_claude_tool()` (forced tool call; it sets the tool name from config).
+- **Provenance** (v1 item K, 2026-11-12): roxygen, test and analysis
+  reports end with a small line and a hidden
+  `<!-- bot-suggest-provenance: {...} -->` marker — models per profile,
+  short hashes of the prompts and merged configs as used, and the
+  workflow commit (`.commit`, written by `shared-files`). Recorded on the
+  way by `claude_client()`, `read_text_file()` and `read_config_yaml()`
+  (`record_provenance()`), written by `provenance_footer()`; read later by
+  the outcome record (item L).
 - **Claude returns fields, R assembles the output.** Never trust prompt
   wording where a structural constraint (schema field, `maxItems`, enum)
   is possible.

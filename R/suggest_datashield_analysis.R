@@ -51,6 +51,7 @@ names_in_texts <- list(MAIN = paths$main, DEPENDENCIES = paths$dependencies,
 write_outputs <- function(report, updated) {
   writeLines(updated, "updated_files.txt")
   if (length(report) > 0) {
+    report <- c(report, "", provenance_footer())
     writeLines(report, "suggestion_report.md")
     if (nzchar(summary_file)) {
       write(report, summary_file, append = TRUE)
