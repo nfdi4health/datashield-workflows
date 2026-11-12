@@ -276,3 +276,41 @@ the first real use of the new branch model (feature → dev → main,
 release). Order: label integrity → learning loop (collecting moved before v1, see K/L) →
 issue triage → spec review → central agent repo with implementer,
 researcher, refactor agent. Design in [issue-agents.md](issue-agents.md).
+
+## 8. After v1: fewer checks on pull requests (user, 2026-11-12)
+
+The `dev` → `main` pull request shows a long list of checks ("a million
+required checks"), though the `workflows-main` ruleset requires only four
+(R unit tests, Shell script tests, Static checks, head-branch). The rest are
+everything else that runs on a pull request: CI, the self-tests (roxygen,
+tests, authors, analysis, Check the results), PR checks (commitlint,
+head-branch), cleanup. Most already ran when each change went into `dev`,
+so a release pull request repeats them. To review after v1:
+- which checks a `dev` → `main` pull request needs at all (e.g. only the
+  four required ones; the self-tests ran on the feature pull requests and
+  on the push to `dev`);
+- whether the self-tests can be one job with a matrix, or run only on
+  pushes to `dev` / a schedule instead of every pull request;
+- the same list per caller repository (dsAnalysis and dsSupportClient show
+  many bot and keepalive jobs on every pull request, most skipped).
+Required checks can't take path filters (a skipped required check blocks
+the merge), so trimming happens on the optional ones.
+
+## 9. Release merges and the dev ruleset (user, 2026-11-12: fix at some point)
+
+Found on #80: the live `workflows-main` ruleset had "Require branches to be
+up to date before merging" switched on (`strict_required_status_checks_policy:
+true`), although repo-governance's file says `false`. Each `dev` → `main`
+merge leaves a merge commit only on `main`, so every release pull request
+was "out of date"; "Update branch" pushes `main` into `dev` directly, which
+the `dev` ruleset refuses (pull request and `commit-messages / lint`
+required). Switched off by hand for #80. To fix properly:
+- **Back-merge after each release:** a job at the end of the release chain
+  merges `main` into `dev` with the App token; the App becomes a bypass
+  actor on `workflows-dev` (none today). Then `dev` carries the release
+  merges and, once releases run, `CHANGELOG.md`; "strict" could be switched
+  back on.
+- **Drift between the rulesets in GitHub and repo-governance's files:** a
+  check (scheduled or with the apply step) that compares the live rules
+  (`GET /repos/{owner}/{repo}/rules/branches/{branch}`) with the files and
+  reports differences, so a change made by hand doesn't go unnoticed.
