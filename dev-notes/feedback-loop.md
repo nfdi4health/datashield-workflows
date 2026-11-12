@@ -120,6 +120,10 @@ before anything else is built.
 - **Provenance** (model, prompt hash, config version in each bot PR's
   report footer or commit trailer) fits the refactoring pass before v1:
   small, and useful for debugging now, loop or not.
+- **Decline reason: a nice idea, not planned** (user: doubts people would
+  fill it in). Cheaper substitute: the outcome record keeps any review
+  comments people leave anyway on lines of the bot PR, matched to the
+  finding whose lines they touch; no new field or checkbox.
 - **No opt-in input yet:** adding an optional input with a default later
   (e.g. `provide-feedback`, default `false`) breaks no caller, so it can
   wait until it does something.
