@@ -8,7 +8,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { Refusal, githubApi, labelNames, listAll, parseTargets, safeText, stripClosingKeywords } from "../../.github/actions/implementer/lib.mjs";
 import { commitType, listQueue, parseRequest, pickNext, verifyIssue } from "../../.github/actions/implementer/queue.mjs";
-import { finalOutcome, nextRound, parseLimit, readExecution } from "../../.github/actions/implementer/outcome.mjs";
+import { finalOutcome, nextRound, parseLimit, readExecution, splitDisclosureReview } from "../../.github/actions/implementer/outcome.mjs";
 import { failureComment, needsInputComment, publish, pullRequestBody, reviewChanges } from "../../.github/actions/implementer/publish.mjs";
 import { mergeEvents, statusRows, timelineEvents, toCsv } from "../../.github/actions/implementer/log.mjs";
 import { fillPrompt, pausedUntil, sandboxSettings } from "../../.github/actions/implementer/implementer.mjs";
@@ -235,6 +235,10 @@ test("another round only while checks fail or something must be fixed, and round
   assert.equal(nextRound({ checks: { ok: true }, review: { must_fix: [{ problem: "x" }] }, round: 1, maxRounds: 2 }), true);
   assert.equal(nextRound({ checks: { ok: true }, review: { must_fix: [] }, round: 0, maxRounds: 2 }), false);
   assert.equal(nextRound({ checks: { ok: false }, review: {}, round: 2, maxRounds: 2 }), false);
+  // Disclosure deviations from the spec go back after round 0 only (a re-check follows at the end).
+  const dev = { deviations: ["returns subgroup counts"] };
+  assert.equal(nextRound({ checks: { ok: true }, review: {}, disclosure: dev, round: 0, maxRounds: 2 }), true);
+  assert.equal(nextRound({ checks: { ok: true }, review: {}, disclosure: dev, round: 1, maxRounds: 2 }), false);
 });
 
 test("the final outcome", () => {
@@ -468,4 +472,20 @@ test("a reviewer's final answer becomes the review file's content", async () => 
 test("mentions are neutralised outside code only", () => {
   assert.equal(safeText("Roxygen `@param x` and @someone"), "Roxygen `@param x` and &#64;someone");
   assert.equal(safeText("```r\n#' @details\n```\n@me"), "```r\n#' @details\n```\n&#64;me");
+});
+
+test("the disclosure review's JSON block becomes the deviations; the Markdown stays for people", () => {
+  const text = "**What the server returns**: counts.\n\n```json\n{\"deviations\": [\"new counts leave the server\"]}\n```";
+  const out = splitDisclosureReview(text);
+  assert.deepEqual(out.deviations, ["new counts leave the server"]);
+  assert.equal(out.markdown, "**What the server returns**: counts.");
+  assert.deepEqual(splitDisclosureReview("Nothing leaves a server.").deviations, []);
+  assert.deepEqual(splitDisclosureReview("x\n```json\n{broken\n```").deviations, []);
+});
+
+test("deviations still open after the rounds put a warning on the pull request", () => {
+  const body = pullRequestBody({ issue: 7, failed: false, needsDisclosureReview: false, runUrl: "",
+    result: { summary: "s", disclosure: "d", checks: "", review: {}, deviations: ["a check was removed"] } });
+  assert.match(body, /Deviates from the approved spec/);
+  assert.match(body, /a check was removed/);
 });

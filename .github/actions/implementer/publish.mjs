@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { safeText } from "./lib.mjs";
-import { mustFix, readJson } from "./outcome.mjs";
+import { deviations, mustFix, readJson } from "./outcome.mjs";
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
 
@@ -30,6 +30,7 @@ export function readResult(dir) {
   return {
     summary: read(dir, "summary.md"),
     disclosure: read(dir, "review-disclosure.md"),
+    deviations: deviations(readJson(join(dir, "review-disclosure.json"), {})),
     checks: read(dir, "checks.md"),
     needsInput: read(dir, "needs-input.md"),
     review: readJson(join(dir, "review-maintainability.json"), {}),
@@ -50,6 +51,9 @@ export function pullRequestBody({ issue, failed, needsDisclosureReview, result, 
   return safeText([
     needsDisclosureReview
       ? "> [!WARNING]\n> **Disclosure review needed.** This changes disclosure settings, checks or registered methods. People decide these, so read them line by line.\n"
+      : "",
+    result.deviations?.length
+      ? `> [!WARNING]\n> **Deviates from the approved spec's disclosure choice** (still open after the correction rounds):\n${result.deviations.map((d) => `> - ${d}`).join("\n")}\n`
       : "",
     failed
       ? `> [!CAUTION]\n> **Failed attempt, kept as a draft.** The checks still fail after the correction rounds. See the comment on #${issue}.\n`

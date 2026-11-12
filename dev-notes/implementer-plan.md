@@ -328,7 +328,15 @@ Affects line is a separate PR.
   (server first, links both ways; the client PR's own CI tests against the
   server's branch until the server PR is merged).
 
-## Disclosure review: deviations go back, judgement stays (user, 2026-11-10; not built yet)
+## Disclosure review: deviations go back, judgement stays (user, 2026-11-10)
+
+**Built 2026-11-12 (branch `agent-suggest/feat/disclosure-deviations`):**
+the disclosure review runs after round 0 (ending in a JSON block of
+deviations, `splitDisclosureReview()` → `.agent/review-disclosure.json`);
+deviations start a correction round like a must-fix point
+(`nextRound()`, round 0 only); after correction rounds a re-check
+(`disclosure-recheck`) updates the review and the open deviations, which
+then appear as a warning at the top of the pull request.
 
 The first run showed the question: if writer and disclosure reviewer
 disagree, who corrects? Until now (decision of 2026-11-06) nothing went back

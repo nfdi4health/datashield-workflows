@@ -10,9 +10,10 @@ name: Implement Issue
 #   pick       the next approved issue: the requested one, else the oldest
 #              approval; checks the approval, marks it as running
 #   implement  the agent on its own machine, with no token that can write:
-#              a writer, the checks, a maintainability reviewer, up to two
-#              correction rounds, a disclosure reviewer; the result is a git
-#              bundle and text files
+#              a writer, the checks, a maintainability and a disclosure
+#              reviewer, up to two correction rounds (must-fix points and
+#              disclosure deviations from the spec), a disclosure re-check;
+#              the result is a git bundle and text files
 #   publish    a clean machine that never runs the agent: checks the
 #              approval again, pushes, opens the pull request (a draft if
 #              the attempt failed), comments, sets the labels, starts the
@@ -401,6 +402,54 @@ jobs:
           ROLE: maintainability
           EXECUTION_FILE: ${{ steps.maintainability0.outputs.execution_file }}
 
+      # The disclosure review runs after round 0 too: findings that deviate
+      # from the approved spec go back to the writer with the must-fix points
+      # (dev-notes/implementer-plan.md, "Disclosure review").
+      - name: 'Prompt: disclosure'
+        id: prompt-disclosure0
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: disclosure
+          ROUND: '0'
+          BASE: ${{ needs.pick.outputs.base }}
+
+      - name: 'Agent: disclosure review'
+        id: disclosure0
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        continue-on-error: true
+        uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1.0.269
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
+          prompt: ${{ steps.prompt-disclosure0.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.review-model }}
+            --max-turns ${{ inputs.review-max-turns }}
+            --allowedTools "Read,Glob,Grep,Skill,Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      # Reviewers only read; their final answer is the review.
+      - name: 'Save the disclosure review'
+        if: steps.disclosure0.outcome == 'success'
+        uses: $/.github/actions/implementer
+        with:
+          command: save-review
+        env:
+          ROLE: disclosure
+          EXECUTION_FILE: ${{ steps.disclosure0.outputs.execution_file }}
+
       - name: Another correction round?
         id: round0
         if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
@@ -605,19 +654,22 @@ jobs:
           ROLE: maintainability
           EXECUTION_FILE: ${{ steps.maintainability2.outputs.execution_file }}
 
+      # After correction rounds: whether the deviations are fixed, and the
+      # review brought up to date with the code as it is now.
       - name: 'Prompt: disclosure'
-        id: prompt-disclosure
-        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        id: prompt-disclosure-recheck
+        if: steps.writer1.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
         uses: $/.github/actions/implementer
         with:
           command: prompt
         env:
           PROMPT: disclosure
+          ROUND: '1'
           BASE: ${{ needs.pick.outputs.base }}
 
-      - name: 'Agent: disclosure review'
-        id: disclosure
-        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+      - name: 'Agent: disclosure re-check'
+        id: disclosure-recheck
+        if: steps.writer1.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
         continue-on-error: true
         uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1.0.269
         env:
@@ -629,7 +681,7 @@ jobs:
           # workflow for the next issue, the timer); the approval is checked
           # in pick and publish, not by who started the run.
           allowed_bots: '*'
-          prompt: ${{ steps.prompt-disclosure.outputs.text }}
+          prompt: ${{ steps.prompt-disclosure-recheck.outputs.text }}
           settings: ${{ runner.temp }}/claude-settings.json
           plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
           plugins: datashield-skills@datashield-skills
@@ -641,13 +693,13 @@ jobs:
 
       # Reviewers only read; their final answer is the review.
       - name: 'Save the disclosure review'
-        if: steps.disclosure.outcome == 'success'
+        if: steps.disclosure-recheck.outcome == 'success'
         uses: $/.github/actions/implementer
         with:
           command: save-review
         env:
           ROLE: disclosure
-          EXECUTION_FILE: ${{ steps.disclosure.outputs.execution_file }}
+          EXECUTION_FILE: ${{ steps.disclosure-recheck.outputs.execution_file }}
 
       - name: Pack the result
         id: pack
@@ -657,7 +709,7 @@ jobs:
           OUT: ${{ runner.temp }}/out
         run: |
           mkdir -p "$OUT"
-          for file in summary.md checks.md checks.json review-maintainability.json review-disclosure.md needs-input.md; do
+          for file in summary.md checks.md checks.json review-maintainability.json review-disclosure.md review-disclosure.json needs-input.md; do
             cp ".agent/$file" "$OUT/$file" 2> /dev/null || true
           done
           if [ "$(git rev-list --count "origin/$BASE..HEAD")" -gt 0 ]; then
