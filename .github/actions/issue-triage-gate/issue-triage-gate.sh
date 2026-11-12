@@ -10,7 +10,12 @@
 #   last verdict                  repeated on
 #   needs-info                    an edit, or any person's comment
 #   duplicate, spam, out-of-scope a comment or edit by the issue's author,
-#                                 who may disagree
+#                                 who may disagree, or a comment by a
+#                                 login in ALLOWED_LOGINS (a maintainer)
+#   a spec with open questions    a comment by the issue's author or a
+#   (marker bot-triage-open-      maintainer: the answers; the first such
+#   questions)                    triage after a spec is allowed beyond
+#                                 MAX_TRIAGES, a second one is not
 #   anything else                 nothing
 # Before the first triage, the author's comment counts like an edit: they
 # are still writing, so the wait starts again. Anyone else's starts nothing,
@@ -101,10 +106,13 @@ fi
 if labels_match bot-created; then skip "a bot-created issue"; fi
 
 # --paginate gives one JSON array per page; a failed read fails the run.
+# One line per triage: its category and 1 if its spec has open questions.
 triages="$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$number/comments" | jq -rs '
   add // [] | .[]
   | select(.user.login == "github-actions[bot]")
-  | .body | capture("^<!-- bot-triage: (?<category>[a-z-]+) -->") | .category')"
+  | .body as $b
+  | ($b | capture("^<!-- bot-triage: (?<category>[a-z-]+) -->") | .category) as $c
+  | "\($c) \(if ($b | contains("<!-- bot-triage-open-questions -->")) then 1 else 0 end)"')"
 
 if [ -z "$triages" ]; then
   [ "$trigger" = edit ] || [ "$(event .sender.login)" = "$(jq -r '.user.login' <<< "$issue")" ] \
@@ -113,16 +121,33 @@ else
   if labels_match "${SUSPICIOUS_LABEL:-bot-suspicious}"; then
     skip "the issue is marked ${SUSPICIOUS_LABEL:-bot-suspicious}: one triage only (a listed login can still ask with the triage label)"
   fi
-  case "$trigger/$(tail -n 1 <<< "$triages")" in
+  read -r last_category last_open <<< "$(tail -n 1 <<< "$triages")"
+  previous_open="$(tail -n 2 <<< "$triages" | head -n 1 | cut -d' ' -f2)"
+  [ "$(wc -l <<< "$triages")" -ge 2 ] || previous_open=0
+  actor="$(event .sender.login)"
+  author="$(jq -r '.user.login' <<< "$issue")"
+  beyond_limit=false
+  case "$trigger/$last_category" in
     edit/needs-info|comment/needs-info) ;;
-    edit/duplicate|edit/spam|edit/out-of-scope|comment/duplicate|comment/spam|comment/out-of-scope)
-      actor="$(event .sender.login)"
-      [ "$actor" = "$(jq -r '.user.login' <<< "$issue")" ] \
-        || skip "only the issue's author can object to this verdict"
+    edit/duplicate|edit/spam|edit/out-of-scope)
+      [ "$actor" = "$author" ] || skip "only the issue's author can object to this verdict by an edit"
+      ;;
+    comment/duplicate|comment/spam|comment/out-of-scope)
+      [ "$actor" = "$author" ] || is_allowed "$actor" \
+        || skip "only the issue's author or a maintainer can object to this verdict"
+      ;;
+    comment/*)
+      [ "$last_open" = 1 ] || skip "already triaged"
+      [ "$actor" = "$author" ] || is_allowed "$actor" \
+        || skip "only the issue's author or a maintainer answers the open questions"
+      # The first answer to a spec's open questions doesn't count against
+      # the limit; if that triage has open questions again, the next does.
+      [ "$previous_open" = 1 ] || beyond_limit=true
       ;;
     *) skip "already triaged" ;;
   esac
-  [ "$(wc -l <<< "$triages")" -lt "$MAX_TRIAGES" ] || skip "the most triages for one issue reached"
+  [ "$beyond_limit" = true ] || [ "$(wc -l <<< "$triages")" -lt "$MAX_TRIAGES" ] \
+    || skip "the most triages for one issue reached"
 fi
 
 echo "Issue $number needs triage."

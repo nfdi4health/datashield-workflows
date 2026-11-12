@@ -2,7 +2,8 @@
 # short fields. Claude only fills these in; the comment is written in R
 # (format_triage_comment()), and its limits are checked there. With
 # settings$disclosure_options (a DataSHIELD repository), three disclosure
-# fields for the spec of ideas, the settings as an enum.
+# fields for the spec of ideas, the settings as an enum. With
+# settings$server (a client package), `affects`.
 build_triage_tool <- function(settings) {
   tool <- list(
     description = "Submit the triage of the issue.",
@@ -53,6 +54,13 @@ build_triage_tool <- function(settings) {
                       "documentation_note", "manipulation_attempt")
     )
   )
+  if (nzchar(settings$server %||% "")) {
+    tool$input_schema$properties$affects <- list(
+      type = "string", enum = list("this", "both", "server"),
+      description = "For bug and idea: which repositories the change needs, this one, both (with the server package) or only the server package. Otherwise this."
+    )
+    tool$input_schema$required <- c(tool$input_schema$required, list("affects"))
+  }
   options <- unlist(settings$disclosure_options)
   if (length(options) > 0) {
     categories <- paste(unlist(settings$disclosure$categories), collapse = " and ")
