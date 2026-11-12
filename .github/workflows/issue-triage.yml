@@ -34,6 +34,11 @@ on:
         required: false
         type: boolean
         default: false
+      server:
+        description: 'The server package of this client package (owner/name): the spec of a bug or idea then says which repositories it affects (an "Affects" line the implementer reads). Empty: no such line.'
+        required: false
+        type: string
+        default: ''
       triage-bots:
         description: 'Bot logins whose new issues are triaged like a person''s, e.g. the App the suggestion bots open their issues with (`<app-slug>[bot]`). Exact, separated by commas or spaces. Empty: issues by bots are only triaged on request (`triage-label`).'
         required: false
@@ -179,6 +184,8 @@ jobs:
           ISSUE_NUMBER: ${{ steps.gate.outputs.number }}
           APPROVAL_LABEL: ${{ inputs.approval-label }}
           TRIAGE_DATASHIELD: ${{ inputs.datashield }}
+          TRIAGE_SERVER: ${{ inputs.server }}
+          ALLOWED_LOGINS: ${{ inputs.allowed-logins }}
         run: Rscript .shared-workflows/R/triage_issue.R
 
       # Counts this run once, anonymously, by workflow, outcome and version

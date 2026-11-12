@@ -30,6 +30,9 @@ gh_token <- Sys.getenv("GH_TOKEN")
 number <- Sys.getenv("ISSUE_NUMBER")
 
 settings <- read_config_yaml("config/issue-triage.yml")
+settings$server <- Sys.getenv("TRIAGE_SERVER")
+# Their comments count as a maintainer's (format_triage_history()).
+settings$maintainers <- strsplit(trimws(Sys.getenv("ALLOWED_LOGINS")), "[,[:space:]]+")[[1]]
 if (identical(Sys.getenv("TRIAGE_DATASHIELD"), "true")) {
   settings$disclosure_options <- read_disclosure_settings(settings)
 }

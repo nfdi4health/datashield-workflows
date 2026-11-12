@@ -75,3 +75,12 @@ disclosure:
 footer: Automatic first look. Nothing has been decided.
 # %s is "1 place" or "2 places".
 hidden_text_note: "this issue has text that is hidden on the page, in %s. Open the raw text to read it before relying on this."
+
+# The spec's "Affects" line, with a server package (input `server`).
+affects:
+  this: this repository only
+  both: "this repository and `{{SERVER}}`"
+  server: "only `{{SERVER}}` (then the issue belongs there)"
+
+# Under a spec with open questions: answers in a comment start a new triage.
+open_questions_note: "_Answer the open questions in a comment (the issue's author or a maintainer): that starts a new triage._"

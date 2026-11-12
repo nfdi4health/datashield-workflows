@@ -919,3 +919,28 @@ test_that("an idea's spec gets the disclosure section; a bug's doesn't", {
   empty <- triage_answer(category = "idea", goal = "x", disclosure_settings = list(), disclosure_below_threshold = "", disclosure_decision = "")
   expect_false(any(grepl("Disclosure", triage_spec_lines(empty, settings))))
 })
+
+test_that("the spec gets an Affects line and marker with a server package, and a note under open questions", {
+  settings <- read_config_yaml("config/issue-triage.yml")
+  answer <- list(category = "bug", goal = "g", reported = list("r"), acceptance_criteria = list("a"),
+                 open_questions = list("Which threshold?"), affects = "both")
+  expect_false(any(grepl("Affects", triage_spec_lines(answer, settings))))
+  settings$server <- "org/pkgServer"
+  lines <- triage_spec_lines(answer, settings)
+  expect_true(any(grepl("**Affects:** this repository and `org/pkgServer`", lines, fixed = TRUE)))
+  expect_true("<!-- bot-triage-affects: both -->" %in% lines)
+  expect_true("<!-- bot-triage-open-questions -->" %in% lines)
+  answer$open_questions <- list()
+  expect_false("<!-- bot-triage-open-questions -->" %in% triage_spec_lines(answer, settings))
+  expect_true("affects" %in% names(build_triage_tool(settings)$input_schema$properties))
+  expect_match(format_affects_guidance(settings), "org/pkgServer")
+})
+
+test_that("a maintainer's comment is named as such in the history", {
+  settings <- read_config_yaml("config/issue-triage.yml")
+  settings$maintainers <- "maint"
+  issue <- list(author = "auth", replies = list(list(author = "maint", body = "split out on purpose"), list(author = "auth", body = "yes")))
+  history <- format_triage_history(issue, settings)
+  expect_match(history, 'by="a maintainer"')
+  expect_match(history, "by=\"the issue's author\"")
+})

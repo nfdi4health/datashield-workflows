@@ -372,9 +372,12 @@ too), the facts in this repository's config, the workflow only wiring them
   purpose. Wanted: an allowed login's objection to a duplicate verdict is
   decisive (prompt and/or a field), so a deliberate split isn't blocked.
   This time #83 was closed as a duplicate and #58 itself triaged with
-  `bot-triage`.
-- **Answers to open questions start a new triage** (user, 2026-11-10; not
-  built yet). Today, after `bug` or `idea`, only `bot-triage` repeats a
+  `bot-triage`. **Built 2026-11-12:** a maintainer's comment (a login in
+  `allowed-logins`) is named "a maintainer" in the prompt, which says that
+  such a "not a duplicate" decides; such a comment also starts a new
+  triage after duplicate, spam or out-of-scope.
+- **Answers to open questions start a new triage** (user, 2026-11-10;
+  built 2026-11-12 on `agent-suggest/feat/triage-affects-questions`). Today, after `bug` or `idea`, only `bot-triage` repeats a
   triage, so a spec's open questions (dsSupportClient #58) can't be answered
   by comment. Wanted: a triage comment whose spec has open questions carries
   a second hidden marker (e.g. `<!-- bot-triage-open-questions -->`; the
