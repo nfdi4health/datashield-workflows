@@ -73,14 +73,17 @@ Claude says why each failed, and how sure it is (high, medium, low):
 
 | Classification | Meaning | Reported as |
 |---|---|---|
-| `real_bug` | The test is right and found a defect | A possible bug in the code: in the report, and at high confidence an issue |
-| `bad_test` | The test itself is wrong | A comment on your PR |
-| `env_misconfiguration` | The test setup is broken, e.g. a missing package | A comment on your PR |
+| `real_bug` | The test is right and found a defect | A possible bug in the code: in the report, one short comment on your PR, and at high confidence an issue |
+| `bad_test` | The test itself is wrong | One line in the report ("Generated tests that didn't work"), code and output folded; no comment |
+| `env_misconfiguration` | The test setup is broken, e.g. a missing package | The same as `bad_test` |
 
 - **Which possible bugs are reported** follows the
   `code-issue-confidence` input, else `possible_bugs` in
   `config/suggestion-policy.yml`: reported at high and medium
   confidence, an issue only at high.
+- **One comment per run** on your PR when a suggestion PR carries the
+  report: which functions may have a bug, how sure, and the issue if one
+  was opened. No test code; that's in the report.
 - **One issue per function**, titled "Possible bug found by generated
   test: `<function>`". A new issue lists all failing tests of that run,
   each with its code folded away. While it is open, a later run adds only

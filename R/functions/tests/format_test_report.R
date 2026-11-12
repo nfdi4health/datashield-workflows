@@ -6,9 +6,9 @@
 # tests", "Possible bugs in the code" (from reported existing tests and
 # failed generated tests, medium confidence labelled, with a link to the
 # issue where one was opened), "Existing tests to look at", "Generated
-# tests that failed"
-# (those reported here rather than as PR comments, with test code and
-# output), "Functions not tested" — and in each a collapsible group per
+# tests that didn't work"
+# (the bot's own failed tests, one line each, code and output folded),
+# "Functions not tested" — and in each a collapsible group per
 # file. Each finding carries the commit it came from; crossed-out ones
 # stay visible, struck through with when and why (finding_line()). On
 # top: the summary line and, when `latest` is given (list(sha, stats)),
@@ -90,9 +90,10 @@ format_test_report <- function(state, latest = NULL, legacy = NULL, open = integ
             bug_line),
     section("Existing tests to look at", of_kind("note"), "Not changed automatically.",
             function(e) sprintf("%s — %s", name(e), e$explanation)),
-    section("Generated tests that failed", Filter(function(e) isTRUE(e$in_report), of_kind("failed")), "Not proposed; each needs a look.",
-            function(e) sprintf("%s — `%s`", name(e), e$classification),
-            extra = function(e) c("", e$explanation), sep = c("", "---", "")),
+    section("Generated tests that didn't work", Filter(function(e) isTRUE(e$in_report), of_kind("failed")),
+            "The bot's own tests that failed because of the test or the test environment, not your code. Not proposed; nothing to do.",
+            function(e) sprintf("%s — `%s`: %s", name(e), e$classification, e$explanation),
+            extra = function(e) if (nzchar(e$details %||% "")) c("", e$details) else character(0)),
     section("Functions not tested", of_kind("untested"), "They need DataSHIELD connections, but the tests have no way to connect and `dslite-setup` is `never`.",
             function(e) sprintf("`%s`", e$fn))
   )
