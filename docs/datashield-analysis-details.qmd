@@ -12,13 +12,26 @@ You don't need it to get started.
 |---|---|---|
 | `symbol` | no (default `D`) | The data frame the login assigns on the servers, as in `R/01_DS_Login.R` |
 | `studies` | yes | One entry per study: `server` (the server name, as in your login file) and `packages`, the DataSHIELD **server** packages installed there with their versions, e.g. `{dsBase: "6.3.2"}` |
-| `variables` | yes | One entry per variable: `name`, `type`, `categories` (categorical) or `range: [min, max]` (continuous, integer); optionally `label` and `role` (outcome, exposure, confounder, …) |
+| `variables` | yes, unless `config/variables.yml` exists | One entry per variable: `name`, `type`, `categories` (categorical) or `range: [min, max]` (continuous, integer); optionally `label` and `role` (outcome, exposure, confounder, …) |
 | `steps` | yes | The analysis, in order: each step needs a `title`; an `id` (else derived from the title), `depends_on`, `studies` and any other fields are optional |
 | `mock-data` | no (default `plan`) | `plan`: mock data generated from the variables. Or the name of a folder under `utils/mock_data` with your own, one `<server>.rda` per study holding an object named after the server (as dsAnalysis's `initMockData()` writes it) |
 | `package-catalogue` | no | Where the list of known DataSHIELD packages comes from (default: [packages.datashield.org](https://packages.datashield.org)) |
 | `package-status` | no (default `[production]`) | Which other packages may be suggested, by their status: `production`, `development`, `unknown`, `retired` |
 | `project` | no | Title and research question, passed on as context |
 
+- **The variables from the servers:** `dsAnalysis::initVariables()`
+  writes them to `config/variables.yml` after logging in: type,
+  categories or range (the pooled 5% and 95% quantiles), which studies
+  have each variable, and labels, category labels and missing-value codes
+  from the Opal dictionary. The workflow reads that file first and merges
+  the plan's own `variables:` entries on top, field by field: a plan entry
+  can be just `name` and `role`, or correct a range. Variables of the file
+  that wouldn't pass the check (one category, no range) are left out with
+  a note instead of stopping the run. With the file, the mock data leaves
+  a variable out of the studies that don't have it, missing-value codes
+  (e.g. `99`) fill some of its gaps, and a step using a variable one of its
+  studies lacks gets a note. The file's content is sent to Claude with the
+  plan.
 - **Versions in quotes:** write `"6.10"`, not `6.10`. YAML reads `6.10`
   without quotes as the number 6.1, so the plan check reports it.
 - **Variable types:** `continuous`, `integer` or `categorical`, or the

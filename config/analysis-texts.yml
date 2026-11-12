@@ -76,6 +76,8 @@ notes:
   symbol_differs: "`{{PATH}}` assigns the data to `{{FOUND}}`, the plan says `{{PLANNED}}`. The scripts use `{{PLANNED}}`."
   unused_objects: "`{{FILE}}` creates objects no script uses: {{OBJECTS}}. Remove them, or use them."
   existing_failed: "Your existing script `{{FILE}}` failed in the test run: {{ERROR}}"
+  variables_left_out: "These variables of `{{FILE}}` were left out (no range, fewer than two categories, or an unknown type), so the scripts can't use them: {{NAMES}}. Fill in the missing part in `{{FILE}}` or in the plan's variables."
+  variable_unavailable: "Step `{{STEP}}` uses `{{VARIABLE}}`, which {{STUDIES}} don't have (per config/variables.yml). The step still runs on them: check whether to leave them out (`studies` in the step)."
   dslite_untested: "Step `{{STEP}}` uses functions the test environment can't run ({{FUNCTIONS}}), so these statements were not tested: {{STATEMENTS}}. Check them on the real servers."
   retired_included: "The plan's package-status includes `retired`, so retired packages may be suggested. They are no longer maintained; check before relying on one."
   block_damaged: "The bot's block in `{{PATH}}` is damaged (a marker line is missing, doubled or out of order), so it was left as it is. Please update it by hand, or remove both marker lines so the bot adds a new block."

@@ -1,0 +1,22 @@
+# Written by dsAnalysis::initVariables() (self-test fixture, made up).
+variables:
+  - name: "DIS_DIAB"
+    label: "History of diabetes"
+    type: categorical
+    categories:
+      "0": "no"
+      "1": "yes"
+    studies: ["DEMO_OBIBA_1", "DEMO_OBIBA_2", "DEMO_OBIBA_3"]
+  - name: "PM_BMI_CONTINUOUS"
+    label: "Body mass index"
+    type: continuous
+    range: [18.5, 38.2]
+    studies: ["DEMO_OBIBA_1", "DEMO_OBIBA_2", "DEMO_OBIBA_3"]
+  - name: "GENDER"
+    label: "Gender"
+    type: categorical
+    categories:
+      "0": "male"
+      "1": "female"
+    missing_codes: ["9"]
+    studies: ["DEMO_OBIBA_1", "DEMO_OBIBA_2", "DEMO_OBIBA_3"]

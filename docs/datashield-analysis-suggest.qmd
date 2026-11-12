@@ -45,6 +45,10 @@ flowchart TD
   anything is installed or sent.
 - **The studies' server packages are installed,** at the versions you
   list, together with the matching client packages.
+- **The variables can come from your servers:** dsAnalysis's
+  `initVariables()` writes `config/variables.yml` from their metadata, and
+  the plan only adds roles and corrections, see
+  [the plan's fields](datashield-analysis-details.qmd#the-plans-fields).
 - **Mock data is generated from your variables:** their names, types,
   categories and ranges, so the scripts use your real variable names. Or
   you name your own mock data in the plan (`mock-data`), e.g. made with
@@ -132,8 +136,9 @@ completely different.
 
 ::: {.callout-note}
 ## What leaves your project
-The plan's content is sent to Claude: variable names, categories, study
-names and the steps. Your data, credentials and your login file
+The plan's content, and `config/variables.yml` if you have one, is sent
+to Claude: variable names and labels, categories, ranges, study names and
+the steps. Your data, credentials and your login file
 (`R/01_DS_Login.R`) are never sent; the agent's sandbox denies the login
 file and `.Renviron`. Don't put anything confidential in the plan.
 

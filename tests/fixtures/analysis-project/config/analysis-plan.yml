@@ -20,18 +20,14 @@ package-catalogue: self-test-no-catalogue.json   # not there: no catalogue notes
 package-status: [production]
 mock-data: plan
 
+# The variables' types, categories and ranges come from config/variables.yml
+# (as dsAnalysis's initVariables() writes it); only the roles are added here.
 variables:
   - name: DIS_DIAB
-    type: categorical
-    categories: {"0": no, "1": yes}
     role: outcome
   - name: PM_BMI_CONTINUOUS
-    type: continuous
-    range: [15, 60]
     role: exposure
   - name: GENDER
-    type: categorical
-    categories: {"0": male, "1": female}
     role: confounder
 
 steps:
