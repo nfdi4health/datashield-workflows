@@ -1,6 +1,7 @@
 # Checks the new scripts: every DataSHIELD call against the installed
 # clients (check_ds_calls()) and every "object$column" string against the
-# plan's variables (check_column_references()), then a test run of all
+# plan's variables (check_column_references()), calls that only look at
+# something (check_inspection_calls()), then a test run of all
 # scripts in file order (run_analysis_scripts()): the new ones
 # (`candidate`, step id -> paths) together with `other_files`, the
 # project's other bot scripts, so each step runs with the objects of the
@@ -16,7 +17,8 @@ test_step_scripts <- function(candidate, answers, reference, variables, login_fi
   all_code <- paste(c(vapply(answers[ids], step_code, character(1)), unlist(lapply(other_files, readLines, warn = FALSE))), collapse = "\n")
   problems <- lapply(setNames(ids, ids), function(id) {
     code <- step_code(answers[[id]])
-    c(check_ds_calls(code, reference, texts), check_column_references(code, all_code, variables, texts))
+    c(check_ds_calls(code, reference, texts), check_column_references(code, all_code, variables, texts),
+      check_inspection_calls(code, unlist(settings$inspection_functions), texts))
   })
 
   run <- run_analysis_scripts(login_file, sort(c(other_files, unlist(candidate, use.names = FALSE))),

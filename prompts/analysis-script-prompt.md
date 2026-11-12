@@ -31,8 +31,8 @@ outcome), follow it as far as possible and say so in a `limitation` note.
 - Prefer keeping the original data frame and its column names. For
   complete cases use ds.completeCases() on the data frame itself; create
   derived variables with `newobj`. Build a new data frame with
-  ds.dataFrame() only if a later step needs it, and then print
-  ds.colnames() of the result and use exactly those names in formulas.
+  ds.dataFrame() only if a later step needs it; its columns keep the
+  names of the variables you put in.
 - If an earlier script already creates the analysis data frame (see
   "Steps already in the project"), use that object. Don't build a
   second one under another name.
@@ -46,6 +46,10 @@ outcome), follow it as far as possible and say so in a `limitation` note.
 - Not available here, and why: {{EXCLUDED_FUNCTIONS}}. If a step needs
   one of them, add a `limitation` note naming the function instead of
   writing that code.
+
+## Clean code
+
+{{CODE_STYLE}}
 
 ## What you may use
 

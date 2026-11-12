@@ -791,3 +791,22 @@ Package:
     `01_DS_Login.R`; R checks that mechanically
     (`builder$append(server = …)`, `symbol = …`) without sending the
     file to Claude.
+
+### Built (2026-11-12, branch `agent-suggest/feat/analysis-clean-code`)
+
+- `code_style` in `config/analysis-suggest.yml`: the clean-code rules,
+  written into the prompt (`{{CODE_STYLE}}`); a project's config replaces
+  the list. The prompt no longer asks to print `ds.colnames()` after
+  `ds.dataFrame()` (one cause of the inspection calls).
+- `inspection_functions` (settings) + `check_inspection_calls()`: an
+  unassigned top-level call of one of them is a problem for the repair
+  round.
+- `find_unused_objects()`: after the run, over all bot scripts — server
+  objects (`newobj` / `newobj.name`) no other string names, R objects no
+  other expression uses (print-only lines and inspection calls don't
+  count); listed in the report as notes. Run against the demo scripts it
+  finds exactly the ones listed above (`DIS_DIAB_F`, `GENDER_F`,
+  `MEDI_LPD_F`, `dim_all`, `dim_cc`, `bmi_quant`, `tsc_quant`, plus the
+  unused assignment `bmi_hist_pooled`).
+- Not yet: removing them automatically (a cleanup round, or the agent's
+  reviewer in item O).

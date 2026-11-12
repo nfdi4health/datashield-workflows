@@ -47,6 +47,10 @@ check_analysis_settings <- function(settings) {
   need(text(settings$client_suffix), "client_suffix must be text, e.g. Client")
   need(is.null(settings$excluded_functions) || (is.list(settings$excluded_functions) && !is.null(names(settings$excluded_functions)) && all(vapply(settings$excluded_functions, function(r) is.null(r) || (is.character(r) && length(r) == 1), logical(1)))),
     "excluded_functions must map each function name to the reason Claude is told, e.g. ds.glmSLMA: not available in the test environment")
+  need(is.null(settings$code_style) || (is.character(unlist(settings$code_style)) && all(nzchar(unlist(settings$code_style)))),
+    "code_style must be a list of rules (text)")
+  need(is.null(settings$inspection_functions) || is.character(unlist(settings$inspection_functions)),
+    "inspection_functions must be a list of function names")
   need(text(settings$credential_pattern) && !inherits(tryCatch(suppressWarnings(grepl(settings$credential_pattern, "")), error = identity), "error"),
     "credential_pattern must be a valid regular expression")
   need(text(settings$gap_issue_repo) && grepl("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", settings$gap_issue_repo), "gap_issue_repo must be owner/repo")
