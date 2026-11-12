@@ -230,6 +230,15 @@ items, **all of A–J before v1**:
   start a new triage, plus one extra triage beyond the limit; a
   maintainer's objection overrides a duplicate verdict.
 
+- **N** A subscription pathway next to WIF for the roxygen, test and
+  analysis bots (user, 2026-11-12: analysis projects are usually one
+  person's, and packages often have no collaborators, e.g.
+  `FlorianSchw/dsClusterAnalysis(Client)`). **Same prompts, schemas and
+  config; only the transport differs** — one source of truth for the
+  Claude work, also for agents and skills. Design in
+  [claude-subscription-auth.md](claude-subscription-auth.md), section
+  "Subscription pathway (2026-11-12)".
+
 ## 7. New workflows — after v1 (user's decision)
 
 None before v1: they build on the refactored foundation, and they are
