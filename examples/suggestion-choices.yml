@@ -2,14 +2,14 @@ name: Suggestion Choices
 
 on:
   pull_request:
-    types: [edited]   # a checkbox in a bot PR's description changed
+    types: [edited, closed]   # a checkbox changed; the PR was closed or merged (outcome record)
 
 jobs:
   apply-choices:
-    # Only roxygen and test bot PRs, and only edits by a person.
+    # Only roxygen and test bot PRs; edits only by a person.
     if: >-
       (startsWith(github.head_ref, 'bot-suggest/tests') || startsWith(github.head_ref, 'bot-suggest/docs'))
-      && github.event.sender.type != 'Bot'
+      && (github.event.action == 'closed' || github.event.sender.type != 'Bot')
     permissions:
       contents: write
       pull-requests: write

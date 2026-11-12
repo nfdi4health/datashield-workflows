@@ -72,3 +72,10 @@ routing:
     failed_test_comments: true   # on a PR, also one comment per failed generated test
   authors:
     possible_matches: { on_pr: comment }   # without a PR: log (authors callers grant no issues: write)
+
+# Outcome record (v1 item L): when a roxygen or test bot PR is closed or
+# merged, suggestion-choices.yml adds a hidden record to the PR's own
+# description — the final box per suggestion, whether an accepted one was
+# edited before merging, review comments on its file, the provenance. It
+# stays in the repository; nothing is sent anywhere. false turns it off.
+outcome_record: true
