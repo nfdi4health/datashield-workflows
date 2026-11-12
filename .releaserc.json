@@ -2,8 +2,24 @@
   "branches": "main",
   "tagFormat": "${version}",
   "plugins": [
-    ["@semantic-release/commit-analyzer", { "preset": "conventionalcommits" }],
-    ["@semantic-release/release-notes-generator", { "preset": "conventionalcommits" }],
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits"
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits"
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "NEWS.md"
+      }
+    ],
     [
       "@semantic-release/exec",
       {
@@ -13,8 +29,12 @@
     [
       "@semantic-release/git",
       {
-        "assets": ["*.json", "DESCRIPTION"],
-        "message": "chore(release): set Description file to ${nextRelease.version}"
+        "assets": [
+          "*.json",
+          "DESCRIPTION",
+          "NEWS.md"
+        ],
+        "message": "chore(release): set Description file and NEWS.md to ${nextRelease.version}"
       }
     ],
     [
