@@ -18,8 +18,7 @@
 # (materialize_bot_tests()), reviewed_sha, base_rev, datashield, ds_type,
 # may_use_dslite, dslite_setup_mode, dslite_datasets, test_role_guidance,
 # scheme, category_meanings, test_data, cache_prompt, max_new_tests,
-# accept_reasons, code_issue_confidence, issue_confidence, package_name,
-# comment_failures (one PR comment per failed generated test).
+# accept_reasons, code_issue_confidence, issue_confidence, package_name.
 # Returns list(state, stats, updated, new_kept).
 review_test_file <- function(f, parsed, state, ctx) {
   function_name <- parsed$fn_name
@@ -142,7 +141,7 @@ review_test_file <- function(f, parsed, state, ctx) {
 
   # All of the function's failed new tests classified at once (R where the
   # message decides, else one Claude call); real bugs reported, others
-  # commented or listed (handle_failed_new_test()). Real bugs at an issue
+  # listed in the report (handle_failed_new_test()). Real bugs at an issue
   # confidence go into the function's issue together, one post per run.
   failures <- applied$failures
   if (length(failures) > 0) {
@@ -151,7 +150,7 @@ review_test_file <- function(f, parsed, state, ctx) {
     issue_bugs <- integer(0)
     for (k in seq_along(failures)) {
       outcome <- handle_failed_new_test(failures[[k]]$fail, failures[[k]]$block, failures[[k]]$path, verdicts[[k]],
-                                        function_name, ctx$code_issue_confidence, ctx$issue_confidence, ctx$comment_failures)
+                                        function_name, ctx$code_issue_confidence, ctx$issue_confidence)
       if (is.null(outcome)) {
         next
       }

@@ -117,7 +117,7 @@ test_that("review_test_file() keeps passing new tests, classifies failing ones o
     test_role_guidance = yaml::read_yaml(file.path(repo_root, "config", "test-role-guidance.yml")),
     scheme = detect_test_scheme("add1"), category_meanings = NULL, test_data = "", cache_prompt = FALSE,
     max_new_tests = 10L, accept_reasons = suggestion_reasons("tests"), code_issue_confidence = c("high", "medium"),
-    package_name = "minipkg", issue_confidence = "high", comment_failures = FALSE
+    package_name = "minipkg", issue_confidence = "high"
   )
   out <- review_files("R/add1.R", decode_suggestion_state(NULL), function(f, parsed, state) review_test_file(f, parsed, state, ctx))
   expect_equal(out$updated, "tests/testthat/test-add1.R")
@@ -151,4 +151,34 @@ test_that("a function's real-bug tests go into its issue together; an open issue
   expect_match(p$body, "### counts for Study1", fixed = TRUE)
   expect_match(p$body, "<details><summary>Generated test and failure output</summary>", fixed = TRUE)
   expect_equal(p$comment, "Still failing in a later review (2 tests):\n\n- counts for Study1\n- levels of Study3")
+})
+
+test_that("a generated test that failed through its own fault is listed in the report, never commented", {
+  local_global_mock(post_github_json = function(...) stop("no comment may be posted"))
+  out <- handle_failed_new_test(
+    list(description = "adds one to zero", message = "Expected 1, got 2"), "test_that('x', expect_equal(add1(0), 2))",
+    "tests/testthat/test-add1.R", list(category = "bad_test", confidence = "high", explanation = "Wrong expectation."),
+    "add1", c("high", "medium"), "high")
+  expect_equal(out$kind, "failed")
+  expect_true(out$entry$in_report)
+  expect_equal(out$entry$explanation, "Wrong expectation.")
+  expect_match(out$entry$details, "<details><summary>Test and output</summary>", fixed = TRUE)
+  expect_match(out$entry$details, "Expected 1, got 2", fixed = TRUE)
+
+  state <- merge_test_findings(decode_suggestion_state(NULL), "add1", list(failed = list(out$entry)), "abc1234")$state
+  report <- format_test_report(state)
+  expect_match(report, "Generated tests that didn't work", fixed = TRUE)
+  expect_match(report, "`bad_test`: Wrong expectation.", fixed = TRUE)
+  expect_match(report, "Expected 1, got 2", fixed = TRUE)   # folded, but there
+})
+
+test_that("possible bugs get one short comment without code", {
+  expect_null(possible_bugs_comment(list(), "bot-suggest/tests/dev"))
+  bugs <- list(list(fn = "clamp", confidence = "high", issue = "https://github.com/o/r/issues/7", description = "stops when lo > hi"),
+               list(fn = "add1", confidence = "medium", issue = "", description = "keeps names"))
+  text <- possible_bugs_comment(bugs, "bot-suggest/tests/feature-x")
+  expect_match(text, "2 possible bugs in the code", fixed = TRUE)
+  expect_match(text, "`clamp()` (high confidence, issue https://github.com/o/r/issues/7)", fixed = TRUE)
+  expect_match(text, "`bot-suggest/tests/feature-x`", fixed = TRUE)
+  expect_false(grepl("```", text, fixed = TRUE))
 })

@@ -429,3 +429,16 @@ pushes to its own `bot-suggest/<kind>/…` branch, never the PR branch.
   `git diff` of `R/*.R` against the PR base — confirm that's the right
   scope for tests.
 - **CRAN compliance** of generated tests: deliberately out of scope for now.
+
+## No comment per failed generated test (user, 2026-11-12)
+
+On dsAnalysis #38 the bot posted 11 comments for `bad_test` failures (8 of
+them the same fixture mistake), each with code and output: noise, since
+they need nothing from the author, and comments with code don't get read.
+Now: `bad_test` / `env_misconfiguration` failures are one line each in the
+suggestion report ("Generated tests that didn't work"), the test and its
+output folded (`format_test_failure()`, entry field `details`); possible
+bugs found in the run get one short comment on the author's PR when a
+suggestion PR carries the report (`possible_bugs_comment()`, via
+`comment_once()`), no code. `routing.tests.failed_test_comments` and
+`post_test_failure_comment()` are gone.

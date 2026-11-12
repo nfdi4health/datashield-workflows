@@ -139,8 +139,7 @@ ctx <- list(
   test_data = test_data,
   cache_prompt = length(files) > 1,   # the prompt cache only pays with a second call in the run
   max_new_tests = max_new_tests, accept_reasons = accept_reasons,
-  code_issue_confidence = code_issue_confidence, issue_confidence = issue_confidence, package_name = package_name,
-  comment_failures = !is_sweep && isTRUE(policy$routing$tests$failed_test_comments)
+  code_issue_confidence = code_issue_confidence, issue_confidence = issue_confidence, package_name = package_name
 )
 reviewed <- review_files(files, state, function(f, parsed, state) review_test_file(f, parsed, state, ctx))
 state <- reviewed$state
@@ -195,4 +194,15 @@ if (length(updated_files) > 0) {
 if (has_pr || any(open_kinds %in% c("note", "bug")) || any(vapply(state$entries, function(e) isTRUE(e$in_report), logical(1)))) {
   report <- format_test_report(state, list(sha = reviewed_sha, stats = stats), state$legacy)
   publish_test_report(report, has_pr = has_pr, routing = report_routing)
+}
+# Possible bugs this run found: one short comment on the author's PR, when
+# the report sits in a suggestion PR's description (without one, the
+# report itself is the comment).
+if (!is_sweep && has_pr) {
+  new_bugs <- Filter(function(e) identical(e$kind, "bug") && identical(e$status, "active") && identical(e$sha, reviewed_sha),
+                     state$entries)
+  bugs_comment <- possible_bugs_comment(new_bugs, sub_branch)
+  if (!is.null(bugs_comment)) {
+    comment_once(pr_number, bugs_comment, "possible bugs")
+  }
 }

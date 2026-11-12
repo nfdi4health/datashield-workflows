@@ -7,12 +7,13 @@
 #   a possible bug in the code; at a confidence in `issue_confidences`
 #   (possible_bugs$open_issue of the policy file) also `issue_finding`, which
 #   the caller puts into the function's issue (create_bug_issue());
-# - anything else: a failed test, commented on the PR when `comment` (a PR
-#   run with routing$tests$failed_test_comments), otherwise listed in the
-#   report.
+# - anything else (the test's own fault, or the test environment's): a
+#   failed test, listed in the suggestion report with one line each and
+#   the code folded (format_test_failure()); never a PR comment, since it
+#   needs nothing from the author (user, 2026-11-12).
 # Returns list(kind = "bug" / "failed", entry), or NULL.
 handle_failed_new_test <- function(fail, block_text, path, classification, function_name, confidences,
-                                   issue_confidences, comment) {
+                                   issue_confidences) {
   if (is.null(classification)) {
     return(NULL)
   }
@@ -33,16 +34,8 @@ handle_failed_new_test <- function(fail, block_text, path, classification, funct
     )))
   }
 
-  # Commented on the PR: the short explanation; otherwise the report gets
-  # the whole failure.
-  if (comment) {
-    post_test_failure_comment(function_name, block_text, fail$message, classification)
-    explanation <- classification$explanation
-  } else {
-    explanation <- format_test_failure(function_name, block_text, fail$message, classification)
-  }
   list(kind = "failed", entry = list(
-    file = path, description = fail$description, classification = classification$category, in_report = !comment,
-    explanation = explanation
+    file = path, description = fail$description, classification = classification$category, in_report = TRUE,
+    explanation = classification$explanation, details = format_test_failure(block_text, fail$message)
   ))
 }

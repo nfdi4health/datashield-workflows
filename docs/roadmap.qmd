@@ -124,6 +124,11 @@ after that, breaking changes only come with a new major version.
   approved issue into a pull request, and
   [release issues](release-issues.qmd), which closes issues with the
   release that ships their fix.
+- **Fewer comments from the test suggestions:** generated tests that failed
+  through their own fault are one line each in the report, with the code
+  folded, instead of one comment each on your PR. Possible bugs in your
+  code get one short comment per run. `failed_test_comments` in
+  `config/suggestion-policy.yml` is gone.
 - **Cleanup** also deletes `agent-suggest/*` branches of coding agents
   once their pull request is closed.
 

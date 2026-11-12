@@ -199,7 +199,8 @@ description. Without a suggestion PR, they go where `routing` in
 |---|---|---|
 | Roxygen: possible bugs in the code | a comment | one issue per month |
 | Tests: the report | a comment | an issue |
-| Tests: each failed generated test | a comment | in the report |
+| Tests: possible bugs found this run | one short comment | in the report |
+| Tests: generated tests that didn't work | in the report | in the report |
 | Authors: may already be listed | a comment | the job log |
 
 Each can be set to `comment`, `issue` or `log`; an issue needs
