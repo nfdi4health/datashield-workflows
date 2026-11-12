@@ -278,7 +278,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         if: needs.pick.outputs.setup == 'r'
         with:
-          extra-packages: any::devtools, any::roxygen2, any::testthat, any::rcmdcheck
+          extra-packages: any::devtools, any::roxygen2, any::testthat, any::rcmdcheck, any::lintr
           needs: check
 
       # Claude Code's sandbox runs the agent's commands with bubblewrap and
@@ -354,6 +354,7 @@ jobs:
           command: checks
         env:
           SETUP: ${{ needs.pick.outputs.setup }}
+          BASE: ${{ needs.pick.outputs.base }}
           # Tests that install packages from GitHub (remotes) need a token.
           GITHUB_PAT: ${{ github.token }}
 
@@ -503,6 +504,7 @@ jobs:
           command: checks
         env:
           SETUP: ${{ needs.pick.outputs.setup }}
+          BASE: ${{ needs.pick.outputs.base }}
           # Tests that install packages from GitHub (remotes) need a token.
           GITHUB_PAT: ${{ github.token }}
 
@@ -605,6 +607,7 @@ jobs:
           command: checks
         env:
           SETUP: ${{ needs.pick.outputs.setup }}
+          BASE: ${{ needs.pick.outputs.base }}
           # Tests that install packages from GitHub (remotes) need a token.
           GITHUB_PAT: ${{ github.token }}
 

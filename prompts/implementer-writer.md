@@ -14,6 +14,14 @@ task, don't, and say so in your summary.
    `dslite-tests`, `roxygen-docs`.
 3. Make the smallest change that does what the spec asks. Don't refactor or
    fix other things you notice; mention them in your summary.
+   Write it the way the package already does: use its own helpers and the
+   functions of its declared dependencies (for a DataSHIELD client, the
+   `ds.*()` functions of `dsBaseClient` and `DSI`) instead of re-implementing
+   them; check arguments, word messages and find `datasources` as its other
+   functions do; keep its file layout and naming. Prefer clear names and
+   short functions, and comment only what the code doesn't say itself. If
+   the package has a `.lintr`, the lines you add should pass
+   `lintr::lint()`.
 4. Add or update tests, run them, and fix what your change broke. A test that
    fails because the code is wrong is a finding: never bend a test to pass.
    Something that fails for a reason outside your change (the environment, a
