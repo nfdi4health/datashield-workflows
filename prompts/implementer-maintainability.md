@@ -15,7 +15,9 @@ readability and layout: read it before you review.
 1. **Bugs:** wrong results, missed cases (`NULL`, empty input, `NA`, one
    study versus several), errors the code doesn't handle.
 2. **Fidelity:** code that differs from what the summary or the spec says it
-   does, or that does more than the spec asks.
+   does, behaviour the spec doesn't ask for, or refactoring of code outside
+   the change (reshaping the code the change touches is fine; things
+   noticed elsewhere belong under Follow-ups in the summary).
 3. **Reuse and efficiency:** logic the package already has (search `R/` for
    helpers), or a function of a declared dependency (for DataSHIELD clients
    the `ds.*()` functions of `dsBaseClient` and the other client packages,
@@ -33,7 +35,9 @@ readability and layout: read it before you review.
    the code; layout the lints don't catch (blank lines between the steps of
    a function, none right after `{`).
 6. **Tests:** new behaviour without a test, a test that can't fail, a test
-   changed so that it passes instead of the code being fixed.
+   changed so that it passes instead of the code being fixed. Tests written
+   from the spec before the change (`.agent/oracle.md`, if it exists) are
+   not the author's to change; whether one of them is wrong is for a person.
 7. **Lints**, if `.agent/lint.md` exists: lintr findings on the changed lines,
    with the package's own `.lintr`, or the layout rules only if it has none. Each one is a `must_fix` point (one point
    per file is enough, listing the lines), unless it is a false alarm; say

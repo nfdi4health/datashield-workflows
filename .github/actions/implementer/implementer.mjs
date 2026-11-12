@@ -52,7 +52,19 @@ export function promptValues(e) {
   const server = e.SERVER
     ? `The server package \`${e.SERVER}\` is checked out read-only in \`.agent/server\`. If the change needs a change there too, stop and ask (\`.agent/needs-input.md\`): changes to both packages in one run aren't supported yet.`
     : "";
-  return { ROUND: round, BASE: e.BASE ?? "", SINCE: e.SINCE ?? "", SCOPE: scope, DISCLOSURE_SCOPE: disclosureScope, SERVER: server, TYPE_NOTE: e.TYPE_NOTE ?? "" };
+  return { ROUND: round, BASE: e.BASE ?? "", SINCE: e.SINCE ?? "", SCOPE: scope, DISCLOSURE_SCOPE: disclosureScope, SERVER: server, TYPE_NOTE: e.TYPE_NOTE ?? "", ORACLE: oracleNote(e.oracle) };
+}
+
+// The tests a separate agent wrote from the spec before the writer started
+// (run-oracle.sh, .agent/oracle.json): the writer makes them pass and never
+// changes them.
+export function oracleNote(oracle) {
+  if (!oracle?.sha || !Array.isArray(oracle.files) || oracle.files.length === 0) return "";
+  const files = oracle.files.map((f) => `\`${f}\``).join(", ");
+  return [
+    `**Tests from the spec.** Before you started, a separate agent wrote tests from the spec alone: ${files} (commit ${oracle.sha.slice(0, 7)}; ${oracle.failing} of ${oracle.tests} failed on the code as it was, see \`.agent/oracle.md\`).`,
+    "Make them pass. Don't change, delete or skip them: if you think one is wrong, leave it as it is and explain why under **Tests I disagree with** in your summary; a person decides. Add your own tests as usual.",
+  ].join(" ");
 }
 
 // The maintainability reviewer answers with JSON, perhaps in a code fence or
@@ -126,7 +138,8 @@ const commands = {
 
   async prompt() {
     const template = readFileSync(join(here, "..", "..", "..", "prompts", `implementer-${env.PROMPT}.md`), "utf8");
-    await writeOutputs({ text: fillPrompt(template, promptValues(env)) });
+    const values = promptValues({ ...env, oracle: readJson(".agent/oracle.json", null) });
+    await writeOutputs({ text: fillPrompt(template, values) });
   },
 
   async settings() {
@@ -158,7 +171,7 @@ const commands = {
 
   async outcome() {
     const steps = Object.entries(JSON.parse(env.STEPS || "{}"))
-      .filter(([id]) => /^(writer|maintainability|disclosure)(\d+|-recheck)?$/.test(id))
+      .filter(([id]) => /^(oracle|writer|maintainability|disclosure)(\d+|-recheck)?$/.test(id))
       .map(([id, s]) => ({ role: id.replace(/(\d+|-recheck)$/, ""), ran: s.outcome !== "skipped", conclusion: s.outcome, executionFile: s.outputs?.execution_file }));
     const hasCommits = Number(execFileSync("git", ["rev-list", "--count", `origin/${env.BASE}..HEAD`], { encoding: "utf8" })) > 0;
     const outcome = finalOutcome({

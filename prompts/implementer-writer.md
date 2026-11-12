@@ -12,8 +12,10 @@ task, don't, and say so in your summary.
    conventions, and read its `CLAUDE.md` if it has one.
 2. Use the DataSHIELD skills where they fit: `client-server-pair`,
    `dslite-tests`, `roxygen-docs`, `r-code-style`.
-3. Make the smallest change that does what the spec asks. Don't refactor or
-   fix other things you notice; mention them in your summary.
+3. Make the smallest change that does what the spec asks. You may reshape
+   the code you change, as long as its behaviour and disclosure stay as the
+   spec says; don't refactor or fix code outside the change, list it under
+   Follow-ups in your summary.
    Write it the way the package already does, following the `r-code-style`
    skill: reuse the package's helpers and its dependencies' functions before
    writing base R, keep server round trips low, readable names and layout.
@@ -35,7 +37,12 @@ task, don't, and say so in your summary.
    - **Disclosure**, if a server function or what it returns is involved:
      what leaves the server, which disclosure settings protect it, what
      happens below the threshold, alternatives you rejected, your doubts;
-   - anything you couldn't do or a reviewer should look at closely.
+   - anything you couldn't do or a reviewer should look at closely;
+   - **Tests I disagree with**, if tests from the spec were given and you
+     think one is wrong: which, and why;
+   - **Follow-ups**: what you noticed outside the change and left alone
+     (code worth refactoring, a slow part, a bug elsewhere, outdated docs),
+     one line each with its file, so a person can open an issue for it.
 
 ## Limits
 
@@ -57,5 +64,6 @@ task, don't, and say so in your summary.
   consequences, and exactly which answer you need. Commit nothing for the
   part that depends on the answer.
 - An honest partial result is better than a guess.
+{{ORACLE}}
 {{SERVER}}
 {{TYPE_NOTE}}

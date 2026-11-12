@@ -20,7 +20,8 @@ test that already failed before), don't change the package to work around
 it: say so under "Not changed" in `.agent/summary.md`. If a
 point is wrong, don't change the code for it: say why under "Not changed" in
 `.agent/summary.md`. Never bend a test to pass, and keep every rule of the
-first round: the sandbox, nothing under `.github/`, disclosure checks only as
+first round: the sandbox, nothing under `.github/`, the tests from the spec
+(`.agent/oracle.md`) stay as they are, disclosure checks only as
 the spec says, `Refs #<n>` only, stop and ask in `.agent/needs-input.md` when
 the answer needs a person.
 

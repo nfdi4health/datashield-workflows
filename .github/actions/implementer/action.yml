@@ -8,7 +8,7 @@ description: >
 
 inputs:
   command:
-    description: 'pick, verify, prompt, settings, checks, save-review, round, outcome, publish, cleanup, log-run or log-update.'
+    description: 'pick, verify, prompt, settings, oracle, checks, save-review, round, outcome, publish, cleanup, log-run or log-update.'
     required: true
   working-directory:
     description: 'Where the command runs.'
@@ -103,6 +103,8 @@ runs:
       run: |
         if [ "$COMMAND" = checks ]; then
           bash "$GITHUB_ACTION_PATH/run-checks.sh"
+        elif [ "$COMMAND" = oracle ]; then
+          bash "$GITHUB_ACTION_PATH/run-oracle.sh"
         else
           node "$GITHUB_ACTION_PATH/implementer.mjs" "$COMMAND"
         fi

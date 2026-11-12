@@ -11,7 +11,7 @@ import { commitType, listQueue, parseRequest, pickNext, verifyIssue } from "../.
 import { finalOutcome, nextRound, parseLimit, readExecution, splitDisclosureReview } from "../../.github/actions/implementer/outcome.mjs";
 import { failureComment, needsInputComment, publish, pullRequestBody, reviewChanges } from "../../.github/actions/implementer/publish.mjs";
 import { mergeEvents, statusRows, timelineEvents, toCsv } from "../../.github/actions/implementer/log.mjs";
-import { fillPrompt, pausedUntil, sandboxSettings } from "../../.github/actions/implementer/implementer.mjs";
+import { fillPrompt, oracleNote, pausedUntil, promptValues, sandboxSettings } from "../../.github/actions/implementer/implementer.mjs";
 
 const cfg = {
   labels: labelNames({}),
@@ -488,4 +488,18 @@ test("deviations still open after the rounds put a warning on the pull request",
     result: { summary: "s", disclosure: "d", checks: "", review: {}, deviations: ["a check was removed"] } });
   assert.match(body, /Deviates from the approved spec/);
   assert.match(body, /a check was removed/);
+});
+
+test("the writer is told about the tests from the spec, and the pull request shows them", () => {
+  assert.equal(oracleNote(null), "");
+  assert.equal(oracleNote({ sha: "abc1234567", files: [], tests: 0, failing: 0 }), "");
+  const note = oracleNote({ sha: "abc1234567", files: ["tests/testthat/test-f.R"], tests: 3, failing: 2 });
+  assert.match(note, /`tests\/testthat\/test-f.R` \(commit abc1234; 2 of 3 failed/);
+  assert.match(note, /Don't change, delete or skip them/);
+  assert.equal(promptValues({ ROUND: "0" }).ORACLE, "");
+  const writer = readFileSync(join("prompts", "implementer-writer.md"), "utf8");
+  assert.match(writer, /\{\{ORACLE\}\}/);
+  const body = pullRequestBody({ issue: 7, failed: false, needsDisclosureReview: false, runUrl: "",
+    result: { summary: "s", oracle: "Written from the spec.", checks: "", review: {}, deviations: [] } });
+  assert.match(body, /## Tests from the spec\n\nWritten from the spec\./);
 });
