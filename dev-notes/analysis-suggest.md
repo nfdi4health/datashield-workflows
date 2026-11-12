@@ -829,6 +829,26 @@ installed there to look at the generated scripts).
    `datasources = conns[c(...)]`; derived variables exist only on those
    servers. A gate checks that a step's calls use the right connections.
 
+   **User (2026-11-12): the analyst decides.** A study can be included
+   even if one variable is missing there, so: an explicit `studies:` per
+   step, set by the analyst. Availability in the variables file only
+   informs (a warning in the report when a step's variable is missing for
+   an included study), it never excludes on its own.
+4. **Mock data: the analyst's or the plan's** (question 2026-11-12).
+   dsAnalysis already builds mock data from modified aggregate
+   information of the real servers (`initMockData()` /
+   `update_MockData()`). Proposal: use it when the project has it (closer
+   to reality: distributions, missingness, which study has what), else
+   generate it from the plan as today (CI has no server access). **Claude
+   doesn't create the mock data itself:** it's deterministic R work, and a
+   writer that makes its own test data can fit the data to its code (the
+   independence point of the roles proposal). The agent sees it the way
+   an analyst would — through DataSHIELD calls in DSLite, i.e. aggregates —
+   not the `.rda` files (deny rule). Open: mock data derived from real
+   aggregates sits in the repository and is close to "data"; whether the
+   agent may use it is the analyst's call, and the README's data
+   protection note has to say what happens with it.
+
 ### What the generated scripts show (DataSHIELD_CONF_DEMO, bot branch, read 2026-11-12)
 
 Branch `bot-suggest/analysis/master`, plan with CNSIM-like variables, steps
