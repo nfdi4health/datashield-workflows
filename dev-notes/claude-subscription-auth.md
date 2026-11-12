@@ -171,3 +171,21 @@ PRs get no run. Forks never see secrets anyway.
 guidance live once (here), local Claude Code skills and the workflows read
 them. A prerequisite: the tool schemas are built in R today; moving them
 into files (e.g. `schemas/*.yml`) lets non-R consumers use them.
+
+### Built (2026-11-12, branch `agent-suggest/feat/subscription-transport`)
+
+- `call_claude_tool()` switches to `call_claude_code_tool()` when
+  `CLAUDE_CODE_OAUTH_TOKEN` is set and the run has no API token: Claude
+  Code 2.1.312 with `--bare --tools "" --json-schema` (the tool's schema,
+  strict as for the API), `--max-turns 3`, the profile's model and effort,
+  in an empty temporary folder, with only its own credential. The prompt
+  goes as one text (no cache marker). `read_claude_code_result()`,
+  `log_claude_code_usage()`.
+- `roxygen-suggest.yml`, `test-suggest.yml`: secret
+  `claude-code-oauth-token`, the WIF secrets optional (with both, WIF is
+  used); input `subscription-logins` (default: the repository owner) — a
+  run started by anyone else is skipped with a notice. Claude Code is
+  installed only for such runs.
+- The analysis agent (item O) uses the same `read_claude_code_result()`
+  and `log_claude_code_usage()`; its own `read_agent_result()` is gone.
+- Not yet run for real.

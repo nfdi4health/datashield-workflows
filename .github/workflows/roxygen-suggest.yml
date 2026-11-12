@@ -53,16 +53,24 @@ on:
         required: false
         type: string
         default: ''
+      subscription-logins:
+        description: 'With claude-code-oauth-token: who may start a run that uses the subscription (exact logins, separated by commas or spaces). Empty: the repository owner. Runs started by anyone else are skipped, so nobody else''s activity uses your subscription.'
+        required: false
+        type: string
+        default: ''
     secrets:
+      claude-code-oauth-token:
+        description: 'Token of a Claude subscription (claude setup-token), instead of the three Anthropic IDs: the same review through Claude Code, for repositories one person runs. Only runs started by `subscription-logins` use it.'
+        required: false
       anthropic-organization-id:
-        description: 'Anthropic organization ID.'
-        required: true
+        description: 'Anthropic organization ID (WIF; or claude-code-oauth-token).'
+        required: false
       anthropic-service-account-id:
-        description: 'svac_... ID of the service account for this repo.'
-        required: true
+        description: 'svac_... ID of the service account for this repo (WIF).'
+        required: false
       anthropic-federation-rule-id:
-        description: 'fdrl_... ID of the federation rule for this repo and workflow.'
-        required: true
+        description: 'fdrl_... ID of the federation rule for this repo and workflow (WIF).'
+        required: false
       app-client-id:
         description: 'GitHub App Client ID (Iv23li...); its token lets bot PRs trigger checks (optional).'
         required: false
@@ -80,6 +88,8 @@ jobs:
     concurrency:
       group: roxygen-suggest-${{ github.repository }}-${{ github.head_ref || github.ref_name }}
       cancel-in-progress: false
+    env:
+      USE_SUBSCRIPTION: ${{ secrets.claude-code-oauth-token != '' && secrets.anthropic-organization-id == '' }}
     permissions:
       id-token: write
       contents: write
@@ -151,7 +161,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         if: steps.files.outputs.count > 0
         with:
-          extra-packages: any::roxygen2, any::httr2, any::jsonlite, any::purrr, any::yaml
+          extra-packages: any::roxygen2, any::httr2, any::jsonlite, any::processx, any::purrr, any::yaml
           needs: check
 
       # Issues opened with GITHUB_TOKEN start no workflow, so triage
@@ -168,9 +178,28 @@ jobs:
           private-key: ${{ secrets.app-private-key }}
           permission-issues: write
 
+      # A subscription is one person's: only runs they (or the listed
+      # logins) start use it (dev-notes/claude-subscription-auth.md).
+      - name: Subscription — who started this run
+        id: subscription
+        if: steps.files.outputs.count > 0 && inputs.self-test-fixture == '' && env.USE_SUBSCRIPTION == 'true'
+        env:
+          LOGINS: ${{ inputs.subscription-logins || github.repository_owner }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          for login in $(tr ',' ' ' <<< "$LOGINS"); do
+            if [ "$login" = "$ACTOR" ]; then
+              echo "ok=true" >> "$GITHUB_OUTPUT"
+              npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312
+              exit 0
+            fi
+          done
+          echo "::notice::Not reviewed: $ACTOR may not start runs on the subscription (subscription-logins)."
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+
       - name: Get Anthropic access token
         id: anthropic_auth
-        if: steps.files.outputs.count > 0 && inputs.self-test-fixture == ''
+        if: steps.files.outputs.count > 0 && inputs.self-test-fixture == '' && env.USE_SUBSCRIPTION != 'true'
         uses: $/.github/actions/anthropic-token
         with:
           organization-id: ${{ secrets.anthropic-organization-id }}
@@ -178,9 +207,10 @@ jobs:
           federation-rule-id: ${{ secrets.anthropic-federation-rule-id }}
 
       - name: Run roxygen suggestion script
-        if: steps.files.outputs.count > 0
+        if: steps.files.outputs.count > 0 && steps.subscription.outputs.ok != 'false'
         env:
           ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ steps.subscription.outputs.ok == 'true' && secrets.claude-code-oauth-token || '' }}
           CLAUDE_MODEL_ROXYGEN_REVIEW: ${{ inputs.model }}
           CLAUDE_MAX_TOKENS_ROXYGEN_REVIEW: ${{ inputs.max-tokens }}
           CLAUDE_EFFORT_ROXYGEN_REVIEW: ${{ inputs.effort }}
