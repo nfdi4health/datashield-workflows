@@ -28,6 +28,11 @@ on:
         required: false
         type: string
         default: ''
+      as-cran:
+        description: 'Check the way CRAN does before a submission: with the PDF manual (TinyTeX is installed) and CRAN''s incoming checks (maintainer, spelling of DESCRIPTION, URLs, the new-submission note). Use with an os-list of ubuntu-latest, macos-latest and windows-latest. Notes are shown, not failed: CRAN wants each explained in cran-comments.md.'
+        required: false
+        type: boolean
+        default: false
       timeout-minutes:
         description: 'Time limit of each check job. A runner that loses its network (apt or package downloads retrying) then fails instead of hanging for hours.'
         required: false
@@ -89,6 +94,10 @@ jobs:
             | paste -sd, -)
           echo "list=$formatted" >> "$GITHUB_OUTPUT"
 
+      # CRAN builds the PDF manual, which needs LaTeX.
+      - uses: r-lib/actions/setup-tinytex@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        if: ${{ inputs.as-cran }}
+
       - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
           extra-packages: |
@@ -98,8 +107,14 @@ jobs:
           needs: check
 
       - uses: r-lib/actions/check-r-package@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        env:
+          # CRAN's incoming checks (maintainer, spelling, URLs) with as-cran.
+          _R_CHECK_CRAN_INCOMING_: ${{ inputs.as-cran && 'true' || 'false' }}
+          _R_CHECK_CRAN_INCOMING_REMOTE_: ${{ inputs.as-cran && 'true' || 'false' }}
         with:
           upload-snapshots: true
+          # The action's default skips the PDF manual; CRAN builds it.
+          args: ${{ inputs.as-cran && 'c("--as-cran")' || 'c("--no-manual", "--as-cran")' }}
 
       - name: Show testthat output
         if: always()
