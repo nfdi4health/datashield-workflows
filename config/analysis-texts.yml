@@ -76,6 +76,7 @@ notes:
   symbol_differs: "`{{PATH}}` assigns the data to `{{FOUND}}`, the plan says `{{PLANNED}}`. The scripts use `{{PLANNED}}`."
   unused_objects: "`{{FILE}}` creates objects no script uses: {{OBJECTS}}. Remove them, or use them."
   existing_failed: "Your existing script `{{FILE}}` failed in the test run: {{ERROR}}"
+  dslite_untested: "Step `{{STEP}}` uses functions the test environment can't run ({{FUNCTIONS}}), so these statements were not tested: {{STATEMENTS}}. Check them on the real servers."
   retired_included: "The plan's package-status includes `retired`, so retired packages may be suggested. They are no longer maintained; check before relying on one."
   block_damaged: "The bot's block in `{{PATH}}` is damaged (a marker line is missing, doubled or out of order), so it was left as it is. Please update it by hand, or remove both marker lines so the bot adds a new block."
 

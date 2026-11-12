@@ -59,6 +59,17 @@ You don't need it to get started.
    previous script. Steps that build on it (`depends_on`) aren't written
    in this run.
 
+## Functions DSLite can't run {#dslite-untestable}
+
+Some functions work on real servers but not in DSLite, e.g.
+`ds.glmSLMA()` (study-level meta-analysis) and `ds.forestplot()`. The
+scripts may still use them where your plan asks for it. In the test run,
+a statement calling one of them that fails is skipped, together with
+every later statement that uses its result, and the report lists them per
+step as **not tested**: check those lines on the real servers. Every
+other failure still counts. The list is `dslite_untestable` in the
+settings.
+
 ## Steps that can't be written yet
 
 The workflow knows the DataSHIELD packages from the

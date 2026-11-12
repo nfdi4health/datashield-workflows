@@ -1,0 +1,4 @@
+# Self-test: single Claude calls (answered from the recording), and no
+# function catalogue (no network).
+engine: calls
+function_catalogue: self-test-no-catalogue.json

@@ -1,22 +1,41 @@
 # Runs the project's scripts the way main.R does in testing mode
 # (R_CONFIG_ACTIVE = `profile`, the project's test profile): the DSLite
 # setup first (mock data), then `scripts` in order, all in one fresh R
-# session. Returns list(login_error, errors, objects, timed_out): errors
-# is a character vector named by script path, NA when the script ran
-# through; objects lists what is on the servers afterwards (names, and
+# session. Returns list(login_error, errors, untested, objects, timed_out):
+# errors is a character vector named by script path, NA when the script
+# ran through; untested lists per script path the statements DSLite can't
+# run (below); objects lists what is on the servers afterwards (names, and
 # with dsBaseClient classes and columns), when `connections` names the
 # connections object — for the next step's prompt. If the whole run
 # exceeds `timeout` seconds it is stopped; timed_out is then TRUE, and
 # which script hung is unknown.
+#
+# `untestable` names functions DSLite can't run although real servers can
+# (settings dslite_untestable, e.g. ds.glmSLMA): a statement calling one
+# that fails, and every later statement using what it assigned, is skipped
+# and listed instead of failing the script.
 #
 # The session starts without the project's .Rprofile (a dsAnalysis
 # project activates renv there, which would hide the packages installed
 # for this run), and without the API and GitHub tokens: the scripts are
 # generated code. That list is deliberately not a setting, so no project
 # override can hand the tokens to generated code.
-run_analysis_scripts <- function(login_file, scripts, profile, timeout, connections = NULL) {
-  child <- function(login_file, scripts, profile, connections) {
+run_analysis_scripts <- function(login_file, scripts, profile, timeout, connections = NULL, untestable = character(0)) {
+  child <- function(login_file, scripts, profile, connections, untestable) {
     Sys.setenv(R_CONFIG_ACTIVE = profile)
+    # Names a statement assigns at top level (x <- …, x$y <- …).
+    assigned <- function(expr) {
+      if (!is.call(expr) || !as.character(expr[[1]]) %in% c("<-", "=", "<<-")) {
+        return(character(0))
+      }
+      lhs <- expr[[2]]
+      while (is.call(lhs)) {
+        lhs <- lhs[[2]]
+      }
+      if (is.name(lhs)) as.character(lhs) else character(0)
+    }
+    skipped_names <- character(0)
+    untested <- list()
     describe_objects <- function(expr) {
       out <- character(0)
       for (s in unique(all.vars(expr))) {
@@ -37,11 +56,23 @@ run_analysis_scripts <- function(login_file, scripts, profile, timeout, connecti
       if (inherits(exprs, "error")) {
         return(conditionMessage(exprs))
       }
+      skip <- function(expr) {
+        skipped_names <<- unique(c(skipped_names, assigned(expr)))
+        untested[[path]] <<- c(untested[[path]], substr(paste(deparse(expr, width.cutoff = 500L), collapse = " "), 1, 200))
+        NA_character_
+      }
       for (i in seq_along(exprs)) {
+        if (length(intersect(all.names(exprs[[i]]), skipped_names)) > 0) {
+          skip(exprs[[i]])
+          next
+        }
         res <- tryCatch({
           eval(exprs[[i]], envir = globalenv())
           NA_character_
         }, error = function(e) {
+          if (length(intersect(all.names(exprs[[i]]), untestable)) > 0) {
+            return(skip(exprs[[i]]))
+          }
           msg <- conditionMessage(e)
           ds <- tryCatch(unlist(DSI::datashield.errors()), error = function(e2) character(0))
           if (length(ds) > 0) {
@@ -101,14 +132,15 @@ run_analysis_scripts <- function(login_file, scripts, profile, timeout, connecti
     }
     errors <- vapply(scripts, run, character(1), USE.NAMES = FALSE)
     objects <- tryCatch(server_objects(connections), error = function(e) "")
-    list(login_error = NA_character_, errors = stats::setNames(errors, scripts), objects = objects)
+    list(login_error = NA_character_, errors = stats::setNames(errors, scripts), untested = untested, objects = objects)
   }
   scripts <- unname(scripts)  # results are looked up by path, whatever names came in
   env <- callr::rcmd_safe_env()
   # No credentials for the analyst's scripts — also nothing to get new ones with.
   env[credential_variables()] <- ""
   tryCatch(
-    c(callr::r(child, args = list(login_file = login_file, scripts = scripts, profile = profile, connections = connections), user_profile = FALSE, env = env, timeout = timeout),
+    c(callr::r(child, args = list(login_file = login_file, scripts = scripts, profile = profile, connections = connections, untestable = untestable),
+               user_profile = FALSE, env = env, timeout = timeout),
       list(timed_out = FALSE)),
     callr_timeout_error = function(e) list(login_error = NA_character_, errors = stats::setNames(rep(NA_character_, length(scripts)), scripts), objects = "", timed_out = TRUE),
     error = function(e) list(login_error = sprintf("The test run failed: %s", conditionMessage(e)), errors = character(0), objects = "", timed_out = FALSE)
