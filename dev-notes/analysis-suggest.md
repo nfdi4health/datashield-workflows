@@ -924,3 +924,20 @@ instead of recomputing; one helper for repeated table code; don't add
 outputs the plan doesn't ask for; say explicitly when a requested part
 (e.g. meta-analysis) is left out. **Reviewer:** a "clean code" pass that
 removes such things and cites the gate findings.
+
+### Built (2026-11-12, branch `agent-suggest/feat/analysis-plan-fields`)
+
+- `mock-data` in the plan's core (`plan` default, or a folder name):
+  `validate_analysis_plan()` checks the form, `check_project_mock_data()`
+  the folder (exists, not the bot's own, one `<server>.rda` per study with
+  an object named after its server), stopping with a clear message; the
+  analyst's files are never rewritten or committed by the bot. The report
+  says which mock data was used.
+- `studies` per step (analyst's choice, servers of the plan, each once):
+  the prompt asks for `datasources = conns[c(...)]` and a note where a
+  variable may be missing; `check_step_datasources()` flags calls in such a
+  step that pass no `datasources` or the whole connections object.
+- `examples/analysis-plan.yml` shows both. dsAnalysis's own copy of the
+  template (`initProject()`) needs the same two comments.
+- Tests: `tests/testthat/test-analysis-plan-fields.R`. Not yet run with
+  real DSLite or in CI.
