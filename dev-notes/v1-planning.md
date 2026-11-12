@@ -276,3 +276,22 @@ the first real use of the new branch model (feature → dev → main,
 release). Order: label integrity → learning loop (collecting moved before v1, see K/L) →
 issue triage → spec review → central agent repo with implementer,
 researcher, refactor agent. Design in [issue-agents.md](issue-agents.md).
+
+## 8. After v1: fewer checks on pull requests (user, 2026-11-12)
+
+The `dev` → `main` pull request shows a long list of checks ("a million
+required checks"), though the `workflows-main` ruleset requires only four
+(R unit tests, Shell script tests, Static checks, head-branch). The rest are
+everything else that runs on a pull request: CI, the self-tests (roxygen,
+tests, authors, analysis, Check the results), PR checks (commitlint,
+head-branch), cleanup. Most already ran when each change went into `dev`,
+so a release pull request repeats them. To review after v1:
+- which checks a `dev` → `main` pull request needs at all (e.g. only the
+  four required ones; the self-tests ran on the feature pull requests and
+  on the push to `dev`);
+- whether the self-tests can be one job with a matrix, or run only on
+  pushes to `dev` / a schedule instead of every pull request;
+- the same list per caller repository (dsAnalysis and dsSupportClient show
+  many bot and keepalive jobs on every pull request, most skipped).
+Required checks can't take path filters (a skipped required check blocks
+the merge), so trimming happens on the optional ones.
