@@ -107,14 +107,20 @@ jobs:
           needs: check
 
       - uses: r-lib/actions/check-r-package@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
-        env:
-          # CRAN's incoming checks (maintainer, spelling, URLs) with as-cran.
-          _R_CHECK_CRAN_INCOMING_: ${{ inputs.as-cran && 'true' || 'false' }}
-          _R_CHECK_CRAN_INCOMING_REMOTE_: ${{ inputs.as-cran && 'true' || 'false' }}
+        if: ${{ !inputs.as-cran }}
         with:
           upload-snapshots: true
-          # The action's default skips the PDF manual; CRAN builds it.
-          args: ${{ inputs.as-cran && 'c("--as-cran")' || 'c("--no-manual", "--as-cran")' }}
+
+      # Like CRAN: with the PDF manual (the action's default skips it) and
+      # CRAN's incoming checks (maintainer, spelling, URLs).
+      - uses: r-lib/actions/check-r-package@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        if: ${{ inputs.as-cran }}
+        env:
+          _R_CHECK_CRAN_INCOMING_: 'true'
+          _R_CHECK_CRAN_INCOMING_REMOTE_: 'true'
+        with:
+          upload-snapshots: true
+          args: 'c("--as-cran")'
 
       - name: Show testthat output
         if: always()
