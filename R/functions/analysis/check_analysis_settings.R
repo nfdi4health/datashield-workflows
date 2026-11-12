@@ -51,6 +51,10 @@ check_analysis_settings <- function(settings) {
   ag <- settings$agent
   need(is.null(ag) || (number(ag$max_turns) && ag$max_turns >= 1 && number(ag$timeout_minutes) && ag$timeout_minutes > 0),
     "agent.max_turns must be at least 1 and agent.timeout_minutes above 0")
+  need(is.null(settings$code_style) || (is.character(unlist(settings$code_style)) && all(nzchar(unlist(settings$code_style)))),
+    "code_style must be a list of rules (text)")
+  need(is.null(settings$inspection_functions) || is.character(unlist(settings$inspection_functions)),
+    "inspection_functions must be a list of function names")
   need(text(settings$credential_pattern) && !inherits(tryCatch(suppressWarnings(grepl(settings$credential_pattern, "")), error = identity), "error"),
     "credential_pattern must be a valid regular expression")
   need(text(settings$gap_issue_repo) && grepl("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", settings$gap_issue_repo), "gap_issue_repo must be owner/repo")

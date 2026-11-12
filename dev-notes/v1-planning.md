@@ -209,10 +209,62 @@ items, **all of A–J before v1**:
   [prompt-audit.md](prompt-audit.md). Flags 7–9 stay, each with the
   condition to revisit.
 
+- **K** Provenance on every bot output (user, 2026-11-12): model, prompt
+  hash, config version and workflow commit in each bot PR's report footer
+  (or commit trailer); roxygen, tests, analysis. Nothing records it today
+  and it can't be reconstructed later. Est. ½–1 day.
+- **L** Outcome record, collecting only (user, 2026-11-12; analysis after
+  v1): when a bot PR is closed or merged, `suggestion-choices.yml` (also on
+  `closed`) writes a hidden record into its description — choices per
+  finding, the edit diff of accepted findings, review line comments matched
+  to findings, provenance. No storage, no secret, nothing leaves the
+  repository. Est. 2–3 days plus tests and docs. Design in
+  [feedback-loop.md](feedback-loop.md).
+
+- **M** The implementer's next batch (user, 2026-11-12: before v1), all
+  decided in [implementer-plan.md](implementer-plan.md): disclosure
+  deviations go back to the writer; inputs `branch` / `server` /
+  `server-branch` and `open-pull-request`; the GitHub issue type before
+  labels, feature beating fix; the writer stops and asks on a server
+  change; the triage "Affects" line; answers to a spec's open questions
+  start a new triage, plus one extra triage beyond the limit; a
+  maintainer's objection overrides a duplicate verdict.
+
+- **N** A subscription pathway next to WIF for the roxygen, test and
+  analysis bots (user, 2026-11-12: analysis projects are usually one
+  person's, and packages often have no collaborators, e.g.
+  `FlorianSchw/dsClusterAnalysis(Client)`). **Same prompts, schemas and
+  config; only the transport differs** — one source of truth for the
+  Claude work, also for agents and skills. Design in
+  [claude-subscription-auth.md](claude-subscription-auth.md), section
+  "Subscription pathway (2026-11-12)".
+
+- **O — high priority** The analysis bot becomes an agent (user,
+  2026-11-12). Roxygen and tests stay single calls driven by R (on either
+  transport, item N); the analysis scripts are open-ended work and suit an
+  agent: Claude Code looks at the mock data objects itself, tries and
+  repairs code over several rounds, reads the installed client packages'
+  help. **R keeps the frame:** reading the plan, building the mock data,
+  the gates (every DataSHIELD call checked against the installed client
+  functions, the DSLite run), never overwriting scripts the analyst
+  edited, the PR. Step by step as today, so a run can resume at the next
+  step after a usage limit. **Privacy promise kept by the sandbox:** deny
+  `R/01_DS_Login.R` and `.Renviron` (dsAnalysis's README promises the
+  login file and credentials are never sent) — tested before release.
+  Transport: Claude Code takes either the analyst's subscription token or
+  WIF, so this also gives the analysis bot its subscription pathway.
+  **Why high:** a colleague of the user (DataSHIELD analyst, own Claude
+  subscription) is introduced on 2026-11-13 and prepares her real
+  analysis plan over the following days; the plan format
+  (`examples/analysis-plan.yml`) stays the interface, so her work carries
+  over. To tell her: with a consumer subscription, her plan's content
+  falls under the consumer terms — check the "Help improve Claude"
+  setting before a real plan goes in.
+
 ## 7. New workflows — after v1 (user's decision)
 
 None before v1: they build on the refactored foundation, and they are
 the first real use of the new branch model (feature → dev → main,
-release). Order: label integrity → learning loop (collecting only) →
+release). Order: label integrity → learning loop (collecting moved before v1, see K/L) →
 issue triage → spec review → central agent repo with implementer,
 researcher, refactor agent. Design in [issue-agents.md](issue-agents.md).

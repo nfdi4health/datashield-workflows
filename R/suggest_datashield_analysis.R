@@ -99,12 +99,26 @@ if (length(installed$clients) == 0) {
 
 # --- 4. Mock data, DSLite setup, login file -----------------------------------------
 
-mock <- generate_mock_data(plan, settings$mock_data)
-mock_paths <- write_mock_data(mock, file.path(paths$mock_data, settings$mock_data$folder))
+# The plan's mock-data: `plan` (default) generates it from the plan;
+# a folder name uses the analyst's own (dsAnalysis's initMockData()),
+# checked first, never replaced, and not committed by the bot.
+mock_choice <- plan$`mock-data` %||% "plan"
+if (identical(mock_choice, "plan")) {
+  mock <- generate_mock_data(plan, settings$mock_data)
+  mock_folder <- settings$mock_data$folder
+  mock_paths <- write_mock_data(mock, file.path(paths$mock_data, mock_folder))
+  mock_servers <- names(mock)
+  notes <- c(notes, texts$report$mock_data_plan)
+} else {
+  mock_folder <- check_project_mock_data(mock_choice, plan, paths$mock_data, settings$mock_data$folder, texts)
+  mock_paths <- list(written = character(0), removed = character(0))
+  mock_servers <- vapply(plan$studies, function(s) s$server, character(1))
+  notes <- c(notes, fill_template(texts$report$mock_data_project, list(FOLDER = file.path(paths$mock_data, mock_folder))))
+}
 login_files <- project_login_files(paths, settings$profiles)
 login <- check_login_file(login_files$production, plan, settings$credential_pattern, texts)
 notes <- c(notes, login$notes)
-setup_file <- update_dslite_setup(login_files$testing, dsanalysis_dir, settings$mock_data$folder, names(mock),
+setup_file <- update_dslite_setup(login_files$testing, dsanalysis_dir, mock_folder, mock_servers,
   installed$servers, settings$markers$dslite_mock_data, plan$symbol, login$connections)
 if (is.null(setup_file)) {
   stop(sprintf("The project needs the dsAnalysis DSLite setup (%s) for the test run.", login_files$testing), call. = FALSE)
@@ -122,6 +136,7 @@ context <- list(
   servers = vapply(plan$studies, function(s) s$server, character(1)),
   function_reference = reference$text,
   excluded_functions = format_excluded_functions(excluded),
+  code_style = if (length(unlist(settings$code_style)) > 0) paste0("- ", unlist(settings$code_style), collapse = "\n"),
   catalogue_text = catalogue_prompt$text,
   catalogue_names = catalogue_prompt$names,
   catalogue_functions = catalogue_prompt$functions,
@@ -139,7 +154,9 @@ context <- list(
 checks <- list(
   reference = reference,
   variables = vapply(plan$variables, function(v) v$name, character(1)),
-  login_file = login_files$testing
+  login_file = login_files$testing,
+  # Steps that run only on some studies (the step's `studies` list).
+  step_studies = Filter(length, setNames(lapply(plan$steps, function(s) unlist(s$studies)), vapply(plan$steps, function(s) s$id, character(1))))
 )
 
 # The agent (settings `engine`): Claude Code on the analyst's subscription
@@ -187,6 +204,13 @@ if (length(settled$written_files) > 0) {
   replaced <- setdiff(rewritten$path[!file.exists(rewritten$path)], settled$written_files)
   notes <- c(notes, update_project_blocks(steps, installed, catalogue, settings, texts))
   updated <- c(settled$written_files, replaced, mock_paths$written, mock_paths$removed, setup_file, paths$main, paths$dependencies)
+}
+
+# Objects the scripts create but never use (all bot scripts, since a later
+# step may use what an earlier one creates): reported for the analyst.
+unused <- find_unused_objects(sort(find_bot_step_files(paths$scripts)$path), unlist(settings$inspection_functions))
+for (f in names(unused)) {
+  notes <- c(notes, fill_template(texts$notes$unused_objects, list(FILE = f, OBJECTS = paste(sprintf("`%s`", unused[[f]]), collapse = ", "))))
 }
 
 report <- format_analysis_report(list(
