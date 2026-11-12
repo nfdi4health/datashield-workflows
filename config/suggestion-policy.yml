@@ -69,7 +69,9 @@ routing:
     possible_bugs: { on_pr: comment, without_pr: issue }
   tests:
     report: { on_pr: comment, without_pr: issue }
-    failed_test_comments: true   # on a PR, also one comment per failed generated test
+    # Generated tests that failed through their own fault are listed in
+    # the report only, never as PR comments; possible bugs in the code get
+    # one short comment per run on the PR (post_possible_bugs_comment()).
   authors:
     possible_matches: { on_pr: comment }   # without a PR: log (authors callers grant no issues: write)
 

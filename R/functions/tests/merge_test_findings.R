@@ -51,7 +51,7 @@ merge_test_findings <- function(state, fn, run, sha) {
   }
   add <- function(kind, fields) {
     blank <- list(file = "", description = "", reason = "", explanation = "", classification = "", in_report = FALSE,
-                  origin = "", confidence = "", issue = "")
+                  origin = "", confidence = "", issue = "", details = "")
     entries[[length(entries) + 1]] <<- c(
       list(id = next_id, kind = kind, fn = fn),
       modifyList(blank, fields),
@@ -135,7 +135,7 @@ merge_test_findings <- function(state, fn, run, sha) {
 
   for (f in run$failed) {
     add("failed", list(file = f$file, description = f$description, classification = f$classification,
-                       explanation = text(f$explanation), in_report = isTRUE(f$in_report)))
+                       explanation = text(f$explanation), in_report = isTRUE(f$in_report), details = text(f$details)))
   }
 
   for (path in run$setups) {
