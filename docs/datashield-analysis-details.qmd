@@ -13,7 +13,8 @@ You don't need it to get started.
 | `symbol` | no (default `D`) | The data frame the login assigns on the servers, as in `R/01_DS_Login.R` |
 | `studies` | yes | One entry per study: `server` (the server name, as in your login file) and `packages`, the DataSHIELD **server** packages installed there with their versions, e.g. `{dsBase: "6.3.2"}` |
 | `variables` | yes | One entry per variable: `name`, `type`, `categories` (categorical) or `range: [min, max]` (continuous, integer); optionally `label` and `role` (outcome, exposure, confounder, …) |
-| `steps` | yes | The analysis, in order: each step needs a `title`; an `id` (else derived from the title), `depends_on` and any other fields are optional |
+| `steps` | yes | The analysis, in order: each step needs a `title`; an `id` (else derived from the title), `depends_on`, `studies` and any other fields are optional |
+| `mock-data` | no (default `plan`) | `plan`: mock data generated from the variables. Or the name of a folder under `utils/mock_data` with your own, one `<server>.rda` per study holding an object named after the server (as dsAnalysis's `initMockData()` writes it) |
 | `package-catalogue` | no | Where the list of known DataSHIELD packages comes from (default: [packages.datashield.org](https://packages.datashield.org)) |
 | `package-status` | no (default `[production]`) | Which other packages may be suggested, by their status: `production`, `development`, `unknown`, `retired` |
 | `project` | no | Title and research question, passed on as context |
@@ -31,6 +32,15 @@ You don't need it to get started.
   step is only written once those steps passed in the run, so a broken
   data-management step doesn't use up the repair rounds of everything
   after it.
+- **`studies` in a step:** the servers that step runs on, e.g.
+  `studies: [study1, study2]`; default all. Every DataSHIELD call of that
+  step must pass a subset of the connections (`datasources = conns[c(...)]`).
+- **Your own mock data** (`mock-data: <folder>`) is checked before
+  anything runs: the folder exists, it isn't the bot's own
+  (`bot-suggest`), and every study has its file with the right object.
+  There is no silent fallback to generated data. Mock data built from your
+  servers' aggregates is closer to reality; whether the workflow may use
+  it is your choice. It is never committed by the bot.
 - **Table names** aren't needed: the scripts only use the symbol and the
   server names. If those differ from your login file, the report says so.
 
@@ -49,15 +59,30 @@ You don't need it to get started.
    created by a step (`newobj`). This check matters because DSLite, in its
    permissive test setting, returns `NA` for an unknown column instead of
    an error.
-5. **The test run:** steps are written one at a time, in plan order.
+5. **Clean code:** calls that only look at something (`ds.class()`,
+   `ds.colnames()`, `ds.dim()`, … — `inspection_functions` in the
+   settings) go back for repair: nobody sees their output in a script.
+   Objects created and never used are listed in the report.
+6. **The test run:** steps are written one at a time, in plan order.
    For each, your DSLite setup and the bot's scripts up to that step run
    in file order, in a fresh R session, without your project's
    `.Rprofile` and without any tokens. A run that takes too long counts
    as failing.
-6. **Repair:** a step that fails gets one more round with its problems.
+7. **Repair:** a step that fails gets up to two more rounds (`repair_rounds`) with its problems.
    A step that still fails isn't proposed, and a changed step keeps its
    previous script. Steps that build on it (`depends_on`) aren't written
    in this run.
+
+## Functions DSLite can't run {#dslite-untestable}
+
+Some functions work on real servers but not in DSLite, e.g.
+`ds.glmSLMA()` (study-level meta-analysis) and `ds.forestplot()`. The
+scripts may still use them where your plan asks for it. In the test run,
+a statement calling one of them that fails is skipped, together with
+every later statement that uses its result, and the report lists them per
+step as **not tested**: check those lines on the real servers. Every
+other failure still counts. The list is `dslite_untestable` in the
+settings.
 
 ## Steps that can't be written yet
 
@@ -108,7 +133,7 @@ Two files control the workflow:
 
 | File | Controls |
 |---|---|
-| `config/analysis-suggest.yml` | Mock data (rows, missing values, seed), the 150-line limit, file numbering, repair rounds, test-run timeout, paths, block markers, variable types, catalogues, the default `package-status`, the repository for missing-function issues |
+| `config/analysis-suggest.yml` | Mock data (rows, missing values, seed), the 150-line limit, file numbering, repair rounds, test-run timeout, paths, block markers, variable types, catalogues, the default `package-status`, the repository for missing-function issues, the clean-code rules (`code_style`, `inspection_functions`), and the agent (`engine`: `agent` or single `calls`; `agent.max_turns`, `agent.timeout_minutes`, `agent.model`, `agent.effort`) |
 | `config/analysis-texts.yml` | Everything the report, the scripts' headers and the notes say |
 
 To change something for your project, put a file at the same path that

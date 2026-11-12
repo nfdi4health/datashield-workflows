@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2319  # `[ ... ]; check ... $?` is the style of this file
 # Checks what the self-test runs of the bot workflows produced on the
-# fixture r-package with its recorded answers
+# fixtures r-package and analysis-project with their recorded answers
 # (tests/fixtures/claude-answers/r-package.json) — the same expectations
 # as tests/testthat/test-entry-scripts.R, but for the workflows as they
 # run on GitHub. <dir> holds the downloaded artifacts, one folder each.
@@ -42,6 +42,19 @@ aut="$dir/self-test-authors-r-package"
 grep -q 'person("Beatrice", "van Muster", role = "aut")' "$aut/DESCRIPTION"; check "authors: Bea as aut, named from her profile" $?
 grep -q 'person("Carl", "Test", role = "ctb")' "$aut/DESCRIPTION"; check "authors: Carl as ctb" $?
 [ -f "$aut/DESCRIPTION" ] && ! grep -q 'dependabot\|bea@example.org\|carl@example.org' "$aut/DESCRIPTION"; check "authors: no bot, no e-mails" $?
+
+# Analysis (tests/fixtures/analysis-project): three scripts pass the DSLite
+# test run; ds.glmSLMA (dslite_untestable) is skipped and reported, not failed.
+ana="$dir/self-test-analysis-analysis-project"
+for f in R/02_DataManagement.R R/03_DescriptiveStatistics.R R/04_MainModel.R; do
+  grep -qx "$f" "$ana/updated_files.txt" 2> /dev/null; check "analysis: proposes $f" $?
+done
+grep -q 'source(here::here("R", "04_MainModel.R"))' "$ana/R/main.R"; check "analysis: main.R block lists the scripts" $?
+grep -q "library(dsBaseClient)" "$ana/dependencies.R"; check "analysis: dependencies.R block" $?
+grep -q 'utils/mock_data/bot-suggest' "$ana/utils/setup/01_DSLite_Setup.R"; check "analysis: DSLite setup uses the generated mock data" $?
+grep -q "these statements were not tested" "$ana/suggestion_report.md" && grep -q "ds.glmSLMA" "$ana/suggestion_report.md"
+check "analysis: ds.glmSLMA reported as untested" $?
+grep -q "bot-suggest-provenance" "$ana/suggestion_report.md"; check "analysis: provenance in the report" $?
 
 echo "$passed passed, $failed failed"
 [ "$failed" = 0 ]

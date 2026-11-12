@@ -12,7 +12,28 @@ You decide what happens next.
 For a bug or an idea, the comment also has a short spec of the conversation:
 the goal, what was reported, acceptance criteria and open questions. The
 acceptance criteria are suggestions from the report, since triage doesn't
-read the code.
+read the code. Every triaged issue also gets `bot-triaged`.
+
+What Claude reads besides the issue:
+
+- **Related issues:** a first, cheap call picks up to five open or
+  recently closed issues that may be related, from their titles and the
+  start of their text; the triage reads those in full, with their
+  discussion. All other issues are listed by title only. A duplicate is
+  only named from these.
+- **The documentation, not the code:** the same first call names up to
+  three files of `R/` the issue is about; triage reads their roxygen
+  documentation (never the code) and says whether it contradicts the
+  report, matches it, or doesn't cover it — a "Documentation" line in the
+  comment. So a spec rests on the documented contract, and wrong or
+  missing documentation is its limit.
+- **The package's declared dependencies:** a package the code uses but
+  `DESCRIPTION` doesn't declare is a bug, even if the report sounds like a
+  setup problem.
+- **For DataSHIELD packages** (input `datashield`): an idea's spec gets a
+  disclosure section, choosing from the known disclosure settings; with
+  the input `server` (the server package of a client) the spec says which
+  of the two packages the change affects.
 
 | Category | Label |
 |---|---|
@@ -39,19 +60,27 @@ added stay.
   | Last verdict | Starts another triage |
   |---|---|
   | More information needed | An edit, or any person's comment |
-  | Duplicate, spam, out of scope | A comment or edit by the issue's author, who may disagree |
-  | Bug, idea, question | Nothing |
+  | Duplicate, spam, out of scope | A comment or edit by the issue's author, who may disagree, or a comment by a maintainer (a login in `allowed-logins`) |
+  | Bug or idea with open questions | A comment by the issue's author or a maintainer — the answers |
+  | Bug, idea without open questions, question | Nothing |
+
+  A maintainer's "not a duplicate" decides. After a spec with open
+  questions, one answering triage is allowed beyond `max-triages`.
 
   Before the first triage, a comment by the issue's author restarts the wait
   like an edit. Other comments start nothing, and the triage reads them
   anyway.
 - **Asking for a triage.** `triage-label` (`bot-triage`) set by a login in
-  `allowed-logins` starts one at once, with no wait and no limit, also on
+  `allowed-logins` (empty by default: then nobody can ask) starts one at once, with no wait and no limit, also on
   older issues that never had one. The label is removed afterwards, so it can
   be set again. Anyone else's is removed by the
   [label check](issue-label-check.qmd).
-- **What is left alone:** closed issues, issues written by a bot,
+- **What is left alone:** closed issues, issues written by a bot (unless
+  its login is in `triage-bots`, e.g. your GitHub App's `<slug>[bot]`),
   `bot-created` issues, and issues that already carry `approval-label`.
+- **An issue labelled `bot-suspicious`** (below) gets one triage only;
+  more answers would only give its author more tries. A maintainer can
+  still ask with `bot-triage`.
 
 ## Working with an issue
 
@@ -78,7 +107,9 @@ idea. If you disagree with the bot's category, change the label by hand.
 
 The caller has to be on the **default branch**, because `issues` and
 `issue_comment` events only start workflows from there. Every issue comment
-starts a short run, which ends in seconds if there's nothing to do. A real
+starts a short run, which ends in seconds if there's nothing to do; the
+example's job-level `if:` already skips comments on pull requests and
+other labels. A real
 triage holds a runner during the wait, which counts as Actions minutes in
 private repositories.
 
@@ -93,7 +124,7 @@ Anyone can write anything into an issue or comment, including instructions
 aimed at Claude. So the text only reaches Claude, Claude can only answer in fixed
 fields, and everything it writes is reduced to plain text before it is
 posted: no mentions, links, images or markup. A duplicate is only named if
-it is one of the open issues Claude was shown, and when an author disputes
+it is one of the issues Claude read in full, and when an author disputes
 a duplicate, Claude compares against that issue's full text rather than
 taking the objection's word for it. Labels come from the fixed
 list above, and triage refuses to set `approval-label`. At worst, a crafted

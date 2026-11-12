@@ -360,7 +360,7 @@ to the writer, and the user settled everything in PR review.
   run refuses an issue with an open, non-draft pull request today. Open:
   what the agent may read from pull request comments.
 
-## The agents' definitions need refinement (user, 2026-11-10; later)
+## The agents' definitions (user, 2026-11-10; built 2026-11-12)
 
 The writer and reviewer prompts (`prompts/implementer-*.md`) are first
 drafts. The maintainability reviewer in particular should cover more than
@@ -382,6 +382,87 @@ Where the definitions live is part of it: the procedure may belong in
 `datashield-skills` (a reviewer skill or agent definition, usable locally
 too), the facts in this repository's config, the workflow only wiring them
 (see "Overlap with datashield-skills").
+
+**Built 2026-11-12** (branch `agent-suggest/feat/agent-definitions`, not yet
+run):
+
+- **Lints as a deterministic step:** `run-checks.sh` calls `lint-changes.R`,
+  only on the lines the change added (`git diff -U0 origin/<base>...HEAD`),
+  into `.agent/lint.md`: with the package's own `.lintr` if it has one,
+  else layout linters only (braces, spacing, parentheses, trailing
+  whitespace) — naming and assignment style stay the package's (the default
+  linters would flag dsBaseClient's `ds.mean` and `=`). Lints don't count in
+  the checks' `ok`; the reviewer turns them into `must_fix` points (or
+  explains a false alarm), so the round logic stays as it is. `styler` not
+  used: a reformatting step would touch lines the change didn't.
+- **Where the definitions live (user, 2026-11-12):** the standard is the
+  `r-code-style` skill in datashield-skills (usable locally too): the
+  package first, reuse before writing (package helper → dependency → base R
+  → a new dependency only for real work), efficiency where it matters
+  (server round trips on clients; local work on aggregates: readability
+  wins), readable names and functions, layout (blank lines between steps,
+  braces, spacing). Its sync sources: `lint-changes.R` and the
+  maintainability prompt. The prompts name the skill and keep only what is
+  workflow-specific (scope, what not to review, the JSON answer).
+- **Maintainability reviewer** (`prompts/implementer-maintainability.md`):
+  reads the package and the skill first; looks for bugs, fidelity to the
+  spec, reuse and efficiency, consistency (argument checks, messages,
+  `datasources`, layout, naming), readability and layout, tests and the
+  lints. Leaves out roxygen wording and further tests (the roxygen and test
+  bots review the same PR) and disclosure (its own reviewer). A `must_fix`
+  point names the helper or convention it means.
+- **Writer** (`prompts/implementer-writer.md`): the skill up front, so
+  fewer points come back.
+
+## Tests from the spec, follow-ups, refactoring (user, 2026-11-12)
+
+The "independent oracle" of the roles proposal below, built first
+(branch `agent-suggest/feat/agent-definitions`, not yet run):
+
+- **Tests from the spec, in a separate session before the writer** (input
+  `oracle`, default true; `prompts/implementer-oracle.md`): the agent sees
+  the spec, the code as it is and the existing tests, never the fix. It
+  writes the tests the spec needs (a bug: reproduces it; an idea: the new
+  behaviour, its edge cases and disclosure behaviour), expected values from
+  the spec or computed independently (for DataSHIELD: plain R on the pooled
+  data against the federated DSLite result), commits them as `test:` and
+  leaves notes. `run-oracle.sh` throws its work away if it changed anything
+  outside `tests/`, runs its test files on the code as it is and writes
+  `.agent/oracle.json` / `oracle.md` (how many failed before: none failing
+  for a bug means it isn't reproduced).
+- **The writer makes them pass and may not change them** (`{{ORACLE}}` in
+  its prompt): a test it thinks wrong stays, with the reason under "Tests I
+  disagree with" in its summary; a person decides. `run-checks.sh` fails the
+  checks when the oracle's files differ from its commit, so the change goes
+  back in a correction round. The PR shows a "Tests from the spec" section.
+- **Follow-ups:** the writer may reshape the code it changes (behaviour and
+  disclosure as the spec says); code outside the change is never refactored
+  in the same run, but listed under "Follow-ups" in its summary (file and one
+  line each), so a person can open issues. The maintainability reviewer
+  flags refactoring outside the change. So there is no separate refactor
+  or performance stage: the reviewer judges efficiency within the change
+  (`r-code-style`), the rest is follow-ups — later perhaps for the refactor
+  agent of `issue-agents.md`.
+- Open from the roles proposal: pooled data for packages without DSLite
+  test data; a spec / plan agent; N solvers and the comparator.
+
+**Documentation and tests inside the run (user, 2026-11-12).** Considered:
+the roxygen and test bots committing straight into the implementer's PR, with
+the report as a PR comment. Rejected: a comment with code in it doesn't get
+read, and updating documentation and tests belongs to fixing a function or
+adding a feature. So:
+
+- tests early: the tests from the spec (above) and the writer's own;
+- documentation last: a documentation step after the correction rounds
+  (`prompts/implementer-roxygen.md`, `roxygen-docs` skill, only the
+  functions the change touched, only `#'` lines, `roxygenise()`, `docs:`
+  commit). `run-docs.sh` drops its commits if they change anything but
+  roxygen lines, `man/` and the RoxygenNote, or if the checks, run again,
+  pass no longer. The PR gets a "Documentation" section (one line);
+- the roxygen, test and authors bots skip `agent-suggest/<type>/issue-<n>`
+  (`resolve-suggestion-scope.sh`); Claude Code sessions' agent-suggest
+  branches stay reviewed. A person's later commits on an implementer branch
+  aren't reviewed by the bots either — accepted.
 
 ## Triage, found in the first implementer test (2026-11-10)
 

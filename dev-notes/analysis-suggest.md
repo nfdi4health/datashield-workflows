@@ -599,7 +599,35 @@ Re-tested:
    - each test round reruns all bot scripts: correct, but it grows with
      the project.
 
-**Open (stage 2): `ds.glmSLMA()` fails in the DSLite test run**, locally
+**Done 2026-11-12 (branch `agent-suggest/test/analysis-self-test`):**
+confirmed a DSLite limitation — with dsBase 6.3.6 `ds.glmSLMA()` fails on
+DSLite's own CNSIM data ("'data' must be a data.frame…"; with `D$` in the
+formula "object 'new.glm.obj' not found"). New setting
+`dslite_untestable` (ds.glmSLMA, ds.forestplot, moved from
+`excluded_functions`): Claude may use them where the plan asks; in the test
+run (`run_analysis_scripts()`, statement by statement) a failing statement
+calling one, and every later statement using a name it assigned, is skipped
+and listed; the report notes them per step as "not tested, check on the
+real servers" (`notes.dslite_untested`). Other failures still fail the step.
+The script header still says "tested … in DSLite" (changing the file after
+the test would break the content hash); the report carries the caveat.
+
+**Self-test (2026-11-12):** `self-test.yml` runs
+`datashield-analysis-suggest.yml` itself (input `self-test-fixture:
+analysis-project`): `tests/self-test/make-analysis-project.sh` builds a
+project from the dsAnalysis checkout's templates (so template changes are
+tested) plus `tests/fixtures/analysis-project/` (plan with three
+DEMO_OBIBA studies on dsBase 6.3.5, `engine: calls`, no catalogues);
+Claude's three answers are recorded
+(`tests/fixtures/claude-answers/analysis-project.json`, one per step, the
+main model with ds.glmSLMA); installs from CRAN, mock data, the DSLite
+setup update, the real test runs and the report run as in a caller;
+nothing is pushed or counted. `check-results.sh` checks the scripts, the
+main.R and dependencies.R blocks, the setup, the untested note and the
+provenance. Ran locally end to end (with the installed dsBase version);
+not yet in CI. Not covered: the agent engine, repair rounds, the PR.
+
+Earlier: **Open (stage 2): `ds.glmSLMA()` fails in the DSLite test run**, locally
 with dsBase 6.3.5, even on the original data (`D`), while `ds.glm()`
 works. Study-level meta-analysis code that works on real servers would
 be rejected. Check in CI whether this is a DSLite limitation and, if so,

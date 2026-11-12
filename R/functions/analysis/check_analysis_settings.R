@@ -47,6 +47,8 @@ check_analysis_settings <- function(settings) {
   need(text(settings$client_suffix), "client_suffix must be text, e.g. Client")
   need(is.null(settings$excluded_functions) || (is.list(settings$excluded_functions) && !is.null(names(settings$excluded_functions)) && all(vapply(settings$excluded_functions, function(r) is.null(r) || (is.character(r) && length(r) == 1), logical(1)))),
     "excluded_functions must map each function name to the reason Claude is told, e.g. ds.glmSLMA: not available in the test environment")
+  need(is.null(settings$dslite_untestable) || (is.list(settings$dslite_untestable) && !is.null(names(settings$dslite_untestable)) && all(vapply(settings$dslite_untestable, function(r) is.null(r) || (is.character(r) && length(r) == 1), logical(1)))),
+    "dslite_untestable must map each function name to a reason, e.g. ds.glmSLMA: doesn't run in DSLite")
   need(is.null(settings$engine) || settings$engine %in% c("agent", "calls"), "engine must be agent or calls")
   ag <- settings$agent
   need(is.null(ag) || (number(ag$max_turns) && ag$max_turns >= 1 && number(ag$timeout_minutes) && ag$timeout_minutes > 0),

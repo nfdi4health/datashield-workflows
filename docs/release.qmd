@@ -16,7 +16,7 @@ flowchart LR
   trigger -. "repository_dispatch:<br/>release-publish" .-> publish["Publish release<br/>(second caller)"]
 ```
 
-## 1. Release trigger
+## 1. Release trigger {#release-trigger}
 
 Runs on the pull request into `main`. It checks the package, merges the PR
 if the check passes (or opens an issue if it fails), and then starts the
@@ -27,6 +27,10 @@ release.
 The `if: github.head_ref == 'dev'` guard skips everything for PRs from other
 branches; [Require head branch](require-head-branch.qmd) additionally blocks
 them from being merged.
+
+The `link-issues` and `label-released` jobs close the issues this release
+fixes, see [release issues](release-issues.qmd); leave them out if you
+don't use it.
 
 ## 2. Publish release
 

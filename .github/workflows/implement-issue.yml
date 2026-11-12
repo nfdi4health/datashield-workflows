@@ -63,6 +63,11 @@ on:
         required: false
         type: string
         default: '40'
+      oracle:
+        description: 'true: before the writer, a separate agent writes tests from the spec alone (prompts/implementer-oracle.md); the writer makes them pass and may not change them.'
+        required: false
+        type: boolean
+        default: true
       correction-rounds:
         description: 'Correction rounds (0 to 2) after the first attempt.'
         required: false
@@ -278,7 +283,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         if: needs.pick.outputs.setup == 'r'
         with:
-          extra-packages: any::devtools, any::roxygen2, any::testthat, any::rcmdcheck
+          extra-packages: any::devtools, any::roxygen2, any::testthat, any::rcmdcheck, any::lintr
           needs: check
 
       # Claude Code's sandbox runs the agent's commands with bubblewrap and
@@ -311,6 +316,53 @@ jobs:
           git config user.name "datashield-implementer"
           git config user.email "datashield-implementer@users.noreply.github.com"
           git switch --create "$BRANCH"
+
+      # Tests first (dev-notes/implementer-plan.md, "Tests from the spec"):
+      # a separate agent writes them from the spec alone; run-oracle.sh keeps
+      # them only if nothing outside tests/ changed and records whether they
+      # fail on the code as it is.
+      - name: 'Prompt: tests from the spec'
+        id: prompt-oracle
+        if: inputs.oracle
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: oracle
+          BASE: ${{ needs.pick.outputs.base }}
+
+      - name: 'Agent: tests from the spec'
+        id: oracle
+        if: inputs.oracle
+        continue-on-error: true
+        uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1.0.269
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
+          prompt: ${{ steps.prompt-oracle.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.model }}
+            --max-turns ${{ inputs.max-turns }}
+            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git restore:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      - name: Check the tests from the spec
+        if: inputs.oracle
+        uses: $/.github/actions/implementer
+        with:
+          command: oracle
+        env:
+          SETUP: ${{ needs.pick.outputs.setup }}
+          BASE: ${{ needs.pick.outputs.base }}
 
       - name: 'Prompt: writer'
         id: prompt-writer0
@@ -354,6 +406,7 @@ jobs:
           command: checks
         env:
           SETUP: ${{ needs.pick.outputs.setup }}
+          BASE: ${{ needs.pick.outputs.base }}
           # Tests that install packages from GitHub (remotes) need a token.
           GITHUB_PAT: ${{ github.token }}
 
@@ -503,6 +556,7 @@ jobs:
           command: checks
         env:
           SETUP: ${{ needs.pick.outputs.setup }}
+          BASE: ${{ needs.pick.outputs.base }}
           # Tests that install packages from GitHub (remotes) need a token.
           GITHUB_PAT: ${{ github.token }}
 
@@ -605,6 +659,7 @@ jobs:
           command: checks
         env:
           SETUP: ${{ needs.pick.outputs.setup }}
+          BASE: ${{ needs.pick.outputs.base }}
           # Tests that install packages from GitHub (remotes) need a token.
           GITHUB_PAT: ${{ github.token }}
 
@@ -701,6 +756,78 @@ jobs:
           ROLE: disclosure
           EXECUTION_FILE: ${{ steps.disclosure-recheck.outputs.execution_file }}
 
+      # Documentation last, inside the run (dev-notes/implementer-plan.md,
+      # "Documentation and tests inside the run"): the roxygen and test bots
+      # skip the implementer's branches. run-docs.sh keeps the step's commits
+      # only if they touch documentation alone and the checks still pass.
+      - name: Before the documentation
+        id: docs-start
+        if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
+        run: echo "head=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: 'Prompt: documentation'
+        id: prompt-roxygen
+        if: steps.docs-start.outcome == 'success'
+        uses: $/.github/actions/implementer
+        with:
+          command: prompt
+        env:
+          PROMPT: roxygen
+          BASE: ${{ needs.pick.outputs.base }}
+
+      - name: 'Agent: documentation'
+        id: roxygen
+        if: steps.docs-start.outcome == 'success'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1.0.269
+        env:
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          github_token: ${{ github.token }}
+          # Runs are started by bots (the App after an approval, this
+          # workflow for the next issue, the timer); the approval is checked
+          # in pick and publish, not by who started the run.
+          allowed_bots: '*'
+          prompt: ${{ steps.prompt-roxygen.outputs.text }}
+          settings: ${{ runner.temp }}/claude-settings.json
+          plugin_marketplaces: https://github.com/nfdi4health/datashield-skills.git
+          plugins: datashield-skills@datashield-skills
+          claude_args: |
+            --model ${{ inputs.model }}
+            --max-turns ${{ inputs.max-turns }}
+            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(Rscript:*),Bash(R:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git restore:*)"
+            --disallowedTools "WebFetch,WebSearch"
+
+      - name: Check the documentation's scope
+        id: docs-scope
+        if: steps.docs-start.outcome == 'success'
+        uses: $/.github/actions/implementer
+        with:
+          command: docs-scope
+        env:
+          START: ${{ steps.docs-start.outputs.head }}
+          AGENT_OUTCOME: ${{ steps.roxygen.outcome }}
+
+      - name: Checks after the documentation
+        if: steps.docs-scope.outputs.changed == 'true'
+        uses: $/.github/actions/implementer
+        with:
+          command: checks
+        env:
+          SETUP: ${{ needs.pick.outputs.setup }}
+          BASE: ${{ needs.pick.outputs.base }}
+          # Tests that install packages from GitHub (remotes) need a token.
+          GITHUB_PAT: ${{ github.token }}
+
+      - name: Keep the documentation?
+        if: steps.docs-scope.outputs.changed == 'true'
+        uses: $/.github/actions/implementer
+        with:
+          command: docs-verdict
+        env:
+          START: ${{ steps.docs-start.outputs.head }}
+
       - name: Pack the result
         id: pack
         if: always()
@@ -709,7 +836,7 @@ jobs:
           OUT: ${{ runner.temp }}/out
         run: |
           mkdir -p "$OUT"
-          for file in summary.md checks.md checks.json review-maintainability.json review-disclosure.md review-disclosure.json needs-input.md; do
+          for file in summary.md oracle.md docs.md checks.md checks.json review-maintainability.json review-disclosure.md review-disclosure.json needs-input.md; do
             cp ".agent/$file" "$OUT/$file" 2> /dev/null || true
           done
           if [ "$(git rev-list --count "origin/$BASE..HEAD")" -gt 0 ]; then

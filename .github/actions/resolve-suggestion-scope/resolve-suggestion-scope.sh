@@ -20,6 +20,10 @@ field() { jq -r "$1 // empty" "$GITHUB_EVENT_PATH"; }
 # --- Runs that should do nothing ---------------------------------------------
 
 case "$branch" in bot-suggest/*) skip "this is the bot's own branch ($branch)." ;; esac
+# The implementer (implement-issue.yml) writes documentation and tests in
+# its own run; its branches are agent-suggest/<type>/issue-<n>. Other
+# agent-suggest/* branches (Claude Code sessions) are reviewed as usual.
+case "$branch" in agent-suggest/*/issue-*) skip "the implementer's branch ($branch) brings its own documentation and tests." ;; esac
 if [ "$event" = "push" ]; then
   case "$GITHUB_REF" in refs/tags/*) skip "a tag was pushed ($GITHUB_REF)." ;; esac
   [ "$(field '.deleted')" = "true" ] && skip "the branch $branch was deleted."
@@ -28,8 +32,7 @@ if [ "$event" = "pull_request" ]; then
   head_repo="$(field '.pull_request.head.repo.full_name')"
   [ -n "$head_repo" ] && [ "$head_repo" != "$GITHUB_REPOSITORY" ] && \
     skip "the pull request comes from a fork ($head_repo), which gets no secrets and can't receive the bot's commits."
-  # A draft is work in progress (the implementer's failed attempts are kept
-  # as drafts): reviewed once it is marked ready, which callers pass as
+  # A draft is work in progress: reviewed once it is marked ready, which callers pass as
   # `ready_for_review` and determine-changes.sh treats like `opened`.
   [ "$(field '.pull_request.draft')" = "true" ] && skip "the pull request is a draft; it is reviewed once it is marked ready."
 fi

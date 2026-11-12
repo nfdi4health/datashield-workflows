@@ -8,7 +8,7 @@ description: >
 
 inputs:
   command:
-    description: 'pick, verify, prompt, settings, checks, save-review, round, outcome, publish, cleanup, log-run or log-update.'
+    description: 'pick, verify, prompt, settings, oracle, checks, docs-scope, docs-verdict, save-review, round, outcome, publish, cleanup, log-run or log-update.'
     required: true
   working-directory:
     description: 'Where the command runs.'
@@ -18,6 +18,9 @@ inputs:
 # A composite action only passes on the outputs it declares: every key
 # implementer.mjs writes must be listed here (tests/node checks it).
 outputs:
+  changed:
+    description: 'See run-docs.sh (changed).'
+    value: ${{ steps.run.outputs.changed }}
   found:
     description: 'See implementer.mjs (found).'
     value: ${{ steps.run.outputs.found }}
@@ -103,6 +106,10 @@ runs:
       run: |
         if [ "$COMMAND" = checks ]; then
           bash "$GITHUB_ACTION_PATH/run-checks.sh"
+        elif [ "$COMMAND" = oracle ]; then
+          bash "$GITHUB_ACTION_PATH/run-oracle.sh"
+        elif [ "$COMMAND" = docs-scope ] || [ "$COMMAND" = docs-verdict ]; then
+          bash "$GITHUB_ACTION_PATH/run-docs.sh" "${COMMAND#docs-}"
         else
           node "$GITHUB_ACTION_PATH/implementer.mjs" "$COMMAND"
         fi

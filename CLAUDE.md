@@ -87,11 +87,16 @@ the live caller used to validate changes before wider rollout.
     fork's) unless another open PR still uses it. `agent-suggest/<type>/…`
     (2026-11-09): branches of coding agents, the implementer's and those of
     Claude Code sessions here (e.g. `agent-suggest/feat/…`), which the
-    roxygen, test and authors bots do review. **Decided (user,
+    roxygen, test and authors bots do review — except the implementer's
+    `agent-suggest/<type>/issue-<n>`, which brings its own tests and
+    documentation (user, 2026-11-12). **Docs pending** (once the implementer page
+    of the docs pass, PR #73, is on `dev`): `implementer.qmd` (tests from
+    the spec, the documentation step, lints, Follow-ups, the `oracle`
+    input), `suggestions.qmd` housekeeping (implementer branches skipped). **Decided (user,
     2026-11-09): Claude Code sessions name every branch
     `agent-suggest/<type>/<topic>`** (type as in Conventional Commits:
     `fix`, `feat`, `ci`, `docs`, …), in this repository and in callers;
-    no stacked PRs. **Docs pending:**
+    no stacked PRs. ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12:
     `cleanup-suggestion-branch.qmd` (agent branches; "branches of your own
     pull requests are never touched" holds only for other names).
   - `suggestion-choices.yml` — on `pull_request: edited` of a roxygen or
@@ -108,7 +113,7 @@ the live caller used to validate changes before wider rollout.
     edited before merging (both texts, `finding_outcome()`), people's
     review comments on the findings' files (`match_review_comments()`),
     the provenance marker. Collecting only; `outcome_record: false` in
-    `config/suggestion-policy.yml` turns it off. **Docs pending:**
+    `config/suggestion-policy.yml` turns it off. ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12:
     `suggestion-choices.qmd` (the `closed` type, what is recorded).
   - `workflow-keepalive.yml` — wraps `liskin/gh-workflow-keepalive@v1`
     (user's choice over custom `gh api` code). Inside a reusable workflow
@@ -206,7 +211,7 @@ the live caller used to validate changes before wider rollout.
     write`. Tests `tests/shell/test-release-issues.sh`. Labels are created
     by GitHub on first use; colours belong in repo-governance's
     `labels.json`. **Not yet tested live:** that GitHub closes the issues
-    when the release PR is merged with `GITHUB_TOKEN`. **Docs pending:** a
+    when the release PR is merged with `GITHUB_TOKEN`. ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a
     page (`release-issues.qmd`, Release section) and the release page's
     example.
   - `issue-label-check.yml` — first step of the issue flow
@@ -252,7 +257,7 @@ the live caller used to validate changes before wider rollout.
     daily. Logic in the composite action `implementer` (Node,
     `implementer.mjs <command>`), prompts `prompts/implementer-*.md`,
     tests `tests/node/implementer.test.mjs` (`node --test`).
-    **Docs pending:** a page (Issue flow section) with the runner setup,
+    ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
 - This repository's own, non-reusable workflows (besides `ci.yml`,
   `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `pr-checks.yml`
@@ -411,7 +416,7 @@ Details per workflow: [dev-notes/roxygen-suggest.md](dev-notes/roxygen-suggest.m
   from `model_rules` in `config/claude.yml` (no forced tool choice →
   `auto`; no disabled thinking → adaptive; no server-side fallback →
   dropped with its beta; no effort → dropped), so any model can be named.
-  Keep `model_rules` current when models come out. **Docs pending:** the
+  Keep `model_rules` current when models come out. ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: the
   input tables update themselves; a short note on `suggestions.qmd` /
   `claude-setup.qmd` (choosing a model, effort, thinking counts towards
   `max-tokens`), roadmap "Recent changes". Every Claude call goes through
@@ -1238,7 +1243,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   contents call, `description_fields`): a package a function uses
   (`@import`) or an error names but DESCRIPTION doesn't declare installs
   and then fails, which the prompt calls a `bug` (user's case; R CMD
-  check flags it too). **Docs pending:** `issue-triage.qmd` (closed
+  check flags it too). ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: `issue-triage.qmd` (closed
   issues in "Issue text is untrusted" and duplicates, the shortlist and
   related issues read with their discussion, the `shortlist-*` inputs,
   the documentation line and what it means, the `if:` in the
@@ -1251,8 +1256,8 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   `datashield`, an idea's spec gets a disclosure section (settings as an
   enum from the list at `disclosure.settings_path` in
   `disclosure.settings_file`, default `config/ds-package-rules.yml`;
-  `read_disclosure_settings()`, `triage_disclosure_lines()`). **Docs
-  pending:** both on `issue-triage.qmd`.
+  `read_disclosure_settings()`, `triage_disclosure_lines()`). ~~**Docs
+  pending:**~~ Done in the docs pass of 2026-11-12: both on `issue-triage.qmd`.
 - **Issue flow, step 3 of 3: the implementer**, built 2026-11-09, not yet
   run (see the LAYOUT entry). First test on dsSupportClient: the user's
   setup (done 2026-11-10: the bots' App got Issues and Actions read and

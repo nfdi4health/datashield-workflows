@@ -1,0 +1,55 @@
+{
+  "_about": "Recorded answers of the analysis bot for the self-test fixture tests/fixtures/analysis-project: one call per step, in plan order. The main model uses ds.glmSLMA, which DSLite can't run (settings dslite_untestable).",
+  "submit_analysis_scripts": [
+    {
+      "steps": [
+        {
+          "step_id": "data_management",
+          "sections": [
+            {
+              "purpose": "Keep the complete cases of outcome, exposure and confounder",
+              "code": "ds.completeCases(x1 = \"D\", newobj = \"D_cc\", datasources = conns)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "step_id": "descriptives",
+          "sections": [
+            {
+              "purpose": "Mean BMI per study and pooled",
+              "code": "bmi_mean <- ds.mean(x = \"D_cc$PM_BMI_CONTINUOUS\", type = \"both\", datasources = conns)\nprint(bmi_mean$Mean.by.Study)"
+            },
+            {
+              "purpose": "Table of the outcome",
+              "code": "diab_table <- ds.table(rvar = \"D_cc$DIS_DIAB\", datasources = conns)\nprint(diab_table$output.list$TABLE_rvar.by.study_counts)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "step_id": "main_model",
+          "sections": [
+            {
+              "purpose": "Pooled logistic regression",
+              "code": "model_pooled <- ds.glm(formula = \"DIS_DIAB ~ PM_BMI_CONTINUOUS + GENDER\", data = \"D_cc\", family = \"binomial\", datasources = conns)\nprint(model_pooled$coefficients)"
+            },
+            {
+              "purpose": "Study-level meta-analysis",
+              "code": "model_slma <- ds.glmSLMA(formula = \"DIS_DIAB ~ PM_BMI_CONTINUOUS + GENDER\", family = \"binomial\", dataName = \"D_cc\", datasources = conns)\nprint(model_slma$SLMA.pooled.ests.matrix)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    }
+  ]
+}

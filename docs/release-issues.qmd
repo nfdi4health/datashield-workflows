@@ -1,0 +1,41 @@
+---
+title: "Release issues"
+description: "Closes issues with the release that ships their fix, not with the merge into dev."
+---
+
+An issue fixed on `dev` isn't fixed for your users until the next release.
+`release-issues.yml` keeps issues open until then, and marks what is on
+its way:
+
+1. **mark** — when a pull request is merged into `dev`, the issues it closes
+   (`Closes`, `Fixes` or `Resolves #n` in its description or commits; a mere
+   `Refs #n` doesn't count) get the label `next-release` and one comment.
+   GitHub itself ignores these keywords outside the default branch, so
+   nothing closes yet.
+2. **link** — in the release chain, before the `dev` → `main` pull request
+   is merged: its description gets a block with `Closes #n` for every
+   issue labelled `next-release` (open, or closed by hand as completed). The
+   block is replaced on each run; no such issue is fine.
+3. **swap** — after the merge, which closes them: those issues get
+   `released` instead of `next-release`.
+
+`link` and `swap` have to be jobs of your release chain itself: the merge
+there uses `GITHUB_TOKEN`, which starts no other workflow. GitHub creates
+the labels the first time they are used.
+
+## Example
+
+The `mark` step, in its own caller:
+
+{{< example release-issues.yml >}}
+
+The `link` and `swap` steps go into the [release trigger](release.qmd#release-trigger)
+around the merge job, as in its example.
+
+## Inputs
+
+{{< wf-inputs release-issues.yml >}}
+
+## Permissions
+
+{{< wf-permissions release-issues.yml >}}

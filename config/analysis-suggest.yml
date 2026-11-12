@@ -89,8 +89,16 @@ package_status: [production]
 excluded_functions:
   datashield.login: the login has already run
   datashield.logout: the session stays open for the later scripts
-  ds.glmSLMA: study-level meta-analysis isn't available in the test environment; fit pooled models with ds.glm()
-  ds.forestplot: forest plots aren't available in the test environment
+
+# Functions real servers run but DSLite can't (checked 2026-11-12 with
+# dsBase 6.3.6: ds.glmSLMA fails on DSLite's own demo data). Scripts may use
+# them; in the test run a failing statement that calls one, and every later
+# statement using what it assigned, is skipped and listed in the report as
+# untested, instead of failing the step. Function name -> what Claude and
+# the report are told.
+dslite_untestable:
+  ds.glmSLMA: study-level meta-analysis doesn't run in DSLite
+  ds.forestplot: forest plots of study-level results need ds.glmSLMA's output
 
 # Rules for clean scripts, written into the prompt as a list (a project's
 # own config replaces the list). From the first trial runs: scripts

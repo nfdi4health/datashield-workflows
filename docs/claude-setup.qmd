@@ -1,11 +1,12 @@
 ---
 title: "Claude setup"
-description: "Keyless Claude API access for the roxygen and test suggestions and the analysis scripts."
+description: "Claude access for the roxygen and test suggestions and the analysis scripts: keyless through an Anthropic organization, or your Claude subscription."
 ---
 
 The [roxygen](roxygen-suggest.qmd) and [test](test-suggest.qmd)
 suggestion workflows and the [analysis scripts](datashield-analysis-suggest.qmd)
-call the Claude API **without a stored API key**. They
+call the Claude API **without a stored API key** (or use
+[your Claude subscription](#subscription)). They
 use [Workload Identity Federation](https://platform.claude.com/docs/en/manage-claude/workload-identity-federation):
 the job proves its identity with GitHub's OIDC token and gets a
 short-lived Anthropic token in exchange. Nothing secret is stored — the
@@ -23,6 +24,38 @@ setting up an Anthropic organization, send me an e-mail. A trial can run
 on an existing organization, with your repository's usage tracked
 separately.
 :::
+
+## Or: your Claude subscription {#subscription}
+
+For a repository you run on your own (an analysis project, a package
+without other contributors), the roxygen, test and analysis workflows can
+use your Claude subscription (Pro, Max) instead: the same prompts and
+checks, run through [Claude Code](https://code.claude.com).
+
+1. Install Claude Code and run `claude setup-token` in a terminal.
+2. Save the token as the repository secret `CLAUDE_CODE_OAUTH_TOKEN` and
+   pass it as `claude-code-oauth-token` (the examples show where).
+
+- **Usage** counts towards your subscription's limits.
+- **Who can use it:** the roxygen and test workflows only use the token for
+  runs started by the logins in `subscription-logins` (default: the
+  repository owner); other people's runs are skipped. The analysis
+  workflow uses it for every run, so keep it to repositories only you
+  push to.
+- **Terms:** with a personal subscription, Anthropic's consumer terms
+  apply. Check the "Help improve Claude" setting before private material
+  goes in.
+
+The rest of this page is about the organization setup (WIF).
+
+## Choosing a model {#model}
+
+Each workflow names its model in `config/claude.yml`. To use another,
+pass the inputs `model`, `max-tokens` and `effort` (the test and triage
+workflows have one set per Claude call, e.g. `review-model`). Settings a
+model doesn't support (a forced tool call, thinking turned off, `effort`)
+are adapted automatically. Thinking counts towards `max-tokens`, so a
+model that thinks needs room for it; more effort costs more.
 
 ## Recommended layout
 

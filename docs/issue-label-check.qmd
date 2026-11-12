@@ -8,8 +8,8 @@ An approval only counts if the right person gave it, for the text as it
 stands. No Claude is involved, and the calling repository is not checked
 out.
 
-- **Label set:** if the person who set it is not in `allowed-logins`, the
-  label is removed, with one short comment saying why. Only the exact login
+- **Label set:** if the person who set it is not in `allowed-logins`
+  (required, exact logins), the label is removed, with one short comment saying why. Only the exact login
   counts, not the person's access level: a maintainer who isn't listed is
   treated like anyone else, and so is a bot.
 - **Issue edited:** if the issue carries the label, it is removed, with a
@@ -23,6 +23,11 @@ out.
 
 Anything else does nothing, including the removal itself, so the check
 can't set itself off.
+
+**Starting the implementer** (optional): with `runner-repository`, an
+approval that stays starts the [implementer's](implementer.qmd) runner
+repository, using the token of your GitHub App (`app-client-id`,
+`app-private-key`; the App needs Actions: read and write there).
 
 ## Example
 

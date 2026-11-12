@@ -28,6 +28,11 @@ on:
         required: false
         type: number
         default: 0
+      self-test-fixture:
+        description: 'Only for this repository''s own self-test: build a project from dsAnalysis''s templates and tests/fixtures/<name>, answer Claude from tests/fixtures/claude-answers/<name>.json; nothing is sent, pushed or counted.'
+        required: false
+        type: string
+        default: ''
       effort:
         description: 'How much Claude thinks for drafting the analysis scripts: low, medium, high, xhigh or max. More costs more. Empty: the config''s, else the model''s default.'
         required: false
@@ -77,6 +82,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: inputs.self-test-fixture == ''
         with:
           persist-credentials: false   # no token in .git/config while package or generated code runs
 
@@ -90,6 +96,14 @@ jobs:
           repository: ${{ inputs.dsanalysis-repository }}
           ref: ${{ inputs.dsanalysis-ref }}
           path: .dsanalysis
+
+      # Self-test (this repository's own CI): a project built from the
+      # dsAnalysis templates takes the place of the caller.
+      - name: Use the self-test fixture
+        if: inputs.self-test-fixture != ''
+        env:
+          FIXTURE: ${{ inputs.self-test-fixture }}
+        run: bash .shared-workflows/tests/self-test/make-analysis-project.sh "$FIXTURE"
 
       - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
@@ -106,6 +120,7 @@ jobs:
       # with bubblewrap; Ubuntu's AppArmor blocks the user namespaces
       # bubblewrap needs unless this is turned off.
       - name: Claude Code and its sandbox
+        if: inputs.self-test-fixture == ''
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq bubblewrap socat > /dev/null
@@ -114,7 +129,7 @@ jobs:
 
       - name: Get Anthropic access token
         id: anthropic_auth
-        if: env.USE_WIF == 'true'
+        if: env.USE_WIF == 'true' && inputs.self-test-fixture == ''
         uses: $/.github/actions/anthropic-token
         with:
           organization-id: ${{ secrets.anthropic-organization-id }}
@@ -123,8 +138,9 @@ jobs:
 
       - name: Draft and test the analysis scripts
         env:
-          ANTHROPIC_API_KEY: ${{ steps.anthropic_auth.outputs.access-token }}
+          ANTHROPIC_API_KEY: ${{ inputs.self-test-fixture != '' && 'self-test' || steps.anthropic_auth.outputs.access-token }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
+          CLAUDE_RECORDED_ANSWERS: ${{ inputs.self-test-fixture != '' && format('.shared-workflows/tests/fixtures/claude-answers/{0}.json', inputs.self-test-fixture) || '' }}
           CLAUDE_MODEL_DATASHIELD_ANALYSIS: ${{ inputs.model }}
           CLAUDE_MAX_TOKENS_DATASHIELD_ANALYSIS: ${{ inputs.max-tokens }}
           CLAUDE_EFFORT_DATASHIELD_ANALYSIS: ${{ inputs.effort }}
@@ -139,14 +155,29 @@ jobs:
           DSANALYSIS_DIR: .dsanalysis
         run: Rscript .shared-workflows/R/suggest_datashield_analysis.R
 
+      - name: Keep the self-test results
+        if: always() && inputs.self-test-fixture != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: self-test-analysis-${{ inputs.self-test-fixture }}
+          path: |
+            updated_files.txt
+            suggestion_report.md
+            dependencies.R
+            R/
+            utils/setup/
+          if-no-files-found: error
+
       - name: Resolve push token
         id: push_token
+        if: inputs.self-test-fixture == ''
         uses: $/.github/actions/resolve-push-token
         with:
           client-id: ${{ secrets.app-client-id }}
           app-private-key: ${{ secrets.app-private-key }}
 
       - name: Propose the scripts
+        if: inputs.self-test-fixture == ''
         uses: $/.github/actions/commit-updated-files
         with:
           scan-mode: changed
@@ -163,7 +194,7 @@ jobs:
       # Counts this run once, anonymously, by workflow, outcome and version
       # (see docs: usage counting). Nothing about this repository is sent.
       - name: Count this run
-        if: always()
+        if: always() && inputs.self-test-fixture == ''
         continue-on-error: true
         uses: $/.github/actions/count-run
         with:
