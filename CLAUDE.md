@@ -268,7 +268,9 @@ the live caller used to validate changes before wider rollout.
   (commit messages on PRs into dev/main, only `dev` into `main`),
   `cleanup-agent-branches.yml` (calls `cleanup-suggestion-branch.yml` for
   this repository's own agent branches; "Automatically delete head
-  branches" stays off, user 2026-11-09) and
+  branches" stays off, user 2026-11-09), `release-issue-labels.yml`
+  (calls `release-issues.yml`: `mark` on PRs merged into dev, `link` on the
+  dev → main PR, `swap` after its merge; 2026-11-13) and
   `release.yml` (semantic-release of this repository: `vX.Y.Z`, moving
   `vX`, CHANGELOG.md, config `.github/release/releaserc.json` copied over
   the root `.releaserc.json` in the runner — the root one is the R-package
@@ -710,6 +712,11 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   release trigger, `package-release.yml`) ran on dsSupportClient PR #20,
   but in `dry-run` mode, which skips `prepare`. dsSupportClient's release
   caller sets `dry-run: true` until its first real release.
+- **Decided 2026-11-13 for this repository's releases:** published
+  directly (`draftRelease: false` in `.github/release/releaserc.json`),
+  issues marked and closed through `release-issue-labels.yml`, no
+  semantic-release comments or labels. The list below is about the shared
+  R-package config (`.releaserc.json`).
 - Release config (`.releaserc.json`, `@semantic-release/github`), undecided:
   - `draftRelease`: keep drafts (manual publish after a final look) or
     publish directly?
