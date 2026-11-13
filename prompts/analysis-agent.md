@@ -21,4 +21,7 @@ real servers.
   the numbers.
 - You can read the project's files except the real login file and
   `.Renviron`. Don't try to read data files.
+- Files your tries write (e.g. under `results/`) are thrown away after
+  this run and never reach the analyst: don't clean them up, and don't
+  mention them in your notes.
 - Answer with the structured output (the same fields as described above).
