@@ -84,9 +84,11 @@ changes() {  # changes <event> <workflow ref>
     bash "$SCOPE/determine-changes.sh" > /dev/null 2>&1
 }
 changes workflow_dispatch refs/heads/dev
-[ "$(paste -sd, files_to_check.txt)" = "R/b.R,R/d.R" ]; check "manual run: changes since the last review, its failed file, not the PR's" $?
+rc=1; if [ "$(paste -sd, files_to_check.txt)" = "R/b.R,R/d.R" ]; then rc=0; fi
+check "manual run: changes since the last review, its failed file, not the PR's" "$rc"
 grep -qx "count=2" "$WORK/out.txt"; check "manual run: count" $?
-[ ! -e history_failed.txt ] && [ ! -e history_pr.txt ]; check "no temporary files left" $?
+rc=1; if [ ! -e history_failed.txt ] && [ ! -e history_pr.txt ]; then rc=0; fi
+check "no temporary files left" "$rc"
 
 printf '#!/usr/bin/env bash\n' > "$BIN/gh"   # no earlier runs
 changes schedule refs/heads/main
