@@ -49,8 +49,9 @@ the live caller used to validate changes before wider rollout.
     `cran-<version>` (annotated); `dry-run` by default. The maintainer still
     confirms CRAN's email. Entry scripts `R/check_cran_wait.R`,
     `R/cran_submit.R`, functions `R/functions/cran/`. `r-cmd-check.yml`'s
-    `as-cran` input is the matching check. **Docs pending:** a page
-    (Release section) and the release examples' commented jobs.
+    `as-cran` input is the matching check. ~~**Docs pending:**~~ Done in the
+    docs pass of 2026-11-13: `cran.qmd` (Release section); the release
+    examples already had the commented jobs.
   - `merge-pull-request.yml` — merges a PR via `gh pr merge`. No PAT needed
     (`release` runs via `needs:`, not a fresh `push` event).
   - `require-head-branch.yml` — fails a PR whose head branch isn't
@@ -89,10 +90,10 @@ the live caller used to validate changes before wider rollout.
     Claude Code sessions here (e.g. `agent-suggest/feat/…`), which the
     roxygen, test and authors bots do review — except the implementer's
     `agent-suggest/<type>/issue-<n>`, which brings its own tests and
-    documentation (user, 2026-11-12). **Docs pending** (once the implementer page
-    of the docs pass, PR #73, is on `dev`): `implementer.qmd` (tests from
-    the spec, the documentation step, lints, Follow-ups, the `oracle`
-    input), `suggestions.qmd` housekeeping (implementer branches skipped). **Decided (user,
+    documentation (user, 2026-11-12). ~~**Docs pending**~~ Done in the docs
+    pass of 2026-11-13: `implementer.qmd` (tests from the spec, the
+    documentation step, lints, Follow-ups, the `oracle` input), and
+    `suggestions.qmd` with #90 (the implementer's commits left out). **Decided (user,
     2026-11-09): Claude Code sessions name every branch
     `agent-suggest/<type>/<topic>`** (type as in Conventional Commits:
     `fix`, `feat`, `ci`, `docs`, …), in this repository and in callers;
