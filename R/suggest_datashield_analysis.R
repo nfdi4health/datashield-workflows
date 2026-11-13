@@ -197,7 +197,8 @@ if (engine == "agent") {
     login_file = login_files$testing,
     profile = settings$profiles$testing,
     helper = file.path(shared_root, "R", "try_analysis_code.R"),
-    template = read_text_file("prompts/analysis-agent.md")
+    template = read_text_file("prompts/analysis-agent.md"),
+    untestable = names(Filter(Negate(is.null), settings$dslite_untestable))
   )
   message(sprintf("Drafting with the agent (Claude Code, %s).", if (nzchar(oauth)) "subscription" else "WIF token"))
 }
