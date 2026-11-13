@@ -109,7 +109,8 @@ git checkout -q -b agent-suggest/fix/issue-9
 echo e > R/e.R; git add -A; git -c user.email=i@i -c user.name=datashield-implementer commit -qm "fix: by the implementer"
 echo f > R/f.R; g add -A; g commit -qm "fix: by a person"
 changes workflow_dispatch refs/heads/agent-suggest/fix/issue-9
-grep -qx "R/f.R" files_to_check.txt && ! grep -qx "R/e.R" files_to_check.txt; check "implementer's commit left out, a person's reviewed" $?
+rc=1; if grep -qx "R/f.R" files_to_check.txt && ! grep -qx "R/e.R" files_to_check.txt; then rc=0; fi
+check "implementer's commit left out, a person's reviewed" "$rc"
 
 echo "$passed passed, $failed failed"
 [ "$failed" = 0 ]
