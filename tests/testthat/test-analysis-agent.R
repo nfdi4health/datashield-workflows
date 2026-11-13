@@ -10,6 +10,9 @@ test_that("agent_settings() denies the login file and .Renviron to tools and san
   expect_length(s$sandbox$network$allowedDomains, 0)
   expect_length(s$sandbox$filesystem$denyRead, 2)
   expect_length(s$sandbox$filesystem$allowWrite, 2)
+  # No denyWrite on the project root: it would win over allowWrite and make
+  # everything read-only (the first real run, 2026-11-12).
+  expect_null(s$sandbox$filesystem$denyWrite)
 })
 
 test_that("read_claude_code_result() returns the result or stops (the agent's answers)", {
@@ -29,6 +32,7 @@ test_that("ask_agent_for_scripts() calls claude locked down and without other cr
     "#!/bin/sh",
     sprintf("printf '%%s\\n' \"$@\" > %s", log),
     sprintf("echo \"OAUTH=$CLAUDE_CODE_OAUTH_TOKEN GH=$GH_TOKEN SCRUB=$CLAUDE_CODE_SUBPROCESS_ENV_SCRUB\" >> %s", log),
+    sprintf("echo \"TMPDIR=$TMPDIR PROFILE=$R_PROFILE_USER RENV=$RENV_ACTIVATE_PROJECT\" >> %s", log),
     sprintf("cat >> %s", log),
     "echo '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"structured_output\":{\"steps\":[{\"step_id\":\"a\"}]}}'"
   ), fake)
@@ -47,6 +51,9 @@ test_that("ask_agent_for_scripts() calls claude locked down and without other cr
   expect_false("--bare" %in% call)   # --bare ignores the OAuth token
   expect_true(any(grepl("Bash(Rscript .shared-workflows/R/try_analysis_code.R:*)", call, fixed = TRUE)))
   expect_true("OAUTH=sub-token GH= SCRUB=1" %in% call)
+  # R in the sandbox: temporary files under .agent/, no project .Rprofile (renv).
+  r_env <- grep("^TMPDIR=", call, value = TRUE)
+  expect_match(r_env, "TMPDIR=\\S*\\.agent/tmp PROFILE=\\S*\\.agent/no-profile RENV=FALSE")
   expect_true("THE PROMPT" %in% call)
   expect_true(any(grepl("Run Rscript .shared-workflows/R/try_analysis_code.R with conns.", call, fixed = TRUE)))
   # The temporary files are gone afterwards.
