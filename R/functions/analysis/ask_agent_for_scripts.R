@@ -17,6 +17,7 @@ ask_agent_for_scripts <- function(context, prompt, tool) {
   a <- context$agent
   dir <- ".agent"
   dir.create(dir, showWarnings = FALSE)
+  dir.create(file.path(dir, "tmp"), showWarnings = FALSE)
   dir.create("results", showWarnings = FALSE)
   on.exit(unlink(dir, recursive = TRUE), add = TRUE)
   jsonlite::write_json(tool$input_schema, file.path(dir, "schema.json"), auto_unbox = TRUE, null = "null")
@@ -40,7 +41,12 @@ ask_agent_for_scripts <- function(context, prompt, tool) {
   # gets none (CLAUDE_CODE_SUBPROCESS_ENV_SCRUB, and the blanked list).
   blank_names <- setdiff(credential_variables(), names(a$env))
   blank <- setNames(rep("", length(blank_names)), blank_names)
-  env <- c(blank, a$env, CLAUDE_CODE_SUBPROCESS_ENV_SCRUB = "1", "current")
+  # In the sandbox R may write only below .agent/: its temporary files go
+  # there, and the project's .Rprofile (renv activation, which writes to
+  # renv/) isn't read, as in run_analysis_scripts().
+  r_env <- c(TMPDIR = normalizePath(file.path(dir, "tmp")),
+             R_PROFILE_USER = file.path(normalizePath(dir), "no-profile"), RENV_ACTIVATE_PROJECT = "FALSE")
+  env <- c(blank, a$env, r_env, CLAUDE_CODE_SUBPROCESS_ENV_SCRUB = "1", "current")
   run <- processx::run(a$bin, args, stdin = file.path(dir, "prompt.md"), env = env,
     timeout = a$timeout_seconds, error_on_status = FALSE)
   if (isTRUE(run$timeout)) {
