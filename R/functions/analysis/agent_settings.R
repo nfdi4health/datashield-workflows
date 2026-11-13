@@ -4,9 +4,13 @@
 # dsAnalysis README promises those never reach Claude); the same paths are
 # denied to the Read tool. Mock data stays readable: the test setup loads
 # it, and the agent sees it only through DataSHIELD calls in its try runs.
-# Commands may write only to `.agent/` (the agent's drafts) and `results/`
-# (the outputs a draft writes), so code the agent tries can't change the
-# project's other files. `deny_paths` are relative to the project root.
+# Commands may write only to `.agent/` (the agent's drafts and R's temporary
+# files) and `results/` (the outputs a draft writes), so code the agent
+# tries can't change the project's other files: in the sandbox nothing is
+# writable unless listed in allowWrite. No denyWrite on the project root:
+# a denyWrite wins over allowWrite inside it, which made every path
+# read-only and stopped every try run (DataSHIELD_CONF_DEMO, 2026-11-12).
+# `deny_paths` are relative to the project root.
 agent_settings <- function(deny_paths, writable = c(".agent", "results")) {
   deny_paths <- unique(deny_paths[nzchar(deny_paths)])
   list(
@@ -20,7 +24,6 @@ agent_settings <- function(deny_paths, writable = c(".agent", "results")) {
       network = list(allowedDomains = list()),
       filesystem = list(
         denyRead = as.list(normalizePath(deny_paths, mustWork = FALSE)),
-        denyWrite = list(normalizePath(".", mustWork = FALSE)),
         allowWrite = as.list(normalizePath(writable, mustWork = FALSE))
       )
     )
