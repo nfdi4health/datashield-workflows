@@ -50,8 +50,13 @@ round of caller changes) → refactoring → new workflows.
     way to point them at a fixture instead of the caller checkout and to
     skip the token step and the push — a test-only input or a
     `CLAUDE_REPLAY` env; to decide with the user, as it touches the
-    workflows' interface). The smoke test with real calls needs a
-    federation rule for this repository.
+    workflows' interface). ~~The smoke test with real calls needs a
+    federation rule for this repository.~~ Built 2026-11-13 on the
+    owner's subscription instead (user): `smoke-test.yml`, `tests/smoke/`
+    — the roxygen and test entry scripts on the fixture package with real
+    answers through Claude Code; no federation rule needed. The analysis
+    bot isn't in it (DSLite and the agent sandbox; the live callers cover
+    it).
 
 ## 2. Secrets
 

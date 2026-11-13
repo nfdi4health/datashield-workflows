@@ -1,0 +1,65 @@
+name: Smoke test
+
+# Real Claude calls (decided 2026-11-13, before v1): the roxygen and test
+# bots on the made-up package tests/fixtures/r-package, answered by Claude
+# through Claude Code on the owner's subscription (secret
+# CLAUDE_CODE_OAUTH_TOKEN of this repository; only the owner works here).
+# Checks what the recorded answers of ci.yml and self-test.yml can't:
+# models still available, tool schemas accepted, answers that fit what R
+# expects. Nothing is pushed or posted (GitHub answered locally). About
+# five calls per run. Runs on pull requests into main (releases), monthly,
+# and by hand. Not reusable.
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '23 4 7 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Real Claude calls
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          packages: >-
+            any::testthat, any::withr, any::httr2, any::jsonlite, any::yaml,
+            any::purrr, any::desc, any::callr, any::processx
+
+      # The same pinned Claude Code as the analysis bot. No sandbox needed:
+      # the single calls run without tools (call_claude_code_tool()).
+      - name: Claude Code
+        run: npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312
+
+      - name: Run the smoke test
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "::error::No secret CLAUDE_CODE_OAUTH_TOKEN in this repository (claude setup-token)."
+            exit 1
+          fi
+          Rscript tests/smoke.R
+
+  # GitHub disables a scheduled workflow after 60 days without activity.
+  keepalive:
+    if: github.event_name == 'schedule'
+    permissions:
+      actions: write
+    # Not reusable itself: always this repository's own workflow file.
+    uses: ./.github/workflows/workflow-keepalive.yml  # zizmor: ignore[self-repository]
