@@ -871,6 +871,12 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
     incremental updates. Structured `model:` steps could be built from an
     R template instead of Claude
     ([dev-notes/claude-workflow-review.md](dev-notes/claude-workflow-review.md)).
+  - **Packages the studies don't have yet** (decided 2026-11-13, not
+    built; after the model comparison): checkboxes in the bot PR, one per
+    suggested package; ticking one installs it in DSLite and redrafts the
+    steps that would use it, with the request for the data owners in the
+    PR. Details in
+    [dev-notes/analysis-suggest.md](dev-notes/analysis-suggest.md).
   - **dsAnalysis:** its changes are a checklist in
     [dev-notes/analysis-suggest.md](dev-notes/analysis-suggest.md),
     including a bug in `add_dsPackage()`.
