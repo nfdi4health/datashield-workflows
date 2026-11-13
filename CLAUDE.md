@@ -88,12 +88,15 @@ the live caller used to validate changes before wider rollout.
     fork's) unless another open PR still uses it. `agent-suggest/<type>/…`
     (2026-11-09): branches of coding agents, the implementer's and those of
     Claude Code sessions here (e.g. `agent-suggest/feat/…`), which the
-    roxygen, test and authors bots do review — except the implementer's
-    `agent-suggest/<type>/issue-<n>`, which brings its own tests and
-    documentation (user, 2026-11-12). ~~**Docs pending**~~ Done in the docs
-    pass of 2026-11-13: `implementer.qmd` (tests from the spec, the
-    documentation step, lints, Follow-ups, the `oracle` input), and
-    `suggestions.qmd` with #90 (the implementer's commits left out). **Decided (user,
+    roxygen, test and authors bots do review; on the implementer's
+    `agent-suggest/<type>/issue-<n>` they leave out its own commits
+    (`datashield-implementer` in `bot_names`), which bring their own tests
+    and documentation, and review a person's later commits (user,
+    2026-11-13; until then the whole branch was skipped). ~~**Docs
+    pending**~~ Done in the docs pass of 2026-11-13: `implementer.qmd`
+    (tests from the spec, the documentation step, lints, Follow-ups, the
+    `oracle` input), and `suggestions.qmd` with #90 (the implementer's
+    commits left out). **Decided (user,
     2026-11-09): Claude Code sessions name every branch
     `agent-suggest/<type>/<topic>`** (type as in Conventional Commits:
     `fix`, `feat`, `ci`, `docs`, …), in this repository and in callers;
@@ -264,12 +267,43 @@ the live caller used to validate changes before wider rollout.
     tests `tests/node/implementer.test.mjs` (`node --test`).
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
+  - `route-idea.yml`, `methods-scan.yml` — for the hub of missing
+    DataSHIELD functions, `nfdi4health/datashield-function-ideas` (main
+    only; built 2026-11-13, **not yet run**; design in
+    [dev-notes/issue-agents.md](dev-notes/issue-agents.md), "A central
+    hub"). Route: a routing label (input `routes`, lines `label =
+    owner/repo`) set by a login in `allowed-logins` copies the hub issue
+    to that repository with the bots' App token (installed there, Issues:
+    write), links it back with a hidden `routed-to` marker (copied once
+    per target) and labels the hub issue `routed`; mentions in the copy
+    are defused. Composite action `route-idea`, tests
+    `tests/shell/test-route-idea.sh`. Scan: the researcher, phase 0
+    `pilot` so far (open-access papers of one query from PubMed/PMC via
+    NCBI E-utilities; Haiku, profile `methods-extraction`, lists each
+    paper's methods with where they are named; report in the run summary
+    and an artifact, nothing committed); runs only for
+    `subscription-logins`, on the subscription. Entry script
+    `R/scan_methods.R`, functions `R/functions/methods/`, settings
+    `config/methods-scan.yml` (queries in the hub's own copy), prompt
+    `prompts/methods-extraction-prompt.md`. The analysis bot's gap links
+    point to the hub's issue form `analysis-method.yml` (`gap_issue_repo`,
+    `texts$issue$template` / `fields`), with only the note on what is
+    missing (not the step's title). **Docs pending:** a page each (a new
+    sidebar section "Function ideas"), the analysis details page's gap
+    link already updated.
 - This repository's own, non-reusable workflows (besides `ci.yml`,
-  `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `pr-checks.yml`
+  `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `smoke-test.yml`
+  (real Claude calls, 2026-11-13: `tests/smoke/` runs the roxygen and test
+  entry scripts on `tests/fixtures/r-package` through Claude Code on the
+  owner's subscription, secret `CLAUDE_CODE_OAUTH_TOKEN`; GitHub answered
+  locally, nothing pushed; on PRs into `main`, monthly and by hand;
+  `Rscript tests/smoke.R`, skipped without the token), `pr-checks.yml`
   (commit messages on PRs into dev/main, only `dev` into `main`),
   `cleanup-agent-branches.yml` (calls `cleanup-suggestion-branch.yml` for
   this repository's own agent branches; "Automatically delete head
-  branches" stays off, user 2026-11-09) and
+  branches" stays off, user 2026-11-09), `release-issue-labels.yml`
+  (calls `release-issues.yml`: `mark` on PRs merged into dev, `link` on the
+  dev → main PR, `swap` after its merge; 2026-11-13) and
   `release.yml` (semantic-release of this repository: `vX.Y.Z`, moving
   `vX`, CHANGELOG.md, config `.github/release/releaserc.json` copied over
   the root `.releaserc.json` in the runner — the root one is the R-package
@@ -449,7 +483,9 @@ Details per workflow: [dev-notes/roxygen-suggest.md](dev-notes/roxygen-suggest.m
 - **Where shared files come from:** callers get this repo checked out into
   `.shared-workflows/`. Config files are YAML and read with
   `read_config_yaml("config/x.yml")`: the shared copy with the caller's own
-  file at the same path merged over it key by key (lists replaced) — on
+  file at the same path merged over it key by key (`merge_config()`; lists,
+  also lists of mappings, replaced as a whole; until 2026-11-13
+  `utils::modifyList()`, which ignored a project's list of mappings) — on
   `v1/foundation` since 2026-10-19 for every config (before: only the
   analysis and naming configs; the others replaced the whole file and were
   JSON). Prompt templates are still replaced as a whole
@@ -711,6 +747,11 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   release trigger, `package-release.yml`) ran on dsSupportClient PR #20,
   but in `dry-run` mode, which skips `prepare`. dsSupportClient's release
   caller sets `dry-run: true` until its first real release.
+- **Decided 2026-11-13 for this repository's releases:** published
+  directly (`draftRelease: false` in `.github/release/releaserc.json`),
+  issues marked and closed through `release-issue-labels.yml`, no
+  semantic-release comments or labels. The list below is about the shared
+  R-package config (`.releaserc.json`).
 - Release config (`.releaserc.json`, `@semantic-release/github`), undecided:
   - `draftRelease`: keep drafts (manual publish after a final look) or
     publish directly?
@@ -769,6 +810,13 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   required checks (a required check skipped by a path filter never reports
   and blocks the PR, seen on dsSupportClient #75). Part of the refactoring
   pass with the agents' definitions and the cross-repo overlaps.
+- **Decided 2026-11-13 (user), to build before v1** (details in
+  [dev-notes/v1-planning.md](dev-notes/v1-planning.md) §6): the bots
+  review implementer branches again but skip the implementer's own
+  commits; a real-Claude smoke test on the user's subscription
+  (`CLAUDE_CODE_OAUTH_TOKEN` here), on PRs into `main` and monthly; this
+  repository's releases published directly, issues marked by
+  `release-issues.yml` in the release chain, no semantic-release comments.
 - **Before v1 also: provenance and outcome records** (user, 2026-11-12):
   model / prompt hash / config version in every bot PR's report, and a
   hidden outcome record (choices, edit diffs, review comments) written into

@@ -50,8 +50,13 @@ round of caller changes) → refactoring → new workflows.
     way to point them at a fixture instead of the caller checkout and to
     skip the token step and the push — a test-only input or a
     `CLAUDE_REPLAY` env; to decide with the user, as it touches the
-    workflows' interface). The smoke test with real calls needs a
-    federation rule for this repository.
+    workflows' interface). ~~The smoke test with real calls needs a
+    federation rule for this repository.~~ Built 2026-11-13 on the
+    owner's subscription instead (user): `smoke-test.yml`, `tests/smoke/`
+    — the roxygen and test entry scripts on the fixture package with real
+    answers through Claude Code; no federation rule needed. The analysis
+    bot isn't in it (DSLite and the agent sandbox; the live callers cover
+    it).
 
 ## 2. Secrets
 
@@ -261,13 +266,46 @@ items, **all of A–J before v1**:
   falls under the consumer terms — check the "Help improve Claude"
   setting before a real plan goes in.
 
-- **To think about before v1 (user, 2026-11-12):** the roxygen, test and
+- **State on 2026-11-13:** K, L, M, N and O are built (K/L/N in the docs
+  pass of 2026-11-12, M on `agent-suggest/feat/implementer`, O tested in
+  the model comparison on DataSHIELD_CONF_DEMO with the fixes #84 and #87).
+
+- **Decided 2026-11-13 (user), to build before v1:**
+  - **Implementer branches:** the roxygen, test and authors bots review
+    `agent-suggest/<type>/issue-<n>` branches again, but skip the
+    implementer's own commits (as `bot_names` does for the bots'
+    commits); a person's later commits there get reviewed.
+  - **Smoke test with real Claude calls** (§1): on the user's
+    subscription (`CLAUDE_CODE_OAUTH_TOKEN` in this repository; only the
+    user works here), not WIF; on PRs into `main` and monthly.
+  - **Own releases:** published directly, no drafts (callers pin the
+    moving `v1`). Issues: `release-issues.yml` in this repository's
+    release chain (`next-release` → `released`), no extra
+    semantic-release comments.
+
+- **To think about before v1 (user, 2026-11-12):** (decided 2026-11-13,
+  see above) the roxygen, test and
   authors bots skip the implementer's branches (`agent-suggest/<type>/issue-<n>`),
   so a person's own commits pushed onto such a branch later aren't reviewed
   either. Recorded as accepted for now ([implementer-plan.md](implementer-plan.md),
   "Documentation and tests inside the run"); options: skip only commits by
   the implementer (as `bot_names` does for the bots' own commits) instead of
   the whole branch.
+
+## 6b. The hub and the researcher — before v1 (user, 2026-11-10)
+
+The user named the researcher (skill and workflow) as part of the work
+before v1 on 2026-11-10; the design is in [issue-agents.md](issue-agents.md),
+"A central hub" (2026-11-11). Hub: `nfdi4health/datashield-function-ideas`
+(created by the user 2026-11-13, main only, the researcher on the user's
+subscription). **Built 2026-11-13, not yet run:** routing
+(`route-idea.yml`), the researcher's phase 0 (`methods-scan.yml`, mode
+`pilot`), the analysis bot's gap links pointing to the hub, the hub's
+basics. **Next:** the pilot run (needs the hub's secret and a query), then
+by its result the vocabulary round, backfill and the monthly candidate PR
+with the three boxes; mirroring a routed issue's status back; the step
+from hub issue to design note and the implementer's new functions (still
+"another day").
 
 ## 7. New workflows — after v1 (user's decision)
 

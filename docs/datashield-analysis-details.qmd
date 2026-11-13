@@ -114,8 +114,12 @@ yet, filtered by `package-status`:
 - **Not possible with any known package:** if an open issue already
   requests that function, the report links to it, so you can see what has
   happened and add your use case. Otherwise it offers a prefilled "Open
-  issue" link. The issue is opened under your account, after you've seen
-  its text; nothing is posted automatically.
+  issue" link to
+  [datashield-function-ideas](https://github.com/nfdi4health/datashield-function-ideas),
+  the community's place for missing functions. It carries only what is
+  missing, not your plan or the step's title. The issue is opened under
+  your account, after you've seen its text; nothing is posted
+  automatically.
 
 The packages and functions Claude may name are checked against the
 catalogues, so it can't invent one.

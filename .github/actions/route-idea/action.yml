@@ -1,0 +1,60 @@
+name: Route idea
+description: >
+  Copies an idea of the hub to a topic package's repository when a routing
+  label is set by an allowed login (plan), then opens the copy and links it
+  back (copy). Everything comes from the event file and the inputs.
+
+inputs:
+  step:
+    description: 'plan or copy.'
+    required: true
+  routes:
+    description: 'Lines "label = owner/repo".'
+    required: false
+    default: ''
+  allowed-logins:
+    description: 'Who may route: exact GitHub logins, separated by commas or spaces.'
+    required: false
+    default: ''
+  token:
+    description: 'Token with issues: write on the hub (GITHUB_TOKEN).'
+    required: true
+  target:
+    description: 'copy: the target repository (owner/repo).'
+    required: false
+    default: ''
+  target-token:
+    description: 'copy: a token that may open issues in the target repository.'
+    required: false
+    default: ''
+  routed-label:
+    description: 'copy: the label the hub issue gets once copied.'
+    required: false
+    default: 'routed'
+
+outputs:
+  target:
+    description: 'plan: owner/repo to copy to, empty if nothing to do.'
+    value: ${{ steps.run.outputs.target }}
+  owner:
+    description: 'plan: the target owner.'
+    value: ${{ steps.run.outputs.owner }}
+  repo:
+    description: 'plan: the target repository name.'
+    value: ${{ steps.run.outputs.repo }}
+
+runs:
+  using: composite
+  steps:
+    - name: Route the idea
+      id: run
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        STEP: ${{ inputs.step }}
+        ROUTES: ${{ inputs.routes }}
+        ALLOWED_LOGINS: ${{ inputs.allowed-logins }}
+        TARGET: ${{ inputs.target }}
+        TARGET_TOKEN: ${{ inputs.target-token }}
+        ROUTED_LABEL: ${{ inputs.routed-label }}
+      run: bash "$GITHUB_ACTION_PATH/route-idea.sh" "$STEP"

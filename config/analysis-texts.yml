@@ -113,12 +113,19 @@ report:
   other_notes_heading: "### Not proposed, and other notes"
   plan_errors_heading: "### The analysis plan needs fixing"
 
+# The "Open issue" link for a missing function (gap_issue_link()). Only the
+# note on what is missing goes in, not the step's title ({{STEP}} is
+# available but left out by default: it can reveal a research question).
+# `template` and `fields`: the issue form of gap_issue_repo and its field
+# ids; with `template: ""` a plain issue with `body` instead.
 issue:
   title: "Missing DataSHIELD function: {{NOTE}}"
+  template: analysis-method.yml
+  fields:
+    what: "{{NOTE}}"
+    source: "Reported from the DataSHIELD analysis starter (datashield-analysis-suggest)."
   body: |
     Reported from the DataSHIELD analysis starter (datashield-analysis-suggest).
-
-    **Analysis step:** {{STEP}}
 
     **What is missing:** {{NOTE}}
 

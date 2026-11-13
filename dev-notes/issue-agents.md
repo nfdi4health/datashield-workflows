@@ -181,7 +181,14 @@ papers for federated methods.
 
 ### A central hub for wishes and gaps (brainstorm with the user, 2026-11-11)
 
-Not built; no repository yet. Problem: the community had no natural place
+**Since 2026-11-13:** the hub is `nfdi4health/datashield-function-ideas`
+(name chosen by the user; main only; the researcher on the user's
+subscription). Built (not yet run): routing (`route-idea.yml`), the
+researcher's pilot (`methods-scan.yml`), the gap links, the hub's basics
+(README, issue forms, configs, callers). The rest below is still the
+design.
+
+Originally: not built; no repository yet. Problem: the community had no natural place
 for gaps, demand and who works on what (an Excel file in someone's cloud,
 hard to keep up). Idea: one public repository as the entry point for wishes
 not aimed at a specific package.
