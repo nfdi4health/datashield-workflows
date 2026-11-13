@@ -59,3 +59,31 @@ test_that("ask_agent_for_scripts() calls claude locked down and without other cr
   # The temporary files are gone afterwards.
   expect_false(dir.exists(".agent"))
 })
+
+test_that("the try helper skips what DSLite can't run, in earlier steps and in the draft", {
+  helper <- normalizePath(file.path(repo_root, "R", "try_analysis_code.R"))
+  dir <- withr::local_tempdir()
+  withr::local_dir(dir)
+  dir.create(".agent")
+  # The setup's rm() must not remove the helper's objects; ds.glmSLMA stands
+  # for a function only real servers can run.
+  writeLines(c("conns <- 'fake'", "ds.glmSLMA <- function(...) stop('no SLMA in DSLite')",
+    "rm(list = setdiff(ls(), c('conns', 'ds.glmSLMA')))"), "login.R")
+  writeLines(c("m <- ds.glmSLMA(y ~ x)", "est <- m$coef", "kept <- 1"), "04_model.R")
+  jsonlite::write_json(list(login_file = "login.R", profile = "testing", scripts_before = list("04_model.R"),
+    untestable = list("ds.glmSLMA")), ".agent/try-context.json", auto_unbox = TRUE)
+  writeLines(c("kept + 1", "s <- ds.glmSLMA(y ~ z)", "s$coef", "nchar(conns)"), ".agent/draft.R")
+  out <- system2("Rscript", c(helper, ".agent/draft.R"), stdout = TRUE, stderr = TRUE)
+  expect_null(attr(out, "status"))
+  expect_true(any(grepl("Not run in DSLite (an earlier step): m <- ds.glmSLMA", out, fixed = TRUE)))
+  expect_true(any(grepl("[1] 2", out, fixed = TRUE)))
+  expect_true(any(grepl("Skipped: DSLite can't run ds.glmSLMA", out, fixed = TRUE)))
+  expect_true(any(grepl("Skipped: uses the result", out, fixed = TRUE)))
+  expect_true(any(grepl("[1] 4", out, fixed = TRUE)))
+
+  # Any other error still stops the try, with the message.
+  writeLines("stop('real bug')", ".agent/draft.R")
+  out <- suppressWarnings(system2("Rscript", c(helper, ".agent/draft.R"), stdout = TRUE, stderr = TRUE))
+  expect_equal(attr(out, "status"), 1L)
+  expect_true(any(grepl("Error: real bug", out, fixed = TRUE)))
+})
