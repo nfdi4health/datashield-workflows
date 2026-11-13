@@ -1,0 +1,105 @@
+name: Methods Scan
+
+# The researcher of the hub for missing DataSHIELD functions (e.g.
+# nfdi4health/datashield-function-ideas; dev-notes/issue-agents.md, "A
+# central hub"): reads what statistical methods health research uses, from
+# PubMed and PMC (NCBI E-utilities, free), to find methods DataSHIELD
+# lacks. Built one phase at a time; so far `pilot`: open-access papers of
+# one query, the methods named in the abstract against the methods section,
+# as a report in the run's summary and an artifact. Nothing is committed.
+# Claude reads the papers on the subscription of a listed login
+# (R/scan_methods.R, profile methods-extraction).
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: 'pilot (phase 0: abstract against methods section, a report only). Later phases follow.'
+        required: false
+        type: string
+        default: 'pilot'
+      query:
+        description: 'The name of a query in the hub''s config/methods-scan.yml. Empty: the first.'
+        required: false
+        type: string
+        default: ''
+      subscription-logins:
+        description: 'Who may start a run on the Claude subscription: exact GitHub logins, separated by commas or spaces. Runs started by anyone else stop before any Claude call.'
+        required: true
+        type: string
+    secrets:
+      claude-code-oauth-token:
+        description: 'Token of a Claude subscription (claude setup-token).'
+        required: true
+      ncbi-api-key:
+        description: 'Optional NCBI API key: 10 requests a second instead of 3.'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: May this login use the subscription?
+        env:
+          LOGINS: ${{ inputs.subscription-logins }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          for login in $(tr ',' ' ' <<< "$LOGINS"); do
+            [ "$login" = "$ACTOR" ] && exit 0
+          done
+          echo "::error::$ACTOR may not start runs on the subscription (subscription-logins)."
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Scripts, config and prompts at the commit of this workflow.
+      - name: Shared scripts
+        uses: $/.github/actions/shared-files
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          packages: any::httr2, any::jsonlite, any::purrr, any::yaml, any::xml2, any::processx
+
+      # The same pinned Claude Code as the other bots; single calls without
+      # tools, so no sandbox.
+      - name: Claude Code
+        run: npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312  # zizmor: ignore[adhoc-packages] exact version, as in the other bots
+
+      - name: Scan
+        env:
+          SCAN_MODE: ${{ inputs.mode }}
+          SCAN_QUERY: ${{ inputs.query }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
+          NCBI_API_KEY: ${{ secrets.ncbi-api-key }}
+        run: |
+          Rscript .shared-workflows/R/scan_methods.R
+          if [ -f methods_pilot_report.md ]; then cat methods_pilot_report.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: methods-scan-${{ inputs.mode }}
+          path: |
+            methods_pilot_report.md
+            methods_pilot.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      # Counts this run once, anonymously, by workflow, outcome and version
+      # (see docs: usage counting). Nothing about this repository is sent.
+      - name: Count this run
+        if: always()
+        continue-on-error: true
+        uses: $/.github/actions/count-run
+        with:
+          workflow: methods-scan
+          job-status: ${{ job.status }}

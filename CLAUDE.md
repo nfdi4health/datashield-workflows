@@ -263,6 +263,30 @@ the live caller used to validate changes before wider rollout.
     tests `tests/node/implementer.test.mjs` (`node --test`).
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
+  - `route-idea.yml`, `methods-scan.yml` — for the hub of missing
+    DataSHIELD functions, `nfdi4health/datashield-function-ideas` (main
+    only; built 2026-11-13, **not yet run**; design in
+    [dev-notes/issue-agents.md](dev-notes/issue-agents.md), "A central
+    hub"). Route: a routing label (input `routes`, lines `label =
+    owner/repo`) set by a login in `allowed-logins` copies the hub issue
+    to that repository with the bots' App token (installed there, Issues:
+    write), links it back with a hidden `routed-to` marker (copied once
+    per target) and labels the hub issue `routed`; mentions in the copy
+    are defused. Composite action `route-idea`, tests
+    `tests/shell/test-route-idea.sh`. Scan: the researcher, phase 0
+    `pilot` so far (open-access papers of one query from PubMed/PMC via
+    NCBI E-utilities; Haiku, profile `methods-extraction`, lists each
+    paper's methods with where they are named; report in the run summary
+    and an artifact, nothing committed); runs only for
+    `subscription-logins`, on the subscription. Entry script
+    `R/scan_methods.R`, functions `R/functions/methods/`, settings
+    `config/methods-scan.yml` (queries in the hub's own copy), prompt
+    `prompts/methods-extraction-prompt.md`. The analysis bot's gap links
+    point to the hub's issue form `analysis-method.yml` (`gap_issue_repo`,
+    `texts$issue$template` / `fields`), with only the note on what is
+    missing (not the step's title). **Docs pending:** a page each (a new
+    sidebar section "Function ideas"), the analysis details page's gap
+    link already updated.
 - This repository's own, non-reusable workflows (besides `ci.yml`,
   `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `pr-checks.yml`
   (commit messages on PRs into dev/main, only `dev` into `main`),

@@ -1,0 +1,21 @@
+name: Route Idea
+
+# In the hub of missing functions: a routing label set by a listed login
+# copies the issue to the topic package's repository.
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  route:
+    permissions:
+      issues: write
+    uses: nfdi4health/datashield-workflows/.github/workflows/route-idea.yml@main
+    with:
+      allowed-logins: your-login
+      # label = owner/repo, one per line
+      routes: |
+        dsClusterAnalysis = your-org/dsClusterAnalysisClient
+    secrets:
+      app-client-id: ${{ secrets.APP_CLIENT_ID }}
+      app-private-key: ${{ secrets.APP_PRIVATE_KEY }}

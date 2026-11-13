@@ -269,6 +269,21 @@ items, **all of A–J before v1**:
   the implementer (as `bot_names` does for the bots' own commits) instead of
   the whole branch.
 
+## 6b. The hub and the researcher — before v1 (user, 2026-11-10)
+
+The user named the researcher (skill and workflow) as part of the work
+before v1 on 2026-11-10; the design is in [issue-agents.md](issue-agents.md),
+"A central hub" (2026-11-11). Hub: `nfdi4health/datashield-function-ideas`
+(created by the user 2026-11-13, main only, the researcher on the user's
+subscription). **Built 2026-11-13, not yet run:** routing
+(`route-idea.yml`), the researcher's phase 0 (`methods-scan.yml`, mode
+`pilot`), the analysis bot's gap links pointing to the hub, the hub's
+basics. **Next:** the pilot run (needs the hub's secret and a query), then
+by its result the vocabulary round, backfill and the monthly candidate PR
+with the three boxes; mirroring a routed issue's status back; the step
+from hub issue to design note and the implementer's new functions (still
+"another day").
+
 ## 7. New workflows — after v1 (user's decision)
 
 None before v1: they build on the refactored foundation, and they are

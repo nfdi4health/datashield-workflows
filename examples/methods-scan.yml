@@ -1,0 +1,26 @@
+name: Methods Scan
+
+# In the hub of missing functions: the researcher, started by hand. The
+# queries are in config/methods-scan.yml.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'pilot (abstract against methods section, a report only)'
+        default: pilot
+      query:
+        description: 'Query name in config/methods-scan.yml (empty: the first)'
+        default: ''
+
+jobs:
+  scan:
+    permissions:
+      contents: read
+    uses: nfdi4health/datashield-workflows/.github/workflows/methods-scan.yml@main
+    with:
+      mode: ${{ inputs.mode }}
+      query: ${{ inputs.query }}
+      subscription-logins: your-login
+    secrets:
+      claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      ncbi-api-key: ${{ secrets.NCBI_API_KEY }}   # optional
