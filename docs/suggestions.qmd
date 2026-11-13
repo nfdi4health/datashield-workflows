@@ -34,6 +34,9 @@ already reviewed:
   aren't credited on your branch;
 - **the bot's own commits**, e.g. after you merge its suggestion PR: it
   doesn't review its own suggestions again;
+- **the implementer's commits** on its `agent-suggest/<type>/issue-<n>`
+  branches: they bring their own documentation and tests. Commits you add
+  to such a branch afterwards are reviewed;
 - **commits a pull request run already reviewed**, e.g. a feature merged
   into `dev`: a later scheduled run on `dev` doesn't review them again.
 
