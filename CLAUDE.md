@@ -290,7 +290,12 @@ the live caller used to validate changes before wider rollout.
     sidebar section "Function ideas"), the analysis details page's gap
     link already updated.
 - This repository's own, non-reusable workflows (besides `ci.yml`,
-  `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `pr-checks.yml`
+  `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `smoke-test.yml`
+  (real Claude calls, 2026-11-13: `tests/smoke/` runs the roxygen and test
+  entry scripts on `tests/fixtures/r-package` through Claude Code on the
+  owner's subscription, secret `CLAUDE_CODE_OAUTH_TOKEN`; GitHub answered
+  locally, nothing pushed; on PRs into `main`, monthly and by hand;
+  `Rscript tests/smoke.R`, skipped without the token), `pr-checks.yml`
   (commit messages on PRs into dev/main, only `dev` into `main`),
   `cleanup-agent-branches.yml` (calls `cleanup-suggestion-branch.yml` for
   this repository's own agent branches; "Automatically delete head
