@@ -233,7 +233,9 @@ jobs:
   implement:
     needs: pick
     if: needs.pick.outputs.found == 'true'
-    runs-on: ubuntu-latest
+    # 24.04, not ubuntu-latest: Claude Code's sandbox fails on 26.04 (see
+    # datashield-analysis-suggest.yml).
+    runs-on: ubuntu-24.04
     timeout-minutes: ${{ inputs.timeout-minutes }}
     permissions:
       contents: read

@@ -64,7 +64,10 @@ on:
 jobs:
   suggest-analysis:
     if: ${{ !startsWith(github.ref_name, 'bot-suggest/') }}
-    runs-on: ubuntu-latest
+    # 24.04, not ubuntu-latest: on 26.04 the sandbox can't set up its user
+    # namespace (apply-seccomp: write /proc/self/setgroups: Permission
+    # denied, DataSHIELD_CONF_DEMO 2026-11-13), so the agent tried nothing.
+    runs-on: ubuntu-24.04
     # Quick successive pushes to the plan: the newest run replaces the
     # older one, instead of both force-pushing the same bot branch.
     concurrency:
