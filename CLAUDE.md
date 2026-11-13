@@ -280,9 +280,18 @@ the live caller used to validate changes before wider rollout.
     `tests/shell/test-route-idea.sh`. Scan: the researcher, phase 0
     `pilot` so far (open-access papers of one query from PubMed/PMC via
     NCBI E-utilities; Haiku, profile `methods-extraction`, lists each
-    paper's methods with where they are named; report in the run summary
-    and an artifact, nothing committed); runs only for
-    `subscription-logins`, on the subscription. Entry script
+    paper's methods with where they are named; report in the run summary,
+    an artifact and as `scans/pilot-YYYY-MM.md` in a pull request to the
+    hub, `bot-suggest/scans/pilot-<month>` via `propose-branch` with the
+    bots' App). **Runs in the private runner** (user, 2026-11-13):
+    `FlorianSchw/datashield-agent-runner` calls it with `hub-repository`,
+    sharing the implementer's `concurrency` group (one subscription, one
+    queue), and holds the subscription and NCBI secrets; the hub starts it
+    with `methods-scan-start.yml` (checks `allowed-logins`, then
+    `workflow_dispatch` through `dispatch-runner`, whose new `fields` input
+    passes `-f name=value`). At the subscription's usage limit
+    (`is_usage_limit()`, the implementer's pattern) the Claude calls stop
+    and the report covers the papers answered so far. Entry script
     `R/scan_methods.R`, functions `R/functions/methods/`, settings
     `config/methods-scan.yml` (queries in the hub's own copy), prompt
     `prompts/methods-extraction-prompt.md`. The analysis bot's gap links

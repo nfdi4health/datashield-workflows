@@ -1,0 +1,74 @@
+name: Methods Scan Start
+
+# For the hub of missing DataSHIELD functions: starts the researcher in the
+# private runner repository (a workflow_dispatch there, with mode and
+# query), so it waits in the same queue as the implementer: one
+# subscription, one run at a time (decided 2026-11-13). Only listed logins
+# may start it. The run reads the hub's queries and proposes its results to
+# the hub; see methods-scan.yml.
+on:
+  workflow_call:
+    inputs:
+      runner-repository:
+        description: 'The runner repository (owner/name) with the methods-scan caller.'
+        required: true
+        type: string
+      runner-workflow:
+        description: 'The researcher''s workflow file in the runner.'
+        required: false
+        type: string
+        default: 'methods-scan.yml'
+      runner-ref:
+        description: 'The branch the runner workflow runs on.'
+        required: false
+        type: string
+        default: 'main'
+      mode:
+        description: 'pilot (more modes follow).'
+        required: false
+        type: string
+        default: 'pilot'
+      query:
+        description: 'The name of a query in the hub''s config/methods-scan.yml. Empty: the first.'
+        required: false
+        type: string
+        default: ''
+      allowed-logins:
+        description: 'Who may start a scan: exact GitHub logins, separated by commas or spaces.'
+        required: true
+        type: string
+    secrets:
+      app-client-id:
+        description: 'Client ID of the bots'' GitHub App, installed on the runner repository with Actions: read and write.'
+        required: true
+      app-private-key:
+        description: 'Its private key.'
+        required: true
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: May this login start a scan?
+        env:
+          LOGINS: ${{ inputs.allowed-logins }}
+          ACTOR: ${{ github.triggering_actor }}
+        run: |
+          for login in $(tr ',' ' ' <<< "$LOGINS"); do
+            [ "$login" = "$ACTOR" ] && exit 0
+          done
+          echo "::error::$ACTOR may not start a scan (allowed-logins)."
+          exit 1
+
+      - name: Start the researcher in the runner
+        uses: $/.github/actions/dispatch-runner
+        with:
+          repository: ${{ inputs.runner-repository }}
+          workflow: ${{ inputs.runner-workflow }}
+          ref: ${{ inputs.runner-ref }}
+          app-client-id: ${{ secrets.app-client-id }}
+          app-private-key: ${{ secrets.app-private-key }}
+          fields: |
+            mode=${{ inputs.mode }}
+            query=${{ inputs.query }}
