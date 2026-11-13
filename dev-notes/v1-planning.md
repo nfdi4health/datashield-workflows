@@ -261,7 +261,25 @@ items, **all of A–J before v1**:
   falls under the consumer terms — check the "Help improve Claude"
   setting before a real plan goes in.
 
-- **To think about before v1 (user, 2026-11-12):** the roxygen, test and
+- **State on 2026-11-13:** K, L, M, N and O are built (K/L/N in the docs
+  pass of 2026-11-12, M on `agent-suggest/feat/implementer`, O tested in
+  the model comparison on DataSHIELD_CONF_DEMO with the fixes #84 and #87).
+
+- **Decided 2026-11-13 (user), to build before v1:**
+  - **Implementer branches:** the roxygen, test and authors bots review
+    `agent-suggest/<type>/issue-<n>` branches again, but skip the
+    implementer's own commits (as `bot_names` does for the bots'
+    commits); a person's later commits there get reviewed.
+  - **Smoke test with real Claude calls** (§1): on the user's
+    subscription (`CLAUDE_CODE_OAUTH_TOKEN` in this repository; only the
+    user works here), not WIF; on PRs into `main` and monthly.
+  - **Own releases:** published directly, no drafts (callers pin the
+    moving `v1`). Issues: `release-issues.yml` in this repository's
+    release chain (`next-release` → `released`), no extra
+    semantic-release comments.
+
+- **To think about before v1 (user, 2026-11-12):** (decided 2026-11-13,
+  see above) the roxygen, test and
   authors bots skip the implementer's branches (`agent-suggest/<type>/issue-<n>`),
   so a person's own commits pushed onto such a branch later aren't reviewed
   either. Recorded as accepted for now ([implementer-plan.md](implementer-plan.md),
