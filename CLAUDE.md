@@ -1049,6 +1049,13 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   (2026-09-26): no pin, stay on `ubuntu-latest`. After 2026-10-19, if
   dependency installs get slow or fail, check P3M support for 26.04
   first; pinning to `ubuntu-24.04` remains the fallback.
+  **Pinned 2026-11-13 for Claude Code's sandbox:** on 26.04 its helper
+  can't set up the user namespace (`apply-seccomp: write
+  /proc/self/setgroups: Permission denied`, although
+  `apparmor_restrict_unprivileged_userns=0` is set), so the analysis agent
+  tried nothing (DataSHIELD_CONF_DEMO PR #9). The analysis job and the
+  implementer's `implement` job run on `ubuntu-24.04`; find the 26.04
+  setting (AppArmor profile for the helper?) before moving them back.
 - **DataSHIELD argument naming harmonisation** (designed 2026-10-14;
   check and apply workflows **built the same day, tested locally on a
   fixture pair, not yet on a real package or in CI**; keep off
