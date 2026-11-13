@@ -1,0 +1,69 @@
+name: Route Idea
+
+# For the hub of missing DataSHIELD functions (e.g.
+# nfdi4health/datashield-function-ideas; dev-notes/issue-agents.md, "A
+# central hub"): a routing label on a hub issue, set by an allowed login,
+# copies the issue to the topic package's repository, with a link back.
+# The hub issue stays open as the demand record and gets `routed`. The copy
+# is opened with a token of the bots' GitHub App, which must be installed
+# on the target repository (Issues: read and write). No Claude, no
+# checkout; the logic is in the composite action route-idea.
+on:
+  workflow_call:
+    inputs:
+      routes:
+        description: 'Routing labels and their repositories, one per line: "dsClusterAnalysis = owner/dsClusterAnalysis". Label case is ignored.'
+        required: true
+        type: string
+      allowed-logins:
+        description: 'Who may route an idea: exact GitHub logins, separated by commas or spaces. A routing label set by anyone else is removed.'
+        required: true
+        type: string
+      routed-label:
+        description: 'The label a hub issue gets once copied.'
+        required: false
+        type: string
+        default: 'routed'
+    secrets:
+      app-client-id:
+        description: 'Client ID of the GitHub App installed on the target repositories (Issues: read and write).'
+        required: true
+      app-private-key:
+        description: 'Its private key.'
+        required: true
+
+jobs:
+  route:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Which repository, and may this login route?
+        id: plan
+        uses: $/.github/actions/route-idea
+        with:
+          step: plan
+          routes: ${{ inputs.routes }}
+          allowed-logins: ${{ inputs.allowed-logins }}
+          token: ${{ github.token }}
+
+      - name: Token for the target repository
+        id: target_token
+        if: steps.plan.outputs.target != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ steps.plan.outputs.owner }}
+          repositories: ${{ steps.plan.outputs.repo }}
+          permission-issues: write
+
+      - name: Copy the idea
+        if: steps.plan.outputs.target != ''
+        uses: $/.github/actions/route-idea
+        with:
+          step: copy
+          token: ${{ github.token }}
+          target: ${{ steps.plan.outputs.target }}
+          target-token: ${{ steps.target_token.outputs.token }}
+          routed-label: ${{ inputs.routed-label }}

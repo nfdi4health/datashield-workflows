@@ -141,5 +141,7 @@ credential_pattern: '(password|pwd|passwd|token|secret)\s*=\s*["''][^"'']+["'']'
 # open issues on missing functions (title as in texts$issue$title) are
 # shown to Claude, so a gap already requested links to that issue instead
 # of offering a new one; at most this many, newest first.
-gap_issue_repo: nfdi4health/datashield-workflows
+# The hub for missing functions (its issue form analysis-method.yml, see
+# texts$issue in config/analysis-texts.yml).
+gap_issue_repo: nfdi4health/datashield-function-ideas
 gap_issues_max: 200

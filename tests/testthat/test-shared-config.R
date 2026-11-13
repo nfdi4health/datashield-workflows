@@ -21,6 +21,50 @@ test_that("read_config_yaml() merges a project's copy key by key; lists are repl
   expect_true(cfg$added_later)
 })
 
+test_that("read_config_yaml(): a project's list of mappings replaces the default list", {
+  local_project_with_shared(
+    c("groups:", "  - name: a", "    size: 1", "  - name: b", "    size: 2", "other: 1"),
+    c("groups:", "  - name: c", "    size: 3")
+  )
+  cfg <- read_config_yaml("config/x.yml")
+  expect_equal(cfg$groups, list(list(name = "c", size = 3L)))
+  expect_equal(cfg$other, 1L)
+})
+
+test_that("read_config_yaml(): an empty default list is replaced, and `[]` empties a default list", {
+  local_project_with_shared(
+    c("queries: []", "pairs:", "  - server: x", "    client: y"),
+    c("queries:", "  - name: q", "    term: t", "pairs: []")
+  )
+  cfg <- read_config_yaml("config/x.yml")
+  expect_equal(cfg$queries, list(list(name = "q", term = "t")))
+  expect_equal(cfg$pairs, list())
+})
+
+test_that("read_config_yaml(): nested mappings still merge key by key, scalar lists are replaced", {
+  local_project_with_shared(
+    c("package:", "  exceptions:", "    names: [a, b]", "    keep: yes",
+      "  rules:", "    max: 3", "    min: 1", "drop: 1"),
+    c("package:", "  exceptions:", "    names: [c]", "  rules:", "    max: 5",
+      "  new: x", "drop: ~")
+  )
+  cfg <- read_config_yaml("config/x.yml")
+  expect_equal(cfg$package$exceptions, list(names = "c", keep = TRUE))
+  expect_equal(cfg$package$rules, list(max = 5L, min = 1L))
+  expect_equal(cfg$package$new, "x")
+  expect_false("drop" %in% names(cfg))
+})
+
+test_that("merge_config() replaces unnamed lists where modifyList() kept the default", {
+  expect_equal(merge_config(list(a = list(list(x = 1))), list(a = list(list(x = 2)))),
+               list(a = list(list(x = 2))))
+  expect_equal(merge_config(list(a = list()), list(a = list(list(x = 2)))),
+               list(a = list(list(x = 2))))
+  expect_equal(merge_config(list(a = list(b = 1, c = 2)), list(a = list(c = 3), d = 4)),
+               list(a = list(b = 1, c = 3), d = 4))
+  expect_equal(merge_config(list(a = c("x", "y")), list(a = "z")), list(a = "z"))
+})
+
 test_that("read_config_yaml(): missing file stops, unless not required", {
   local_project_with_shared("a: 1")
   expect_null(read_config_yaml("config/missing.yml", required = FALSE))
