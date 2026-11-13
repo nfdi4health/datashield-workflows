@@ -4,11 +4,15 @@ name: Methods Scan
 # nfdi4health/datashield-function-ideas; dev-notes/issue-agents.md, "A
 # central hub"): reads what statistical methods health research uses, from
 # PubMed and PMC (NCBI E-utilities, free), to find methods DataSHIELD
-# lacks. Built one phase at a time; so far `pilot`: open-access papers of
-# one query, the methods named in the abstract against the methods section,
-# as a report in the run's summary and an artifact. Nothing is committed.
-# Claude reads the papers on the subscription of a listed login
-# (R/scan_methods.R, profile methods-extraction).
+# lacks. Called from the private runner repository (decided 2026-11-13), so
+# it shares the implementer's queue (`concurrency` in the caller) and the
+# subscription token stays in one place; started there by hand, or from
+# the hub with methods-scan-start.yml. It reads the queries from the hub
+# (`hub-repository`) and proposes its results to the hub as a pull request
+# with the bots' App. Built one phase at a time; so far `pilot`: open-access
+# papers of one query, the methods named in the abstract against the
+# methods section, as scans/pilot-YYYY-MM.md. Claude reads the papers on
+# the subscription (R/scan_methods.R, profile methods-extraction).
 on:
   workflow_call:
     inputs:
@@ -22,14 +26,31 @@ on:
         required: false
         type: string
         default: ''
-      subscription-logins:
-        description: 'Who may start a run on the Claude subscription: exact GitHub logins, separated by commas or spaces. Runs started by anyone else stop before any Claude call.'
-        required: true
+      hub-repository:
+        description: 'The hub (owner/name): its config/methods-scan.yml is read, and the results go there as a pull request. Empty: the calling repository itself, nothing proposed.'
+        required: false
         type: string
+        default: ''
+      hub-branch:
+        description: 'The hub''s branch the results go into.'
+        required: false
+        type: string
+        default: 'main'
+      subscription-logins:
+        description: 'Who may start a run on the Claude subscription: exact GitHub logins, separated by commas or spaces. Empty: no check (a private runner, where only its owner and the hub''s checked start can start runs).'
+        required: false
+        type: string
+        default: ''
     secrets:
       claude-code-oauth-token:
         description: 'Token of a Claude subscription (claude setup-token).'
         required: true
+      app-client-id:
+        description: 'Client ID of the bots'' GitHub App, installed on the hub (Contents and Pull requests: read and write). Needed with hub-repository.'
+        required: false
+      app-private-key:
+        description: 'Its private key.'
+        required: false
       ncbi-api-key:
         description: 'Optional NCBI API key: 10 requests a second instead of 3.'
         required: false
@@ -43,9 +64,10 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: May this login use the subscription?
+        if: inputs.subscription-logins != ''
         env:
           LOGINS: ${{ inputs.subscription-logins }}
-          ACTOR: ${{ github.actor }}
+          ACTOR: ${{ github.triggering_actor }}
         run: |
           for login in $(tr ',' ' ' <<< "$LOGINS"); do
             [ "$login" = "$ACTOR" ] && exit 0
@@ -53,8 +75,36 @@ jobs:
           echo "::error::$ACTOR may not start runs on the subscription (subscription-logins)."
           exit 1
 
+      - name: Which repository holds the queries
+        id: hub
+        env:
+          HUB: ${{ inputs.hub-repository }}
+        run: |
+          if [ -n "$HUB" ]; then
+            [[ "$HUB" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "::error::hub-repository is not owner/name: $HUB"; exit 1; }
+            { echo "repository=$HUB"; echo "owner=${HUB%%/*}"; echo "name=${HUB#*/}"; } >> "$GITHUB_OUTPUT"
+          else
+            echo "repository=$GITHUB_REPOSITORY" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The hub's token: reading is open (a public hub), proposing needs the
+      # App, for that repository only.
+      - name: Token for the hub
+        id: hub_token
+        if: inputs.hub-repository != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ steps.hub.outputs.owner }}
+          repositories: ${{ steps.hub.outputs.name }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          repository: ${{ steps.hub.outputs.repository }}
+          ref: ${{ inputs.hub-repository != '' && inputs.hub-branch || '' }}
           persist-credentials: false
 
       # Scripts, config and prompts at the commit of this workflow.
@@ -93,6 +143,31 @@ jobs:
             methods_pilot.json
           if-no-files-found: ignore
           retention-days: 30
+
+      # The pilot's report as a file in the hub's scans/, by pull request.
+      - name: Prepare the pilot report for the hub
+        id: report
+        if: inputs.hub-repository != '' && inputs.mode == 'pilot' && hashFiles('methods_pilot_report.md') != ''
+        run: |
+          month="$(date -u +%Y-%m)"
+          mkdir -p scans
+          cp methods_pilot_report.md "scans/pilot-$month.md"
+          echo "scans/pilot-$month.md" > scan_manifest.txt
+          printf 'The researcher'"'"'s pilot (phase 0): methods named in abstracts against methods sections. The report is the file in this pull request; the run is in the runner repository.\n' > scan_pr_body.md
+          echo "month=$month" >> "$GITHUB_OUTPUT"
+
+      - name: Propose the report to the hub
+        if: steps.report.outputs.month != ''
+        uses: $/.github/actions/propose-branch
+        with:
+          manifest: scan_manifest.txt
+          branch: bot-suggest/scans/pilot-${{ steps.report.outputs.month }}
+          base: ${{ inputs.hub-branch }}
+          title: 'Researcher pilot: abstract or methods section? (${{ steps.report.outputs.month }})'
+          body-file: scan_pr_body.md
+          commit-message: 'docs: researcher pilot report ${{ steps.report.outputs.month }}'
+          token: ${{ steps.hub_token.outputs.token }}
+          repository: ${{ inputs.hub-repository }}
 
       # Counts this run once, anonymously, by workflow, outcome and version
       # (see docs: usage counting). Nothing about this repository is sent.

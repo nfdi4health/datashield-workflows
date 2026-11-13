@@ -188,6 +188,20 @@ researcher's pilot (`methods-scan.yml`), the gap links, the hub's basics
 (README, issue forms, configs, callers). The rest below is still the
 design.
 
+**Where the researcher runs (user, 2026-11-13):** in the private runner
+`FlorianSchw/datashield-agent-runner`, not in the hub. The runner holds
+the subscription token (and the NCBI key) once, and its caller shares the
+implementer's `concurrency` group, so the two never use the subscription
+at the same time (GitHub keeps one pending run per group: a third start
+while one runs and one waits replaces the waiting one). A public hub can't
+call the private runner's workflow, so the hub's caller
+(`methods-scan-start.yml`) checks the login and starts the runner's
+workflow by `workflow_dispatch` with the bots' App (Actions: write on the
+runner). The runner checks out the hub for its queries and proposes the
+pilot report to it as a file, `scans/pilot-YYYY-MM.md`, by pull request
+(App: Contents and Pull requests write on the hub). At the subscription's
+usage limit the run stops asking and reports what it has.
+
 Originally: not built; no repository yet. Problem: the community had no natural place
 for gaps, demand and who works on what (an Excel file in someone's cloud,
 hard to keep up). Idea: one public repository as the entry point for wishes
