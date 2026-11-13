@@ -448,7 +448,9 @@ Details per workflow: [dev-notes/roxygen-suggest.md](dev-notes/roxygen-suggest.m
 - **Where shared files come from:** callers get this repo checked out into
   `.shared-workflows/`. Config files are YAML and read with
   `read_config_yaml("config/x.yml")`: the shared copy with the caller's own
-  file at the same path merged over it key by key (lists replaced) — on
+  file at the same path merged over it key by key (`merge_config()`; lists,
+  also lists of mappings, replaced as a whole; until 2026-11-13
+  `utils::modifyList()`, which ignored a project's list of mappings) — on
   `v1/foundation` since 2026-10-19 for every config (before: only the
   analysis and naming configs; the others replaced the whole file and were
   JSON). Prompt templates are still replaced as a whole

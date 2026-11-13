@@ -1,7 +1,7 @@
 # Reads a YAML config (e.g. config/roxygen-style.yml) as the shared
 # defaults with the project's own file at the same path merged over them,
-# key by key (utils::modifyList(): nested entries merge, lists and values
-# are replaced). A project only writes what it changes, and keys added to
+# key by key (merge_config(): mappings merge, values and lists, also
+# lists of mappings, are replaced as a whole). A project only writes what it changes, and keys added to
 # the defaults later still reach projects with an older copy. Inside this
 # repository (no .shared-workflows/) the file is read as it is. Every
 # config file is read this way. A missing config stops the run, unless
@@ -27,7 +27,7 @@ read_config_yaml <- function(rel_path, required = TRUE) {
     stop(sprintf("Config not found: %s", rel_path), call. = FALSE)
   }
   # An empty YAML file reads as NULL.
-  merged <- utils::modifyList(defaults %||% list(), own %||% list())
+  merged <- if (length(own) == 0) defaults %||% list() else merge_config(defaults %||% list(), own)
   record_provenance("config", rel_path, short_hash(merged))
   merged
 }
