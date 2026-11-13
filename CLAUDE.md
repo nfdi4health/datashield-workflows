@@ -792,6 +792,13 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   required checks (a required check skipped by a path filter never reports
   and blocks the PR, seen on dsSupportClient #75). Part of the refactoring
   pass with the agents' definitions and the cross-repo overlaps.
+- **Decided 2026-11-13 (user), to build before v1** (details in
+  [dev-notes/v1-planning.md](dev-notes/v1-planning.md) §6): the bots
+  review implementer branches again but skip the implementer's own
+  commits; a real-Claude smoke test on the user's subscription
+  (`CLAUDE_CODE_OAUTH_TOKEN` here), on PRs into `main` and monthly; this
+  repository's releases published directly, issues marked by
+  `release-issues.yml` in the release chain, no semantic-release comments.
 - **Before v1 also: provenance and outcome records** (user, 2026-11-12):
   model / prompt hash / config version in every bot PR's report, and a
   hidden outcome record (choices, edit diffs, review comments) written into
