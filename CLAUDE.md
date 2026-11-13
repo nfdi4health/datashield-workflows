@@ -87,9 +87,11 @@ the live caller used to validate changes before wider rollout.
     fork's) unless another open PR still uses it. `agent-suggest/<type>/…`
     (2026-11-09): branches of coding agents, the implementer's and those of
     Claude Code sessions here (e.g. `agent-suggest/feat/…`), which the
-    roxygen, test and authors bots do review — except the implementer's
-    `agent-suggest/<type>/issue-<n>`, which brings its own tests and
-    documentation (user, 2026-11-12). **Docs pending** (once the implementer page
+    roxygen, test and authors bots do review; on the implementer's
+    `agent-suggest/<type>/issue-<n>` they leave out its own commits
+    (`datashield-implementer` in `bot_names`), which bring their own tests
+    and documentation, and review a person's later commits (user,
+    2026-11-13; until then the whole branch was skipped). **Docs pending** (once the implementer page
     of the docs pass, PR #73, is on `dev`): `implementer.qmd` (tests from
     the spec, the documentation step, lints, Follow-ups, the `oracle`
     input), `suggestions.qmd` housekeeping (implementer branches skipped). **Decided (user,
