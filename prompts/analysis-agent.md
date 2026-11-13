@@ -8,7 +8,10 @@ You can try your code before you answer. Write it to a file in `.agent/`
 That runs the DSLite test setup with mock data (logged in, connections in
 `{{CONNECTIONS}}`), the scripts before this step, and then your file, and
 prints each statement with its output or the error. It is the only command
-you can run, and it has no network.
+you can run, and it has no network. A statement calling a function DSLite
+can't run (listed above) is skipped, with a note, and so are later
+statements using its result: that code can't be tried here, only on the
+real servers.
 
 - Use it to check what you aren't sure of (a function's result, a column
   name, a class), then keep only the code the step needs in your answer.
@@ -18,4 +21,7 @@ you can run, and it has no network.
   the numbers.
 - You can read the project's files except the real login file and
   `.Renviron`. Don't try to read data files.
+- Files your tries write (e.g. under `results/`) are thrown away after
+  this run and never reach the analyst: don't clean them up, and don't
+  mention them in your notes.
 - Answer with the structured output (the same fields as described above).

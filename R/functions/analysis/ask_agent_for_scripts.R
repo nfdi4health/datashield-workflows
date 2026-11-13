@@ -12,7 +12,8 @@
 # `context$agent` holds: bin (the claude command), model, effort,
 # max_turns, timeout_seconds, deny (paths no tool may read), env (the
 # auth variable for Claude Code only), login_file, profile, connections,
-# helper (path of the try helper), template (the agent part).
+# helper (path of the try helper), template (the agent part), untestable
+# (functions DSLite can't run, which the try helper skips).
 ask_agent_for_scripts <- function(context, prompt, tool) {
   a <- context$agent
   dir <- ".agent"
@@ -22,7 +23,8 @@ ask_agent_for_scripts <- function(context, prompt, tool) {
   on.exit(unlink(dir, recursive = TRUE), add = TRUE)
   jsonlite::write_json(tool$input_schema, file.path(dir, "schema.json"), auto_unbox = TRUE, null = "null")
   jsonlite::write_json(agent_settings(a$deny), file.path(dir, "settings.json"), auto_unbox = TRUE, pretty = TRUE)
-  jsonlite::write_json(list(login_file = a$login_file, profile = a$profile, scripts_before = as.list(context$scripts_before %||% character(0))),
+  jsonlite::write_json(list(login_file = a$login_file, profile = a$profile, scripts_before = as.list(context$scripts_before %||% character(0)),
+    untestable = as.list(a$untestable %||% character(0))),
     file.path(dir, "try-context.json"), auto_unbox = TRUE)
   agent_part <- fill_template(a$template, list(HELPER = a$helper, CONNECTIONS = context$connections))
   writeLines(c(prompt, "", agent_part), file.path(dir, "prompt.md"))
