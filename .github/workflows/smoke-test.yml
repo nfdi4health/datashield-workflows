@@ -44,7 +44,7 @@ jobs:
       # The same pinned Claude Code as the analysis bot. No sandbox needed:
       # the single calls run without tools (call_claude_code_tool()).
       - name: Claude Code
-        run: npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312
+        run: npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312  # zizmor: ignore[adhoc-packages] exact version, as in the analysis bot
 
       - name: Run the smoke test
         env:
