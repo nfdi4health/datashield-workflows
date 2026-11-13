@@ -1041,3 +1041,44 @@ removes such things and cites the gate findings.
 - Mock data: as decided, the agent sees it only through R in its try runs
   (no Read of `.rda` is useful; a Read deny would also block the helper,
   because Read denies are merged into the sandbox).
+
+## Packages the studies don't have yet: checkboxes (decided 2026-11-13, not built)
+
+**Why (user):** one advantage of dsAnalysis is that researchers can find
+out in DSLite which DataSHIELD packages their analysis needs, write the
+scripts with them, and be ready once the data owners have installed them,
+with one precise request instead of several rounds. So code with packages
+the servers don't have yet is not irrelevant. Today the bot writes only
+with the plan's `studies: packages`; anything else is an `other_package`
+note ("Possible with another package", commented out in `dependencies.R`).
+In the Sonnet comparison run (DataSHIELD_CONF_DEMO PR #5) dsTidyverse only
+appeared as free text under Limitations: check whether the catalogue filter
+or the note kind was the cause.
+
+**Decided (user, 2026-11-13): checkboxes in the one bot PR**, no extra PR
+per package (they would touch the same files and conflict):
+
+- A section replacing "Possible with another package": per package a box,
+  the steps that would use it and why (e.g. "dsTidyverse: steps 02 and 05,
+  BMI categories in one `ds.case_when()`"). At most 2–3 packages,
+  `production` status only, only where a package does something the
+  installed ones can't or saves real code; packages covering several steps
+  first.
+- Ticking a box: the bot installs the package in DSLite (`add_dsPackage()`),
+  redrafts only those steps, tests them, and the PR lists what the data
+  owners need to install (package, version tested with, steps, studies
+  missing it), ready to forward. Unticking: the installed-only version
+  again. No box: the PR stays as it is. Through `suggestion-choices.yml`'s
+  mechanism or the analysis workflow on `pull_request: edited`.
+- Scripts written with such a package get a header line (e.g.
+  `# needs dsTidyverse on the servers`), so dsAnalysis's `check_project()`
+  / `sync_dsPackages(conns)` can warn before a production run.
+- A package the researcher adds by hand with `add_dsPackage()` counts like
+  a ticked box ("planned": usable and tested in DSLite, not yet on the
+  servers). The workflow also starts on changes to the DSLite setup and
+  `dependencies.R`, and redrafts only the steps written around a missing
+  package that is now available, in the open PR.
+- A package counts as on the servers only if every study of the step has
+  it.
+
+Build after the model comparison.
