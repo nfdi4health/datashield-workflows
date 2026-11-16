@@ -265,6 +265,13 @@ the live caller used to validate changes before wider rollout.
     daily. Logic in the composite action `implementer` (Node,
     `implementer.mjs <command>`), prompts `prompts/implementer-*.md`,
     tests `tests/node/implementer.test.mjs` (`node --test`).
+    `sandbox-probe.yml` (2026-11-16, called from the runner by hand):
+    an agent with the implementer's Claude Code action, sandbox settings
+    and secret scrubbing runs only `.github/actions/implementer/sandbox-probe.sh`
+    inside the sandbox; `judge-probe.sh` then checks outside it that an
+    unlisted host is blocked, an allowed one reachable, no token variable,
+    token-shaped value or git credential is visible, and R runs (tests
+    `tests/shell/test-sandbox-probe.sh`).
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
   - `route-idea.yml`, `literature-watch.yml` — for the hub of missing
