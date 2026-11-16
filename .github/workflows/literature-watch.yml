@@ -2,45 +2,57 @@ name: Literature Watch
 
 # The researcher of the hub for missing DataSHIELD functions (e.g.
 # nfdi4health/datashield-function-ideas; dev-notes/issue-agents.md, "A
-# central hub"): reads what statistical methods health research uses, from
-# PubMed and PMC (NCBI E-utilities, free), to find methods DataSHIELD
-# lacks. Called from the private runner repository (decided 2026-11-13), so
-# it shares the implementer's queue (`concurrency` in the caller) and the
-# subscription token stays in one place; started there by hand, or from
-# the hub with literature-watch-start.yml. It runs every query of the hub's
-# config/literature-watch.yml (or the one named) and proposes the month's
-# data (literature-watch/data/YYYY-MM.yml) and report
-# (literature-watch/reports/YYYY-MM.md) to the hub as one
-# pull request with the bots' App; a re-run in the month updates it,
-# keeping the queries not run again. Built one phase at a time; so far
-# `pilot`: the methods named in the abstract against the methods section.
-# Claude reads the papers on the subscription (R/watch_literature.R,
-# profile methods-extraction).
+# central hub"): which statistical methods epidemiological research uses,
+# from PubMed and PMC (NCBI E-utilities, free), to find methods DataSHIELD
+# lacks. Called from the private runner repository, nightly and by hand
+# (the hub starts it with literature-watch-start.yml), so it shares the
+# implementer's queue and the subscription token stays in one place.
+#
+# Each field of the hub's config/literature-watch.yml gets a random sample
+# of target_per_month papers per publication month over years_back years
+# (newest first); Sonnet reads each paper's abstract and methods section
+# once and lists its methods (R/watch_literature.R, profile
+# methods-extraction). The data goes to the hub's data branch after every
+# stretch of papers (no pull request); the report
+# (literature-watch/reports/overview.md) goes to the hub's main branch by
+# pull request: weekly, once a round is complete, and when asked for. At
+# the subscription's usage limit or after papers_per_run (or max-papers)
+# papers the run stops; the next one carries on.
 on:
   workflow_call:
     inputs:
-      mode:
-        description: 'pilot (phase 0: abstract against methods section, a report only). Later phases follow.'
-        required: false
-        type: string
-        default: 'pilot'
-      query:
-        description: 'The name of one query in the hub''s config/literature-watch.yml. Empty: all of them.'
+      field:
+        description: 'One field of the hub''s config/literature-watch.yml. Empty: all of them.'
         required: false
         type: string
         default: ''
+      max-papers:
+        description: 'At most this many papers in this run. Empty: papers_per_run of the hub''s config.'
+        required: false
+        type: string
+        default: ''
+      report:
+        description: 'The report pull request: auto (on the config''s report weekday, and once when a round is complete), always or never.'
+        required: false
+        type: string
+        default: 'auto'
       hub-repository:
-        description: 'The hub (owner/name): its config/literature-watch.yml is read, and the results go there as a pull request. Empty: the calling repository itself, nothing proposed.'
+        description: 'The hub (owner/name): its config/literature-watch.yml is read, the data goes to its data branch and the report to it as a pull request. Empty: the calling repository, nothing pushed.'
         required: false
         type: string
         default: ''
       hub-branch:
-        description: 'The hub''s branch the results go into.'
+        description: 'The hub''s branch the report goes into.'
         required: false
         type: string
         default: 'main'
+      data-branch:
+        description: 'The hub''s branch for the data.'
+        required: false
+        type: string
+        default: 'data'
       subscription-logins:
-        description: 'Who may start a run on the Claude subscription: exact GitHub logins, separated by commas or spaces. Empty: no check (a private runner, where only its owner and the hub''s checked start can start runs).'
+        description: 'Who may start a run on the Claude subscription: exact GitHub logins, separated by commas or spaces. Empty: no check (a private runner, where only its owner, its schedule and the hub''s checked start can start runs).'
         required: false
         type: string
         default: ''
@@ -64,7 +76,7 @@ permissions:
 jobs:
   watch:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 330
     steps:
       - name: May this login use the subscription?
         if: inputs.subscription-logins != ''
@@ -78,7 +90,7 @@ jobs:
           echo "::error::$ACTOR may not start runs on the subscription (subscription-logins)."
           exit 1
 
-      - name: Which repository holds the queries, and the month
+      - name: Which repository is the hub
         id: hub
         env:
           HUB: ${{ inputs.hub-repository }}
@@ -89,10 +101,9 @@ jobs:
           else
             echo "repository=$GITHUB_REPOSITORY" >> "$GITHUB_OUTPUT"
           fi
-          echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
 
-      # The hub's token: reading is open (a public hub), proposing needs the
-      # App, for that repository only.
+      # The hub's token, for that repository only: pushing the data branch
+      # and proposing the report.
       - name: Token for the hub
         id: hub_token
         if: inputs.hub-repository != ''
@@ -105,6 +116,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
+      # The hub's main branch: its config, and the report proposed on top.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ steps.hub.outputs.repository }}
@@ -115,82 +127,76 @@ jobs:
       - name: Shared scripts
         uses: $/.github/actions/shared-files
 
+      - name: The data so far
+        env:
+          HUB: ${{ inputs.hub-repository }}
+          HUB_TOKEN: ${{ steps.hub_token.outputs.token }}
+          DATA_BRANCH: ${{ inputs.data-branch }}
+        run: |
+          bash .shared-workflows/.github/actions/literature-watch/checkout-data.sh
+          echo "watch-data/" >> .git/info/exclude
+
       - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
-          packages: any::httr2, any::jsonlite, any::purrr, any::yaml, any::xml2, any::processx
+          packages: any::httr2, any::jsonlite, any::purrr, any::yaml, any::xml2, any::processx, any::openssl
 
       # The same pinned Claude Code as the other bots; single calls without
       # tools, so no sandbox.
       - name: Claude Code
         run: npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312  # zizmor: ignore[adhoc-packages] exact version, as in the other bots
 
-      # A re-run in the same month builds on the month's open pull request:
-      # its files (the commit on top of the hub's branch) come into the
-      # checkout, so the queries not run again keep their results.
-      - name: The month's results so far
-        if: inputs.hub-repository != ''
+      - name: Read
+        id: read
         env:
-          BRANCH: bot-suggest/literature-watch/${{ steps.hub.outputs.month }}
-        run: |
-          if git fetch --quiet --depth=2 origin "refs/heads/$BRANCH" 2>/dev/null; then
-            mapfile -t files < <(git diff --name-only FETCH_HEAD~1 FETCH_HEAD)
-            if [ "${#files[@]}" -gt 0 ]; then
-              git checkout FETCH_HEAD -- "${files[@]}"
-              printf 'From the open pull request: %s\n' "${files[@]}"
-            fi
-          else
-            echo "No pull request of this month yet."
-          fi
-
-      - name: Watch
-        id: watch
-        env:
-          WATCH_MODE: ${{ inputs.mode }}
-          WATCH_QUERY: ${{ inputs.query }}
-          WATCH_MONTH: ${{ steps.hub.outputs.month }}
+          SCRIPT: .shared-workflows/R/watch_literature.R
+          WATCH_FIELD: ${{ inputs.field }}
+          MAX_PAPERS: ${{ inputs.max-papers }}
+          HUB_TOKEN: ${{ steps.hub_token.outputs.token }}
+          DATA_BRANCH: ${{ inputs.data-branch }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
           NCBI_API_KEY: ${{ secrets.ncbi-api-key }}
-        run: |
-          Rscript .shared-workflows/R/watch_literature.R
-          if [ -f watch_files.txt ]; then
-            while read -r f; do case "$f" in *.md) cat "$f" >> "$GITHUB_STEP_SUMMARY";; esac; done < watch_files.txt
-            { echo "files<<EOF"; cat watch_files.txt; echo "EOF"; } >> "$GITHUB_OUTPUT"
-          fi
+        run: bash .shared-workflows/.github/actions/literature-watch/read-loop.sh
 
-      - name: Keep the results
-        if: always() && steps.watch.outputs.files != ''
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: literature-watch-${{ steps.hub.outputs.month }}
-          path: ${{ steps.watch.outputs.files }}
-          if-no-files-found: ignore
-          retention-days: 30
-
-      # The month's data and report in the hub, by pull request.
-      - name: Describe the pull request
-        if: inputs.hub-repository != '' && hashFiles('watch_files.txt') != ''
-        id: describe
-        run: |
-          printf 'The literature watch of %s: which statistical methods recent open-access papers use (data, and the report built from it). A re-run this month updates this pull request. The run is in the runner repository.\n' "$MONTH" > watch_pr_body.md
-          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Build the report
+        id: report
+        if: always() && steps.read.outcome != 'skipped'
         env:
-          MONTH: ${{ steps.hub.outputs.month }}
+          WATCH_DATA_DIR: watch-data
+          WATCH_REPORT: ${{ inputs.report }}
+        run: |
+          Rscript .shared-workflows/R/report_literature.R > /dev/null
+          {
+            echo "due=$(cat report_due.txt)"
+            echo "title=$(head -n 1 report_title.txt)"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Propose the results to the hub
-        if: steps.describe.outputs.ready == 'true'
+      - name: Propose the report to the hub
+        if: always() && inputs.hub-repository != '' && steps.report.outputs.due == 'yes'
         uses: $/.github/actions/propose-branch
         with:
           manifest: watch_files.txt
-          branch: bot-suggest/literature-watch/${{ steps.hub.outputs.month }}
+          branch: bot-suggest/literature-watch/report
           base: ${{ inputs.hub-branch }}
-          title: 'Literature watch ${{ steps.hub.outputs.month }}'
-          body-file: watch_pr_body.md
-          commit-message: 'docs: literature watch ${{ steps.hub.outputs.month }}'
+          title: ${{ steps.report.outputs.title }}
+          body-file: report_body.md
+          commit-message: 'docs: literature watch report'
           token: ${{ steps.hub_token.outputs.token }}
           repository: ${{ inputs.hub-repository }}
+
+      - name: Keep the data
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: literature-watch-data
+          path: |
+            watch-data/
+            !watch-data/.git/
+            literature-watch/reports/overview.md
+          if-no-files-found: ignore
+          retention-days: 30
 
       # Counts this run once, anonymously, by workflow, outcome and version
       # (see docs: usage counting). Nothing about this repository is sent.

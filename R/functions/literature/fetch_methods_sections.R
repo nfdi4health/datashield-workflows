@@ -5,7 +5,7 @@ fetch_methods_sections <- function(pmcids, settings) {
   out <- character(0)
   for (batch in split(pmcids, ceiling(seq_along(pmcids) / 50))) {
     resp <- ncbi_request("efetch.fcgi", list(db = "pmc", id = paste(sub("^PMC", "", batch), collapse = ","), retmode = "xml"), settings)
-    out <- c(out, parse_pmc_methods(httr2::resp_body_string(resp), settings$pilot$max_section_chars %||% 6000))
+    out <- c(out, parse_pmc_methods(httr2::resp_body_string(resp), settings$reading$max_section_chars %||% 12000))
   }
   out
 }

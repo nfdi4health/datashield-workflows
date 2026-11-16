@@ -3,31 +3,55 @@
 # hub"). The hub's own config/literature-watch.yml is merged over this file
 # key by key (a list, e.g. queries, is replaced as a whole).
 
-# Named PubMed queries (the search syntax of the PubMed website: try a
-# query there first) come from the hub's own file, e.g.
-#   queries:
-#     - name: cohort-nutrition
-#       pubmed: '"cohort studies"[MeSH Terms] AND diet[MeSH Terms]'
-# Every run takes all of them (or the one named when started). The name is
-# the query's key in the month's data file and its section in the report.
+# The fields come from the hub's own file, each a name and the field's
+# part of the PubMed search (the search syntax of the PubMed website; MeSH
+# headings explode, so broad parent headings marked [majr] are best), e.g.
+#   fields:
+#     - name: cardiovascular
+#       pubmed: '"Cardiovascular Diseases"[majr]'
+# The name is the field's key in the data and its section in the report.
 # No default here: each hub has its own.
 
-# Where a run's results go in the hub, one file per month each: the data
-# (IDs, titles and method names, never the papers' text) and the report
-# built from it.
-files:
-  data: literature-watch/data          # literature-watch/data/YYYY-MM.yml
-  reports: literature-watch/reports    # literature-watch/reports/YYYY-MM.md
+# What every field's search has around its own part: the study design and
+# the filters (open-access full text in PMC, no reviews or meta-analyses),
+# so no field can forget them. Changing either gives every field a new
+# search version (queries.csv) and a fresh sample.
+search:
+  design: '"Epidemiologic Studies"[MeSH Terms]'
+  filters: '"pubmed pmc open access"[filter] NOT (review[pt] OR systematic review[pt] OR meta-analysis[pt])'
 
-# Phase 0, the pilot: open-access papers compared, abstract against
-# methods section.
-pilot:
-  papers: 100             # papers asked for; those without a methods section drop out
-  months: 12              # published in the last months
-  batch: 5                # papers per Claude call
-  max_section_chars: 12000 # a methods section is cut to this (statistics subsections first)
-  top: 20                 # methods listed as "only in the methods section"
+# How much is read (a round) and how fast. A round is complete when every
+# field has target_per_month papers (or all, if fewer) of every
+# publication month of the last years_back years read; raising either
+# starts the next round, which reads only the papers not yet read.
+sampling:
+  target_per_month: 25    # papers per field and publication month
+  years_back: 5           # how far back
+  lag_months: 2           # the newest month is this many months back (papers arrive late)
+  recheck_months: 6       # the newest months are searched again on each run's day
+  papers_per_run: 1500    # at most this many papers per run (the manual input max-papers overrides it once)
+
+# Reading: papers per Claude call, and how much of a methods section (its
+# statistics subsections first).
+reading:
+  batch: 5
+  max_section_chars: 12000
+
+# Where things go in the hub: the data on its own branch (the workflow's
+# input data-branch, pushed by the runs without a pull request:
+# papers/YYYY/YYYY-MM.jsonl, months.csv, queries.csv and readers.csv under
+# `data`), the report by pull request to the hub's main branch.
+files:
+  data: literature-watch/data
+  reports: literature-watch/reports
+
+# The report.
+report:
+  top: 20                 # methods listed per section
   min_variant_papers: 2   # a variant is listed once this many papers name it
+  share_years: 3          # methods are ranked by their share over the last years
+  chart_methods: 5        # trend charts for the top methods
+  weekday: Monday         # the weekly report pull request, if the run is started on this day
 
 ncbi:
   base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/
