@@ -10,7 +10,7 @@ setup() {
   dir="$(mktemp -d)"
   echo finished > "$dir/finished"; echo 000 > "$dir/unlisted.code"; echo 56 > "$dir/unlisted.exit"
   echo 200 > "$dir/allowed.code"; : > "$dir/secret-names.txt"; echo 0 > "$dir/token-values.txt"
-  echo 0 > "$dir/git-header.txt"; echo "R version 4.6.2" > "$dir/r.txt"
+  echo 0 > "$dir/git-header.txt"; echo 0 > "$dir/git-remote-token.txt"; echo "R version 4.6.2" > "$dir/r.txt"
 }
 judge() { GITHUB_STEP_SUMMARY="$dir/summary.md" bash "$judge" "$dir" > /dev/null 2>&1; echo $?; }
 
@@ -21,9 +21,10 @@ setup; echo 000 > "$dir/allowed.code"; check "an unreachable allowed host fails"
 setup; echo GITHUB_TOKEN > "$dir/secret-names.txt"; check "a token variable fails" "$(judge)" 1
 setup; echo 1 > "$dir/token-values.txt"; check "a token-shaped value fails" "$(judge)" 1
 setup; echo 1 > "$dir/git-header.txt"; check "a stored git credential fails" "$(judge)" 1
+setup; echo 1 > "$dir/git-remote-token.txt"; check "a token in a remote URL fails" "$(judge)" 1
 setup; echo "Rscript: command not found" > "$dir/r.txt"; check "R not running fails" "$(judge)" 1
 setup; rm "$dir/finished"; check "no result files fails" "$(judge)" 1
-setup; judge > /dev/null; check "the summary names each check" "$(grep -c '| pass |' "$dir/summary.md")" 7
+setup; judge > /dev/null; check "the summary names each check" "$(grep -c '| pass |' "$dir/summary.md")" 8
 
 [ "$failures" -eq 0 ] || { echo "$failures failure(s)"; exit 1; }
 echo "all passed"
