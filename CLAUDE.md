@@ -285,7 +285,8 @@ the live caller used to validate changes before wider rollout.
     one named) and writes the month's data
     (`literature-watch/data/YYYY-MM.yml`: per query the search, period,
     counts and per paper PubMed/PMC ID, title and methods, never the
-    papers' text) and the report built from it alone
+    papers' text; each method with its `variant`, the deviation from the
+    plain method such as time-varying covariates, since 2026-11-16) and the report built from it alone
     (`literature-watch/reports/YYYY-MM.md`: all queries together, a paper
     counted once, then a section per query; folders in `files`); both go
     to the hub as one pull request, `bot-suggest/literature-watch/<month>`

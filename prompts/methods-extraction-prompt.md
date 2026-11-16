@@ -14,6 +14,14 @@ weighting", "principal component analysis", "Kaplan-Meier estimator".
 - One entry per method and paper, in its usual short name, without the
   paper's variables ("Cox regression", not "Cox regression of mortality on
   BMI").
+- `variant`: how the paper's use deviates from the plain method, in a few
+  words, without its variables: e.g. "time-varying covariates",
+  "stratified", "penalised (lasso)", "random slopes", "robust standard
+  errors", "cluster-level weights". Such details matter: DataSHIELD often
+  has the plain method but not the variant. Several deviations go into one
+  entry, separated by commas; `""` for the plain method. A variant with its
+  own common name is a method of its own ("Fine-Gray competing risks
+  regression", not Cox regression with a variant).
 - `role`: `main` for the analysis that answers the research question,
   `secondary` for the rest (imputation, sensitivity analyses, weighting,
   descriptive tests, model checks).
