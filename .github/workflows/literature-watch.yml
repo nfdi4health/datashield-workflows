@@ -13,9 +13,9 @@ name: Literature Watch
 # (newest first); Sonnet reads each paper's abstract and methods section
 # once and lists its methods (R/watch_literature.R, profile
 # methods-extraction). The data goes to the hub's data branch after every
-# stretch of papers (no pull request); the report
-# (literature-watch/reports/overview.md) goes to the hub's main branch by
-# pull request: weekly, once a round is complete, and when asked for. At
+# stretch of papers, and at the end of each run the report and
+# progress.csv (literature-watch/reports/ on that branch); no pull
+# request, as a progress report has nothing to decide. At
 # the subscription's usage limit or after papers_per_run (or max-papers)
 # papers the run stops; the next one carries on.
 on:
@@ -32,17 +32,17 @@ on:
         type: string
         default: ''
       report:
-        description: 'The report pull request: auto (on the config''s report weekday, and once when a round is complete), always or never.'
+        description: 'No longer used (the report now goes to the data branch with every run); kept so callers that pass it keep working.'
         required: false
         type: string
         default: 'auto'
       hub-repository:
-        description: 'The hub (owner/name): its config/literature-watch.yml is read, the data goes to its data branch and the report to it as a pull request. Empty: the calling repository, nothing pushed.'
+        description: 'The hub (owner/name): its config/literature-watch.yml is read, the data and the report go to its data branch. Empty: the calling repository, nothing pushed.'
         required: false
         type: string
         default: ''
       hub-branch:
-        description: 'The hub''s branch the report goes into.'
+        description: 'The hub''s branch its config/literature-watch.yml is read from.'
         required: false
         type: string
         default: 'main'
@@ -102,8 +102,7 @@ jobs:
             echo "repository=$GITHUB_REPOSITORY" >> "$GITHUB_OUTPUT"
           fi
 
-      # The hub's token, for that repository only: pushing the data branch
-      # and proposing the report.
+      # The hub's token, for that repository only: pushing the data branch.
       - name: Token for the hub
         id: hub_token
         if: inputs.hub-repository != ''
@@ -114,9 +113,8 @@ jobs:
           owner: ${{ steps.hub.outputs.owner }}
           repositories: ${{ steps.hub.outputs.name }}
           permission-contents: write
-          permission-pull-requests: write
 
-      # The hub's main branch: its config, and the report proposed on top.
+      # The hub's main branch: its config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ steps.hub.outputs.repository }}
@@ -152,6 +150,7 @@ jobs:
         id: read
         env:
           SCRIPT: .shared-workflows/R/watch_literature.R
+          REPORT_SCRIPT: .shared-workflows/R/report_literature.R
           WATCH_FIELD: ${{ inputs.field }}
           MAX_PAPERS: ${{ inputs.max-papers }}
           HUB_TOKEN: ${{ steps.hub_token.outputs.token }}
@@ -159,32 +158,6 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
           NCBI_API_KEY: ${{ secrets.ncbi-api-key }}
         run: bash .shared-workflows/.github/actions/literature-watch/read-loop.sh
-
-      - name: Build the report
-        id: report
-        if: always() && steps.read.outcome != 'skipped'
-        env:
-          WATCH_DATA_DIR: watch-data
-          WATCH_REPORT: ${{ inputs.report }}
-        run: |
-          Rscript .shared-workflows/R/report_literature.R > /dev/null
-          {
-            echo "due=$(cat report_due.txt)"
-            echo "title=$(head -n 1 report_title.txt)"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Propose the report to the hub
-        if: always() && inputs.hub-repository != '' && steps.report.outputs.due == 'yes'
-        uses: $/.github/actions/propose-branch
-        with:
-          manifest: watch_files.txt
-          branch: bot-suggest/literature-watch/report
-          base: ${{ inputs.hub-branch }}
-          title: ${{ steps.report.outputs.title }}
-          body-file: report_body.md
-          commit-message: 'docs: literature watch report'
-          token: ${{ steps.hub_token.outputs.token }}
-          repository: ${{ inputs.hub-repository }}
 
       - name: Keep the data
         if: always()
@@ -194,7 +167,6 @@ jobs:
           path: |
             watch-data/
             !watch-data/.git/
-            literature-watch/reports/overview.md
           if-no-files-found: ignore
           retention-days: 30
 

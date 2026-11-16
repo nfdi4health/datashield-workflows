@@ -8,13 +8,14 @@ loop="$here/../../.github/actions/literature-watch/read-loop.sh"
 failures=0
 check() { if [ "$2" = "$3" ]; then echo "ok   $1"; else echo "FAIL $1 (expected $3, got $2)"; failures=$((failures + 1)); fi; }
 
-# run_loop <answers, one "stopped read remaining" per line> [token]
+# run_loop <answers, one "stopped read remaining" per line> [token] [report script]
 run_loop() {
   work="$(mktemp -d)"
   mkdir -p "$work/bin" "$work/watch-data"
   printf '%s\n' "$1" > "$work/answers"
   cat > "$work/bin/Rscript" <<'STUB'
 #!/usr/bin/env bash
+if [ "$1" = "report.R" ]; then echo "${HUB_TOKEN:-unset}" > report_env; [ -f report_fails ] && exit 1; exit 0; fi
 n=$(cat calls 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > calls
 echo "${HUB_TOKEN:-unset} ${WATCH_MAX_PAPERS:-empty}" >> rscript_env
 line=$(sed -n "${n}p" answers)
@@ -29,7 +30,8 @@ case "$*" in *"diff --cached --quiet"*) exit 1 ;; esac
 exit 0
 STUB
   chmod +x "$work/bin/"*
-  (cd "$work" && PATH="$work/bin:$PATH" HUB_TOKEN="${2:-}" DATA_BRANCH=data SCRIPT=x.R MAX_PAPERS="" \
+  [ -n "${REPORT_FAILS:-}" ] && touch "$work/report_fails"
+  (cd "$work" && PATH="$work/bin:$PATH" HUB_TOKEN="${2:-}" DATA_BRANCH=data SCRIPT=x.R REPORT_SCRIPT="${3:-}" MAX_PAPERS="" \
     GITHUB_OUTPUT="$work/out" GITHUB_STEP_SUMMARY="$work/summary" bash "$loop" > /dev/null 2>&1; echo $? > "$work/exit")
 }
 
@@ -53,6 +55,14 @@ check "and the step fails" "$(cat "$work/exit")" 1
 
 run_loop 'done 3 1497' ''
 check "without a hub token nothing is pushed" "$(grep -c push "$work/git_calls" 2>/dev/null || echo 0)" 0
+
+run_loop $'chunk 250 1250\nbudget 250 1000' secret report.R
+check "the report is built after the reading" "$(cat "$work/report_env")" "unset"
+check "and pushed as one more commit" "$(grep -c 'push --quiet origin HEAD:refs/heads/data' "$work/git_calls")" 3
+check "with its own message" "$(grep -c 'literature watch, report' "$work/git_calls")" 1
+
+REPORT_FAILS=1 run_loop 'done 3 1497' secret report.R
+check "a report that fails fails the step" "$(cat "$work/exit")" 1
 
 [ "$failures" -eq 0 ] || { echo "$failures failure(s)"; exit 1; }
 echo "all passed"

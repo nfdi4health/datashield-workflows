@@ -270,6 +270,12 @@ and PubMed's counts per year, which the user checked on the website):**
   NLM's switch to automated MeSH indexing.
 - **Models:** Sonnet reads the papers; Opus classifies the names, decides
   "Exists?" and does the research step (about 10 calls a month).
+- **Where the report goes (user, 2026-11-16, after the first run):** to
+  the `data` branch with every run (`literature-watch/reports/overview.md`
+  and `progress.csv`), no pull request: an open pull request means "decide
+  something", and a progress report has nothing to decide. The user's
+  RepositoryOverview dashboard reads `progress.csv`. Pull requests stay
+  for the candidates (three boxes per candidate).
 - **For the user's meeting on 3 December:** the first stage's data and
   report (11 fields, 5 years, trends, variants); a candidate list only if
   the "Exists?" step is built and has run by then.
