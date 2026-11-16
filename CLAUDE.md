@@ -287,36 +287,45 @@ the live caller used to validate changes before wider rollout.
     per target) and labels the hub issue `routed`; mentions in the copy
     are defused. Composite action `route-idea`, tests
     `tests/shell/test-route-idea.sh`. Literature watch (named so
-    2026-11-16, was `methods-scan`): the researcher, phase 0 `pilot` so
-    far (open-access papers from PubMed/PMC via NCBI E-utilities; Sonnet
-    5.5 since the pilot of 2026-11-16, Haiku before, profile
-    `methods-extraction`, lists each paper's methods with where they are
-    named). Pilot result (hub PR #4, 193 papers): abstracts name 70% of
-    the main analyses but only 18% of the secondary methods, so the watch
-    reads methods sections (statistics subsections first, 12,000
-    characters); variants listed from 2 papers on (`min_variant_papers`). A run takes every query of the hub's config (or the
-    one named) and writes the month's data
-    (`literature-watch/data/YYYY-MM.yml`: per query the search, period,
-    counts and per paper PubMed/PMC ID, title and methods, never the
-    papers' text; each method with its `variant`, the deviation from the
-    plain method such as time-varying covariates, since 2026-11-16) and the report built from it alone
-    (`literature-watch/reports/YYYY-MM.md`: all queries together, a paper
-    counted once, then a section per query; folders in `files`); both go
-    to the hub as one pull request, `bot-suggest/literature-watch/<month>`
-    via `propose-branch` with the bots' App. A re-run in the month takes
-    the open pull request's files first, so a query run again replaces only
-    its own entry (`merge_watch_data()`). **Runs in the private runner**
-    (user, 2026-11-13): `FlorianSchw/datashield-agent-runner` calls it with
-    `hub-repository`, sharing the implementer's `concurrency` group (one
-    subscription, one queue), and holds the subscription and NCBI secrets;
-    the hub starts it with `literature-watch-start.yml` (checks
-    `allowed-logins`, then `workflow_dispatch` through `dispatch-runner`,
-    whose `fields` input passes `-f name=value`). At the subscription's
-    usage limit (`is_usage_limit()`, the implementer's pattern) the Claude
-    calls stop, the queries not reached keep their earlier entry of the
-    month, and the report says how far it got. Entry script
-    `R/watch_literature.R`, functions `R/functions/literature/`, settings
-    `config/literature-watch.yml` (queries in the hub's own copy), prompt
+    2026-11-16, was `methods-scan`; the pilot's question is answered:
+    abstracts name 70% of the main analyses but only 14-18% of the
+    secondary methods, so it reads methods sections, statistics
+    subsections first; Sonnet 5.5 reads, profile `methods-extraction`).
+    **Backfill and monthly runs** (built 2026-11-16, decisions in
+    `dev-notes/issue-agents.md`, "Fields, sampling and the backfill"):
+    each field of the hub's config (`fields`, the search's own part,
+    between `search$design` and `search$filters`, `field_search()`) gets a
+    random sample of `target_per_month` papers per publication month over
+    `years_back` years, newest first, the newest month `lag_months` back;
+    the order is a hash of field and PubMed ID (`sample_keys()`), so
+    raising the target reads only the next papers and a late paper takes
+    its place (`threshold` per field and month). Every paper is read once
+    (`read_register()`: `papers/YYYY/YYYY-MM.jsonl`, IDs, journal, title,
+    `found_by` per field with key and search fingerprint, reader, methods;
+    never text), state per field and month in `months.csv`, versions of
+    searches and readers in `queries.csv` / `readers.csv`
+    (`update_lookup_table()`, rows never deleted). All on the hub's `data`
+    branch: `read-loop.sh` runs `R/watch_literature.R` (`run_watch_chunk()`)
+    in stretches of 250 papers and pushes after each, up to
+    `papers_per_run` (1,500) or the input `max-papers`, stopping at the
+    usage limit; R never sees the hub token. The report
+    (`R/report_literature.R`, `format_watch_report()`: progress, shares per
+    year with a trend test, Mermaid charts, variants, searches) goes to the
+    hub's main branch by PR (`bot-suggest/literature-watch/report`) on the
+    config's weekday, once when a round is complete, and when started by
+    hand. Nightly in the runner (its caller's schedule), in the
+    implementer's `concurrency` group. Measured on Max 5x: about 2,000
+    papers per 5-hour session. Not yet built: classification of names and
+    "Exists?" (Opus), ranking, research, the candidate PR. **Runs in the
+    private runner** (user, 2026-11-13): `FlorianSchw/datashield-agent-runner` calls it with
+    `hub-repository`, and holds the subscription and NCBI secrets; the hub
+    starts it with `literature-watch-start.yml` (checks `allowed-logins`,
+    then `workflow_dispatch` through `dispatch-runner`, whose `fields`
+    input passes `-f name=value`). Entry scripts `R/watch_literature.R`,
+    `R/report_literature.R`, functions `R/functions/literature/`, scripts
+    `.github/actions/literature-watch/` (tests
+    `tests/shell/test-literature-watch.sh`), settings
+    `config/literature-watch.yml` (fields in the hub's own copy), prompt
     `prompts/methods-extraction-prompt.md`. The analysis bot's gap links
     point to the hub's issue form `analysis-method.yml` (`gap_issue_repo`,
     `texts$issue$template` / `fields`), with only the note on what is

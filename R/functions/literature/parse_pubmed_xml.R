@@ -1,5 +1,6 @@
 # The papers of a PubMed efetch answer (XML text) as a data frame: pmid,
-# pmcid ("" if none), title, abstract (sections as "Label: text").
+# pmcid ("" if none), doi ("" if none), journal (its abbreviation), title,
+# abstract (sections as "Label: text").
 parse_pubmed_xml <- function(xml) {
   doc <- xml2::read_xml(xml)
   articles <- xml2::xml_find_all(doc, "//PubmedArticle")
@@ -15,12 +16,15 @@ parse_pubmed_xml <- function(xml) {
     data.frame(
       pmid = text_of(a, ".//MedlineCitation/PMID"),
       pmcid = text_of(a, ".//PubmedData/ArticleIdList/ArticleId[@IdType='pmc']"),
+      doi = text_of(a, ".//PubmedData/ArticleIdList/ArticleId[@IdType='doi']"),
+      journal = text_of(a, ".//Journal/ISOAbbreviation"),
       title = text_of(a, ".//ArticleTitle"),
       abstract = abstract
     )
   })
   if (length(rows) == 0) {
-    return(data.frame(pmid = character(0), pmcid = character(0), title = character(0), abstract = character(0)))
+    return(data.frame(pmid = character(0), pmcid = character(0), doi = character(0), journal = character(0),
+      title = character(0), abstract = character(0)))
   }
   do.call(rbind, rows)
 }

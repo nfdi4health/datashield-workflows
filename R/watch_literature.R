@@ -5,69 +5,62 @@
 # E-utilities). Claude only reads the papers (profile methods-extraction),
 # through the subscription or WIF.
 #
-# Every query of config/literature-watch.yml (WATCH_QUERY: only that one)
-# is run. The month's data file (literature-watch/data/YYYY-MM.yml, month
-# WATCH_MONTH) gets their entries, a query run again replaces its own, and
-# the report (literature-watch/reports/YYYY-MM.md) is built from the whole
-# file; both folders are settings (files). At the subscription's usage
-# limit the run stops and keeps what it has. Modes (WATCH_MODE), built one
-# at a time: pilot (methods named in the abstract against the methods
-# section).
+# One stretch of reading (run_watch_chunk()), up to WATCH_CHUNK papers
+# (default 250) and at most WATCH_MAX_PAPERS (else papers_per_run of the
+# hub's config), into the data folder WATCH_DATA_DIR (the hub's data
+# branch, checked out by the workflow, which pushes it after each stretch
+# and starts the next while watch_status.json says "chunk"). Every field
+# of the hub's config, or only WATCH_FIELD. WATCH_TODAY for tests.
 
 library(httr2)
 library(jsonlite)
 library(purrr)
-library(yaml)
 
 functions_dir <- if (dir.exists("R/functions/literature")) "R/functions" else ".shared-workflows/R/functions"
 walk(list.files(file.path(functions_dir, c("shared", "literature")), pattern = "\\.R$", full.names = TRUE), source)
 
 settings <- read_config_yaml("config/literature-watch.yml")
-mode <- Sys.getenv("WATCH_MODE", "pilot")
-if (!identical(mode, "pilot")) {
-  stop(sprintf("Mode %s isn't built yet; only pilot is.", mode), call. = FALSE)
+fields <- settings$fields %||% list()
+if (length(fields) == 0) {
+  stop("No fields in config/literature-watch.yml.", call. = FALSE)
 }
-queries <- settings$queries %||% list()
-if (length(queries) == 0) {
-  stop("No queries in config/literature-watch.yml.", call. = FALSE)
-}
-names(queries) <- vapply(queries, function(q) q$name, "")
-wanted <- Sys.getenv("WATCH_QUERY")
+names(fields) <- vapply(fields, function(f) f$name, "")
+wanted <- Sys.getenv("WATCH_FIELD")
 if (nzchar(wanted)) {
-  if (!wanted %in% names(queries)) {
-    stop(sprintf("No query named %s in config/literature-watch.yml.", wanted), call. = FALSE)
-  }
-  queries <- queries[wanted]
+  if (!wanted %in% names(fields)) stop(sprintf("No field named %s in config/literature-watch.yml.", wanted), call. = FALSE)
+  fields <- fields[wanted]
 }
 
-month <- Sys.getenv("WATCH_MONTH", format(Sys.Date(), "%Y-%m"))
-data_file <- file.path(settings$files$data %||% "literature-watch/data", paste0(month, ".yml"))
-report_file <- file.path(settings$files$reports %||% "literature-watch/reports", paste0(month, ".md"))
+today <- as.Date(Sys.getenv("WATCH_TODAY", as.character(Sys.Date())))
+dir <- file.path(Sys.getenv("WATCH_DATA_DIR", "watch-data"), settings$files$data %||% "literature-watch/data")
+max_papers <- suppressWarnings(as.integer(Sys.getenv("WATCH_MAX_PAPERS")))
+if (is.na(max_papers)) max_papers <- as.integer(settings$sampling$papers_per_run %||% 1500)
+chunk <- suppressWarnings(as.integer(Sys.getenv("WATCH_CHUNK", "250")))
+if (is.na(chunk) || chunk < 1) chunk <- 250L
+budget <- max(0L, min(max_papers, chunk))
 
 claude <- claude_client("methods-extraction", "prompts/methods-extraction-prompt.md")
-entries <- list()
-for (query in queries) {
-  entry <- watch_query(query, settings, claude)
-  # A query with nothing compared because of the limit keeps its earlier
-  # entry of the month, if there is one.
-  if (!(isTRUE(entry$stopped) && entry$compared == 0)) entries[[query$name]] <- entry
-  if (isTRUE(entry$stopped)) {
-    message("The subscription's usage limit was reached: the remaining queries are left for another run.")
-    break
-  }
-}
-if (length(entries) == 0) {
-  stop("No query could be run (see the messages above): nothing written.", call. = FALSE)
-}
+model <- claude$config$model %||% ""
+prompt_hash <- hash_keys(claude$prompt %||% "")
+reader <- hash_keys(paste(model, prompt_hash))
+searches <- vapply(fields, field_search, "", settings = settings)
+queries <- stats::setNames(as.list(hash_keys(searches)), names(fields))
+update_lookup_table(file.path(dir, "queries.csv"),
+  data.frame(fingerprint = unlist(queries), group = names(fields), search = unname(searches)), today)
+update_lookup_table(file.path(dir, "readers.csv"),
+  data.frame(fingerprint = reader, group = "reader", model = model, prompt = prompt_hash), today)
 
-old <- if (file.exists(data_file)) read_yaml(data_file) else NULL
-data <- merge_watch_data(old, month, mode, entries)
-missing <- setdiff(vapply(settings$queries, function(q) q$name, ""), names(data$queries))
-report <- format_watch_report(data, settings$pilot$top %||% 20, missing, settings$pilot$min_variant_papers %||% 2)
+result <- if (budget > 0) run_watch_chunk(settings, fields, dir, claude, today, budget, reader) else list(read = 0, stopped = "budget")
+stopped <- result$stopped
+if (identical(stopped, "budget") && result$read < max_papers) stopped <- "chunk"
 
-dir.create(dirname(data_file), recursive = TRUE, showWarnings = FALSE)
-dir.create(dirname(report_file), recursive = TRUE, showWarnings = FALSE)
-write_yaml(data, data_file)
-writeLines(report, report_file)
-writeLines(c(data_file, report_file), "watch_files.txt")
-cat(report, sep = "\n")
+target <- as.integer(settings$sampling$target_per_month %||% 25)
+months <- watch_months(today, settings$sampling$lag_months %||% 2, settings$sampling$years_back %||% 5)
+progress <- watch_progress(read_months_state(dir), fields, months, target, queries)
+complete <- all(progress$months_complete == progress$months)
+line <- sprintf("Round %d per month, %s to %s: %d of %d papers read, %d of %d field-months complete%s.",
+  target, utils::tail(months, 1), months[1], sum(progress$papers_read), sum(progress$sample_size),
+  sum(progress$months_complete), sum(progress$months), if (complete) " (round complete)" else "")
+message(sprintf("This stretch: %d papers (%s). %s", result$read, stopped, line))
+write_json(list(read = result$read, stopped = stopped, remaining = max_papers - result$read,
+  complete = complete, progress = line), "watch_status.json", auto_unbox = TRUE, pretty = TRUE)

@@ -1,19 +1,25 @@
 name: Literature Watch
 
 # In the private runner repository (the one that runs the implementer): the
-# literature watch. It reads the queries from the hub and proposes the
-# month's data and report to the hub as a pull request. Started by hand here, or from the hub with
-# literature-watch-start.yml. The concurrency group is the implementer's, so
-# the two never use the subscription at the same time.
+# literature watch, nightly and when started by hand or from the hub
+# (literature-watch-start.yml). It reads the hub's fields, pushes the data
+# to the hub's data branch and proposes the report to the hub. The
+# concurrency group is the implementer's, so the two never use the
+# subscription at the same time.
 on:
+  schedule:
+    - cron: '7 1 * * *'   # every night, about 2 am in Germany
   workflow_dispatch:
     inputs:
-      mode:
-        description: 'pilot (abstract against methods section, a report only)'
-        default: pilot
-      query:
-        description: 'One query of the hub''s config/literature-watch.yml (empty: all of them)'
+      field:
+        description: 'One field of the hub''s config/literature-watch.yml (empty: all of them)'
         default: ''
+      max-papers:
+        description: 'At most this many papers in this run (empty: papers_per_run of the hub''s config)'
+        default: ''
+      report:
+        description: 'The report pull request: auto, always or never'
+        default: 'always'
 
 concurrency:
   group: claude-subscription
@@ -25,11 +31,19 @@ jobs:
       contents: read
     uses: nfdi4health/datashield-workflows/.github/workflows/literature-watch.yml@main
     with:
-      mode: ${{ inputs.mode }}
-      query: ${{ inputs.query }}
+      field: ${{ inputs.field }}
+      max-papers: ${{ inputs.max-papers }}
+      report: ${{ inputs.report || 'auto' }}
       hub-repository: your-org/your-hub
     secrets:
       claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       app-client-id: ${{ secrets.APP_CLIENT_ID }}
       app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
       ncbi-api-key: ${{ secrets.NCBI_API_KEY }}   # optional
+
+  # GitHub disables a scheduled workflow after 60 days without activity.
+  keepalive:
+    if: github.event_name == 'schedule'
+    permissions:
+      actions: write
+    uses: nfdi4health/datashield-workflows/.github/workflows/workflow-keepalive.yml@main
