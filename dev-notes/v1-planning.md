@@ -305,7 +305,11 @@ basics. **Moved into the runner the same day** (user): the runner calls
 `methods-scan.yml` in the implementer's queue, the hub starts it with
 `methods-scan-start.yml`. **Renamed 2026-11-16** to `literature-watch.yml`:
 all queries per run, the month's data and report in
-`literature-watch/{data,reports}/YYYY-MM.*` by one pull request. **Next:** the pilot run (needs
+`literature-watch/{data,reports}/YYYY-MM.*` by one pull request. **Decided
+2026-11-16:** names classified and "Exists?" decided by Claude (Opus 5.5)
+with evidence checked in R, no per-entry review by people
+([issue-agents.md](issue-agents.md), "Classification and 'Exists?' by
+Claude"). **Next:** the pilot run (needs
 the runner's secrets), then
 by its result the vocabulary round, backfill and the monthly candidate PR
 with the three boxes; mirroring a routed issue's status back; the step
@@ -317,8 +321,12 @@ from hub issue to design note and the implementer's new functions (still
 None before v1: they build on the refactored foundation, and they are
 the first real use of the new branch model (feature → dev → main,
 release). Order: label integrity → learning loop (collecting moved before v1, see K/L) →
-issue triage → spec review → central agent repo with implementer,
+issue triage → ~~spec review~~ → central agent repo with implementer,
 researcher, refactor agent. Design in [issue-agents.md](issue-agents.md).
+(Since then label integrity, triage, the implementer and the researcher's
+first phase were built before v1 after all. **No spec review step**
+(decided 2026-11-06): the triage comment is the spec, `bot-proceed` the
+only approval; noted here 2026-11-16, the list above was older.)
 
 ## 8. After v1: fewer checks on pull requests (user, 2026-11-12)
 

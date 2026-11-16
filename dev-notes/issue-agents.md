@@ -219,6 +219,49 @@ plain method but not the variant, so the "Exists?" step below compares
 method *and* variant, and the vocabulary maps variants too. The report
 lists the variants named most often.
 
+**Classification and "Exists?" by Claude, no per-entry review (user,
+2026-11-16).** Nobody has time to check dozens of vocabulary entries or
+mappings by hand, and nobody knows every DataSHIELD function by heart. So
+Claude does both jobs with a stronger model, and safeguards in code take
+the place of a person's review:
+
+- **Who does what:**
+  - Haiku keeps the bulk reading of papers (step 2), a narrow task many
+    times over.
+  - **Opus 5.5** classifies the month's new free-text names: which are the
+    same method, method or variant, new method. This is few calls, only the
+    names not yet in the vocabulary.
+  - **Opus 5.5** decides "exists in DataSHIELD?" for method *and* variant:
+    `yes`, `partial` (e.g. only per study, not pooled; or only some
+    options), `development` (only in a development or GitHub-only package),
+    `none`, or `unclear`.
+- **What it reads for "Exists?":** the candidate DataSHIELD functions' own
+  documentation (title, description, arguments) from the function
+  inventory, refreshed from the package catalogue (packages.datashield.org)
+  each run, and the catalogue's package status (production / development
+  / retired). R preselects the candidates by name and keywords, so Claude
+  gets a short list, not 1,000 functions.
+- **Safeguards instead of a review:**
+  - **Evidence required:** every `yes` / `partial` / `development` names the
+    function and quotes the line of its documentation that shows it. R
+    checks that the function is in the inventory and that the quote occurs
+    in its documentation. If either fails, the verdict becomes
+    `unconfirmed`, never `yes`.
+  - **Unsure stays unsure:** `unclear` is a valid answer. It is listed as
+    such, neither hidden nor counted as a gap.
+  - **Stable:** verdicts and classifications are stored with their
+    evidence (in the vocabulary file) and asked again only when the
+    function inventory changes or a method's names change, so the answers
+    don't drift from run to run.
+- **What people see:** only the monthly short list of the top candidates
+  with their verdict and evidence. Questioning a wrong verdict there is one
+  entry, not a list to check. The vocabulary file grows by itself; nobody
+  ticks boxes for it.
+- **Not decided yet:** the granularity rule (when a variant becomes a
+  method of its own; draft: when it needs its own DataSHIELD function) and
+  whether `partial` counts as a gap for ranking. To be settled with real
+  examples from the pilot.
+
 Originally: not built; no repository yet. Problem: the community had no natural place
 for gaps, demand and who works on what (an Excel file in someone's cloud,
 hard to keep up). Idea: one public repository as the entry point for wishes
@@ -290,15 +333,17 @@ its own hub). Claude only where code can't decide; cheap before expensive.
 ```
                     monthly schedule / manual run (dry-run option)
                                      |
-methods-scan
- 0 State      R      last run date, decisions (scans/*.yml), hub issues
+literature-watch (was methods-scan)
+ 0 State      R      last run date, decisions (data files), hub issues
                      and their method markers, vocabulary
  1 Fetch      R      PubMed/PMC E-utilities per query since last run
- 2 Extract    Haiku  batches of ~20 papers -> method keys (enum from the
-                     vocabulary) or "new: <name>"
- 3 Count      R      per method: papers, share of all papers, trend
- 4 Exists?    R      catalogue, function inventory, vocabulary map;
-                     Claude only for unclear cases, verdict cached
+ 2 Extract    Haiku  batches of papers -> methods with variant
+ 2b Classify  Opus   the month's new names -> same method / variant /
+                     new method (written into the vocabulary)
+ 3 Count      R      per method and variant: papers, share, trend
+ 4 Exists?    Opus   method and variant against the function docs
+                     (R preselects, checks the evidence); stored with
+                     its evidence, asked again when the inventory changes
  5 Rank       R      drop filtered -> top max_candidates (10)
  6 Research   Sonnet only those: description, federated approaches in
                      the literature, native R package, first disclosure
@@ -314,16 +359,21 @@ PR merged -> methods-issues: open issues (method marker), record decisions
   hours, cheaper; check current prices before deciding).
 - **Count:** relative to the month's total, else a month with more papers
   looks like rising demand.
-- **Exists?:** `config/methods.yml` maps method → known DataSHIELD functions
-  and R packages, so most answers are lookups; Claude's verdicts are stored
-  and re-checked only when the catalogue changes.
-- **Propose:** the PR ends with "New method names" (frequent free-text
-  names, one decision box each, so the vocabulary is curated, not grown
-  by itself) and "Already tracked" (counts, no boxes).
-- **Files in the hub:** `config/methods-scan.yml` (queries,
-  `max_candidates`, doubling rule, caps), `config/methods.yml`
-  (vocabulary: key, synonyms, DataSHIELD functions, R packages),
-  `scans/YYYY-MM.yml` (counts, verdicts, decisions).
+- **Exists?:** by Claude (Opus) with evidence, see "Classification and
+  'Exists?' by Claude" above; the vocabulary file keeps the verdicts, so
+  most later answers are lookups. ~~`config/methods.yml` maps method →
+  known DataSHIELD functions and R packages, curated by hand~~ (replaced
+  2026-11-16).
+- **Propose:** the PR lists the top candidates with verdict and evidence
+  (three boxes each) and "Already tracked" (counts, no boxes). ~~"New
+  method names" with one decision box each~~ (replaced 2026-11-16: Claude
+  classifies the names, no boxes for the vocabulary).
+- **Files in the hub:** `config/literature-watch.yml` (queries,
+  `max_candidates`, doubling rule, caps), the vocabulary (maintained by
+  the workflow: method, synonyms, variants, DataSHIELD verdict with
+  evidence, R packages; path to be decided, e.g.
+  `literature-watch/vocabulary.yml`, since it is data, not a setting),
+  `literature-watch/data/YYYY-MM.yml` and `reports/YYYY-MM.md`.
 - **Abstract or methods section — open, a pilot decides.** Structured
   abstracts usually name the main model (Cox, logistic, mixed models) but
   rarely secondary methods (imputation, splines, propensity scores,
@@ -337,8 +387,9 @@ PR merged -> methods-issues: open issues (method marker), record decisions
   0. **Pilot:** ~100 open-access papers, methods from abstract vs. methods
      section compared; a report, nothing committed.
   1. **Vocabulary round:** seeded from the function inventory and the CRAN
-     task views; extraction on a sample (one month); the PR only proposes
-     method names, no candidates.
+     task views; extraction on a sample (one month); Claude classifies the
+     names and decides "Exists?" (2026-11-16); the PR shows the resulting
+     vocabulary for a look, no candidates and no boxes.
   2. **Backfill:** e.g. 12 months, one chunk per month, each writing its
      own `scans/YYYY-MM.yml`, so a failed run resumes at the next missing
      month; counts only (no research step, no candidate PR); the 6-hour
