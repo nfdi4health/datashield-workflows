@@ -40,7 +40,8 @@ reading:
 # Where things go in the hub: the data on its own branch (the workflow's
 # input data-branch, pushed by the runs without a pull request:
 # papers/YYYY/YYYY-MM.jsonl, months.csv, queries.csv and readers.csv under
-# `data`), the report by pull request to the hub's main branch.
+# `data`), and the report (overview.md, progress.csv) under `reports` on
+# the same branch, written at the end of every run.
 files:
   data: literature-watch/data
   reports: literature-watch/reports
@@ -51,7 +52,6 @@ report:
   min_variant_papers: 2   # a variant is listed once this many papers name it
   share_years: 3          # methods are ranked by their share over the last years
   chart_methods: 5        # trend charts for the top methods
-  weekday: Monday         # the weekly report pull request, if the run is started on this day
 
 ncbi:
   base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/

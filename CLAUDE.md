@@ -318,10 +318,11 @@ the live caller used to validate changes before wider rollout.
     `papers_per_run` (1,500) or the input `max-papers`, stopping at the
     usage limit; R never sees the hub token. The report
     (`R/report_literature.R`, `format_watch_report()`: progress, shares per
-    year with a trend test, Mermaid charts, variants, searches) goes to the
-    hub's main branch by PR (`bot-suggest/literature-watch/report`) on the
-    config's weekday, once when a round is complete, and when started by
-    hand. Nightly in the runner (its caller's schedule), in the
+    year with a trend test, Mermaid charts, variants, searches) and
+    `progress.csv` (`watch_progress_table()`) go to the `data` branch at the
+    end of every run, no pull request (user, 2026-11-16: a progress report
+    has nothing to decide; the `report` input is kept, unused, so callers
+    passing it don't break; PRs stay for the candidates). Nightly in the runner (its caller's schedule), in the
     implementer's `concurrency` group. Measured on Max 5x: about 2,000
     papers per 5-hour session. Not yet built: classification of names and
     "Exists?" (Opus), ranking, research, the candidate PR. **Runs in the
