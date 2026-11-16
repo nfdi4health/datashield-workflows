@@ -288,9 +288,13 @@ the live caller used to validate changes before wider rollout.
     are defused. Composite action `route-idea`, tests
     `tests/shell/test-route-idea.sh`. Literature watch (named so
     2026-11-16, was `methods-scan`): the researcher, phase 0 `pilot` so
-    far (open-access papers from PubMed/PMC via NCBI E-utilities; Haiku,
-    profile `methods-extraction`, lists each paper's methods with where
-    they are named). A run takes every query of the hub's config (or the
+    far (open-access papers from PubMed/PMC via NCBI E-utilities; Sonnet
+    5.5 since the pilot of 2026-11-16, Haiku before, profile
+    `methods-extraction`, lists each paper's methods with where they are
+    named). Pilot result (hub PR #4, 193 papers): abstracts name 70% of
+    the main analyses but only 18% of the secondary methods, so the watch
+    reads methods sections (statistics subsections first, 12,000
+    characters); variants listed from 2 papers on (`min_variant_papers`). A run takes every query of the hub's config (or the
     one named) and writes the month's data
     (`literature-watch/data/YYYY-MM.yml`: per query the search, period,
     counts and per paper PubMed/PMC ID, title and methods, never the

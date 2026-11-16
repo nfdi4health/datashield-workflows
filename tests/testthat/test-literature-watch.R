@@ -43,6 +43,16 @@ test_that("parse_pmc_methods() finds the methods section by type or title, cut t
   expect_equal(m[["PMC9003"]], "")
 })
 
+test_that("parse_pmc_methods() puts the statistics subsection first, so the cut keeps it", {
+  xml <- '<?xml version="1.0"?>
+<pmc-articleset><article><front><article-meta><article-id pub-id-type="pmc">7</article-id></article-meta></front>
+ <body><sec sec-type="methods"><title>Methods</title>
+  <sec><title>Participants</title><p>A long description of the cohort.</p></sec>
+  <sec><title>Statistical analysis</title><p>Fine-Gray regression.</p></sec></sec></body></article></pmc-articleset>'
+  m <- parse_pmc_methods(xml, max_chars = 60)
+  expect_match(m[["PMC7"]], "^Statistical analysis Fine-Gray regression")
+})
+
 test_that("search_pubmed() asks esearch for the period and returns the ids", {
   seen <- NULL
   mock <- function(req) {
@@ -129,9 +139,10 @@ test_that("variants are asked for, kept apart from the method's name and counted
   expect_equal(s$variants$method, "cox regression")
   expect_equal(s$variants$variant, "time-varying covariates")
   expect_equal(s$variants$papers, 2L)
+  expect_equal(nrow(summarise_method_sources(found, 3, min_variant_papers = 3)$variants), 0)
   entry <- watch_entry(c("1", "2"))
   entry$papers[[1]]$methods[[1]]$variant <- "stratified"
-  report <- paste(format_watch_section("q", entry, list(entry)), collapse = "\n")
+  report <- paste(format_watch_section("q", entry, list(entry), min_variant_papers = 1), collapse = "\n")
   expect_match(report, "| cox regression | stratified | 1 |", fixed = TRUE)
 })
 

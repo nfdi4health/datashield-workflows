@@ -1,7 +1,9 @@
 # The methods section of each article of a PMC efetch answer (JATS XML
 # text), named by PMC ID: the top-level <sec> whose sec-type or title says
-# methods (also "statistical analysis", "materials and methods"), its text
-# cut to `max_chars`. "" where none.
+# methods (also "statistical analysis", "materials and methods"). Its
+# statistics subsections ("Statistical analysis", "Data analysis", ...)
+# come first, since they are often last and would be lost to the cut; then
+# the rest, all cut to `max_chars`. "" where none.
 parse_pmc_methods <- function(xml, max_chars = 6000) {
   doc <- xml2::read_xml(xml)
   articles <- xml2::xml_find_all(doc, "//article")
@@ -22,8 +24,16 @@ parse_pmc_methods <- function(xml, max_chars = 6000) {
     }
     # Text nodes joined with spaces: xml_text() of a section runs its title
     # and paragraphs together.
-    nodes <- unlist(lapply(secs[hit], function(s) xml2::xml_text(xml2::xml_find_all(s, ".//text()"))))
-    text <- gsub("[[:space:]]+", " ", paste(nodes, collapse = " "))
+    sec_text <- function(s) paste(xml2::xml_text(xml2::xml_find_all(s, ".//text()")), collapse = " ")
+    subs <- unlist(lapply(secs[hit], function(s) xml2::xml_find_all(s, ".//sec")), recursive = FALSE)
+    sub_title <- tolower(vapply(subs, function(s) {
+      t <- xml2::xml_find_first(s, "./title")
+      if (inherits(t, "xml_missing")) "" else xml2::xml_text(t)
+    }, character(1)))
+    stats <- subs[grepl("statistic|data analys|analytic", sub_title)]
+    first <- vapply(stats, sec_text, character(1))
+    rest <- vapply(secs[hit], sec_text, character(1))
+    text <- gsub("[[:space:]]+", " ", paste(c(first, rest), collapse = " "))
     substr(trimws(text), 1, max_chars)
   }, character(1))
   stats::setNames(sections, ids)

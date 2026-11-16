@@ -106,5 +106,11 @@ issue-triage-shortlist:
 methods-extraction:
   anthropic:
     tool_name: submit_method_sources
-    model: claude-haiku-5-5
-    max_tokens: 8192
+    # Sonnet, not Haiku (2026-11-16, after the pilot): what counts as a
+    # method or a variant is a judgement everything later builds on.
+    model: claude-sonnet-5-5
+    tool_choice_type: auto
+    thinking:
+      type: adaptive
+    effort: low        # a reading task; thinking counts towards max_tokens
+    max_tokens: 16000
