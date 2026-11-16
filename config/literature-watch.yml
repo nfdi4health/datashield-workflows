@@ -25,8 +25,9 @@ pilot:
   papers: 100             # papers asked for; those without a methods section drop out
   months: 12              # published in the last months
   batch: 5                # papers per Claude call
-  max_section_chars: 6000 # a methods section is cut to this
+  max_section_chars: 12000 # a methods section is cut to this (statistics subsections first)
   top: 20                 # methods listed as "only in the methods section"
+  min_variant_papers: 2   # a variant is listed once this many papers name it
 
 ncbi:
   base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/
