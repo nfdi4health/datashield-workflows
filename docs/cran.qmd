@@ -1,0 +1,65 @@
+---
+title: "CRAN"
+description: "For packages on CRAN: a waiting time between submissions, and the submission itself after a release."
+---
+
+Two optional workflows for a package that goes to CRAN. Both fit into the
+[release chain](release.qmd) and do nothing harmful before the first
+submission, so they can run there long before it.
+
+## Waiting time
+
+CRAN asks for updates of an established package no more often than every
+one to two months. `cran-wait-check.yml` runs on the `dev` → `main` pull
+request and fails it while the last CRAN submission is less than
+`min-days` ago (60 by default; 90 for quarterly releases).
+
+- **The last submission** is the later of the package's publication date
+  on CRAN and the newest `cran-*` tag, which the submission below sets.
+- **Not on CRAN yet:** the check passes.
+- **An urgent fix:** the label `cran-hotfix` on the pull request lets it
+  through; CRAN's policy allows urgent fixes.
+
+Add it to the release trigger next to the R CMD check, and to the merge
+job's `needs` and `if`, as in the commented job of the
+[release trigger example](release.qmd#release-trigger).
+
+## Submission
+
+`cran-submit.yml` runs after the release (chained with `needs`): it checks
+out the released commit, builds the package and uploads it with
+`cran-comments.md` through CRAN's submission form, the steps of
+`devtools::submit_cran()` without its questions. Then it tags the commit
+`cran-<version>`.
+
+- **CRAN emails the maintainer** (`cre` in `DESCRIPTION`), who confirms the
+  submission. That step stays a person's.
+- **`dry-run: true`** (the default) builds the package and shows what would
+  be sent, and sends nothing. Keep it until the package is ready for CRAN:
+  every release then rehearses the submission.
+- **Before the first submission:** `R CMD check --as-cran` green on all
+  three systems (the `as-cran` input of [R CMD check](r-cmd-check.qmd)),
+  and a `cran-comments.md` in the package root.
+
+See the commented `cran` job in the
+[release publish example](release.qmd#publish-release).
+
+## Inputs
+
+**Waiting time:**
+
+{{< wf-inputs cran-wait-check.yml >}}
+
+**Submission:**
+
+{{< wf-inputs cran-submit.yml >}}
+
+## Permissions
+
+**Waiting time:**
+
+{{< wf-permissions cran-wait-check.yml >}}
+
+**Submission:**
+
+{{< wf-permissions cran-submit.yml >}}

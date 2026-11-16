@@ -1,10 +1,10 @@
 name: Dispatch runner
 description: >
-  Starts the implementer's runner (a workflow_dispatch in its repository),
-  which then works through the approved issues. With an App's client ID and
-  key it makes a token for that repository only, with Actions permission
-  only; otherwise it uses the token given. Nothing is passed to the run:
-  the runner reads its work from the labels.
+  Starts a workflow of the runner repository (a workflow_dispatch there):
+  the implementer, which then works through the approved issues, or the
+  researcher. With an App's client ID and key it makes a token for that
+  repository only, with Actions permission only; otherwise it uses the
+  token given. `fields` are passed as the run's inputs.
 
 inputs:
   repository:
@@ -28,6 +28,10 @@ inputs:
     default: ''
   token:
     description: 'Otherwise: a token that may start workflows in the runner repository.'
+    required: false
+    default: ''
+  fields:
+    description: 'Inputs passed to the runner workflow, one "name=value" per line (e.g. the researcher''s mode). Empty: none, as for the implementer, which reads its work from the labels.'
     required: false
     default: ''
 
@@ -62,7 +66,15 @@ runs:
         REPOSITORY: ${{ inputs.repository }}
         WORKFLOW: ${{ inputs.workflow }}
         REF: ${{ inputs.ref }}
+        FIELDS: ${{ inputs.fields }}
       run: |
         [ -n "$GH_TOKEN" ] || { echo "No App and no token for the runner repository." >&2; exit 1; }
-        gh workflow run "$WORKFLOW" --repo "$REPOSITORY" --ref "$REF"
+        args=()
+        while IFS= read -r line; do
+          line="$(sed 's/^ *//; s/ *$//' <<< "$line")"
+          [ -n "$line" ] || continue
+          [[ "$line" == *=* ]] || { echo "Not name=value: $line" >&2; exit 1; }
+          args+=(-f "$line")
+        done <<< "$FIELDS"
+        gh workflow run "$WORKFLOW" --repo "$REPOSITORY" --ref "$REF" "${args[@]}"
         echo "Started $WORKFLOW in $REPOSITORY."

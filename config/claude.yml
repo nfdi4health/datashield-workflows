@@ -100,3 +100,11 @@ issue-triage-shortlist:
     tool_name: submit_shortlist
     model: claude-haiku-5-5
     max_tokens: 1024
+
+# The researcher's method extraction (methods-scan.yml): many papers, short
+# answers, so the cheap model.
+methods-extraction:
+  anthropic:
+    tool_name: submit_method_sources
+    model: claude-haiku-5-5
+    max_tokens: 8192

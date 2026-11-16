@@ -25,16 +25,26 @@ pull request shows what leaves the server so you can check it.
    the target repositories. The approval is checked again: set by a login
    in `allowed-logins`, the spec unchanged since. The issue gets
    `bot-in-progress`.
-2. **Write:** Claude Code works on a branch `agent-suggest/<type>/issue-<n>`
+2. **Tests from the spec:** before any code exists, a separate agent
+   writes tests from the spec alone (input `oracle`, on by default). The
+   writer has to make them pass and may not change them; if it thinks one
+   is wrong, it says so in the pull request ("Tests I disagree with").
+3. **Write:** Claude Code works on a branch `agent-suggest/<type>/issue-<n>`
    in a sandbox (only package repositories and GitHub are reachable, no
-   writing token). It makes the change, tests and documentation, and
-   commits with `Refs #n`.
-3. **Check:** R CMD check with the tests.
-4. **Review:** a maintainability reviewer and a disclosure reviewer read
-   the change; they only read. Failing checks, clear problems and changes
-   beyond the spec's disclosure choice go back to the writer, for up to
-   two correction rounds. Matters of taste stay comments.
-5. **Publish:** on a clean machine that never ran the agent, after
+   writing token). It makes the change and its own tests, and commits with
+   `Refs #n`. It reshapes only the code the change touches; what it
+   notices elsewhere goes under **Follow-ups** in the pull request.
+4. **Check:** R CMD check with the tests, and lints on the changed lines
+   (with the package's own `.lintr`, or the layout rules only if it has
+   none).
+5. **Review:** a maintainability reviewer and a disclosure reviewer read
+   the change; they only read. Failing checks, lints, clear problems and
+   changes beyond the spec's disclosure choice go back to the writer, for
+   up to two correction rounds. Matters of taste stay comments.
+6. **Documentation:** last, a documentation step updates the roxygen blocks
+   of the functions the change touched and regenerates `man/`. Its commit
+   is dropped if it changes anything else, or if the checks no longer pass.
+7. **Publish:** on a clean machine that never ran the agent, after
    checking the approval once more: a pull request into the target's
    branch with the summary, the disclosure review, the reviewers' open
    points and the checks. A failed attempt becomes a draft pull request.
@@ -56,6 +66,10 @@ comment: a new triage updates the spec, then approve again.
 its place; a timer in the target repository (`implementer-timer.yml`)
 waits for the reset and starts the runner again. A weekly limit pauses
 the runner until the next approval or a manual start.
+
+The implementer's commits bring their own tests and documentation, so the
+[roxygen and test suggestions](suggestions.qmd) leave them out. Commits you
+push to its branch afterwards are reviewed like any others.
 
 ## Setting it up
 

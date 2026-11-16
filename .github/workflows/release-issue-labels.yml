@@ -1,0 +1,53 @@
+name: Release issues (this repository)
+
+# This repository's own use of release-issues.yml (decided 2026-11-13):
+# issues a pull request into dev closes get `next-release`; the dev → main
+# pull request lists them as "Closes #n", so merging it closes them; after
+# the merge they get `released`. The merge into main is done by a person
+# (not merge-pull-request.yml with GITHUB_TOKEN), so GitHub closes the
+# issues itself and these jobs can run on pull request events. Not
+# reusable.
+on:
+  pull_request:
+    branches: [dev, main]
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-issues-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  # A pull request merged into dev: the issues it closes wait for the release.
+  mark:
+    if: github.base_ref == 'dev' && github.event.action == 'closed' && github.event.pull_request.merged
+    # Not reusable itself: always this repository's own workflow file.
+    uses: ./.github/workflows/release-issues.yml  # zizmor: ignore[self-repository]
+    permissions:
+      issues: write
+      pull-requests: write
+    with:
+      step: mark
+
+  # The release pull request (dev into main), opened or updated: its
+  # description gets the block of issues it closes.
+  link:
+    if: github.base_ref == 'main' && github.event.action != 'closed'
+    uses: ./.github/workflows/release-issues.yml  # zizmor: ignore[self-repository]
+    permissions:
+      issues: write
+      pull-requests: write
+    with:
+      step: link
+
+  # The release pull request merged: those issues get `released`.
+  swap:
+    if: github.base_ref == 'main' && github.event.action == 'closed' && github.event.pull_request.merged
+    uses: ./.github/workflows/release-issues.yml  # zizmor: ignore[self-repository]
+    permissions:
+      issues: write
+      pull-requests: write
+    with:
+      step: swap

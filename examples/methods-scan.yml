@@ -1,0 +1,35 @@
+name: Methods Scan
+
+# In the private runner repository (the one that runs the implementer): the
+# researcher. It reads the queries from the hub and proposes its report to
+# the hub as a pull request. Started by hand here, or from the hub with
+# methods-scan-start.yml. The concurrency group is the implementer's, so
+# the two never use the subscription at the same time.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'pilot (abstract against methods section, a report only)'
+        default: pilot
+      query:
+        description: 'Query name in the hub''s config/methods-scan.yml (empty: the first)'
+        default: ''
+
+concurrency:
+  group: claude-subscription
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    permissions:
+      contents: read
+    uses: nfdi4health/datashield-workflows/.github/workflows/methods-scan.yml@main
+    with:
+      mode: ${{ inputs.mode }}
+      query: ${{ inputs.query }}
+      hub-repository: your-org/your-hub
+    secrets:
+      claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      app-client-id: ${{ secrets.APP_CLIENT_ID }}
+      app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      ncbi-api-key: ${{ secrets.NCBI_API_KEY }}   # optional

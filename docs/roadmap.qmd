@@ -131,6 +131,17 @@ after that, breaking changes only come with a new major version.
   `config/suggestion-policy.yml` is gone.
 - **Cleanup** also deletes `agent-suggest/*` branches of coding agents
   once their pull request is closed.
+- **[Implementer](implementer.qmd):** tests written from the spec before the
+  code, lints on the changed lines, a documentation step at the end, and
+  a Follow-ups section for what it noticed elsewhere. The roxygen and test
+  suggestions now review commits you add to its branches, leaving out its
+  own.
+- **New: [CRAN](cran.qmd)** waiting time between submissions, and the
+  submission itself after a release (as a dry run until you switch it on).
+- **Analysis scripts:** the agent tries steps that come after a
+  study-level meta-analysis too (statements DSLite can't run are skipped
+  in its tries, as in the test run). The analysis job runs on Ubuntu
+  24.04, where Claude Code's sandbox works.
 
 **October 2026**
 
@@ -232,9 +243,12 @@ issues?
   being refined.
 - **Suggestions on push**: tested locally; the first real runs are
   still ahead. Building on an open suggestion PR works.
-- **[DataSHIELD analysis scripts](datashield-analysis-suggest.qmd)**:
+- ~~**[DataSHIELD analysis scripts](datashield-analysis-suggest.qmd)**:
   tested locally with real DSLite runs; the first real runs, with Claude,
-  the package installs and the step-by-step drafting, are still ahead.
+  the package installs and the step-by-step drafting, are still ahead.~~
+  Real runs on a demo project with four models; a first analyst's project
+  is next.
+- **[CRAN](cran.qmd)**: built; not yet run in a release.
 - **`datashield-type: utility`**: the first real runs are still ahead.
 
 ## Planned

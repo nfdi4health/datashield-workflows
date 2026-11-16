@@ -40,7 +40,7 @@ out="$(scope workflow_dispatch feature changed true "")"; grep -qx "branch=featu
 out="$(scope workflow_dispatch main all true "")";     grep -qx "mode=all" <<< "$out"; check "review-scope all: full review" $?
 out="$(scope schedule main changed false "")";            grep -qx "skip=true" <<< "$out"; check "authors: no scheduled runs" $?
 out="$(scope pull_request x changed true "" bot-suggest/tests/dev)"; grep -qx "skip=true" <<< "$out"; check "bot branch skipped" $?
-out="$(scope pull_request x changed true "" agent-suggest/fix/issue-12)"; grep -qx "skip=true" <<< "$out"; check "implementer branch skipped" $?
+out="$(scope pull_request x changed true "" agent-suggest/fix/issue-12)"; grep -qx "skip=false" <<< "$out"; check "implementer branch reviewed (its own commits are left out by author)" $?
 out="$(scope pull_request x changed true "" agent-suggest/feat/oracle)"; grep -qx "skip=false" <<< "$out"; check "session branch reviewed" $?
 out="$(ACTOR='dependabot[bot]' scope pull_request x changed true "" dependabot/x)"; grep -qx "skip=true" <<< "$out"; check "Dependabot skipped (no secrets)" $?
 out="$(ACTOR='dependabot[bot]' SELF_TEST=true scope pull_request x changed true "" dependabot/x)"; grep -qx "skip=false" <<< "$out"; check "Dependabot not skipped in a self-test" $?
@@ -48,7 +48,7 @@ echo '{"pull_request": {"draft": true}}' > "$WORK/event.json"
 out="$(scope pull_request x changed true "" agent-suggest/fix/issue-7)"; grep -qx "skip=true" <<< "$out"; check "draft pull request skipped" $?
 echo '{"pull_request": {"draft": false}}' > "$WORK/event.json"
 out="$(scope pull_request x changed true "" agent-suggest/fix/typo)"; grep -qx "skip=false" <<< "$out"; check "ready pull request of a session branch reviewed" $?
-out="$(scope pull_request x changed true "" agent-suggest/fix/issue-7)"; grep -qx "skip=true" <<< "$out"; check "ready pull request of the implementer skipped" $?
+out="$(scope pull_request x changed true "" agent-suggest/fix/issue-7)"; grep -qx "skip=false" <<< "$out"; check "ready pull request of the implementer reviewed" $?
 echo '{}' > "$WORK/event.json"
 
 # --- determine-changes.sh with review-history.sh ------------------------------------
@@ -84,13 +84,35 @@ changes() {  # changes <event> <workflow ref>
     bash "$SCOPE/determine-changes.sh" > /dev/null 2>&1
 }
 changes workflow_dispatch refs/heads/dev
-[ "$(paste -sd, files_to_check.txt)" = "R/b.R,R/d.R" ]; check "manual run: changes since the last review, its failed file, not the PR's" $?
+rc=1; if [ "$(paste -sd, files_to_check.txt)" = "R/b.R,R/d.R" ]; then rc=0; fi
+check "manual run: changes since the last review, its failed file, not the PR's" "$rc"
 grep -qx "count=2" "$WORK/out.txt"; check "manual run: count" $?
-[ ! -e history_failed.txt ] && [ ! -e history_pr.txt ]; check "no temporary files left" $?
+rc=1; if [ ! -e history_failed.txt ] && [ ! -e history_pr.txt ]; then rc=0; fi
+check "no temporary files left" "$rc"
 
 printf '#!/usr/bin/env bash\n' > "$BIN/gh"   # no earlier runs
 changes schedule refs/heads/main
 [ ! -s files_to_check.txt ] && grep -qx "count=0" "$WORK/out.txt"; check "first scheduled run: nothing, becomes the starting point" $?
+
+# The implementer's commits are left out by author (bot_names), a person's
+# commit on its branch is reviewed. yq: a stand-in listing the bot name.
+printf '#!/usr/bin/env bash\ncase "$*" in *bot_names*) echo datashield-implementer ;; esac\n' > "$BIN/yq"; chmod +x "$BIN/yq"
+c4=$(git rev-parse HEAD)
+cat > "$BIN/gh" <<EOF
+#!/usr/bin/env bash
+case "\$*" in
+  "pr list"*) ;;
+  *"/actions/workflows/"*) printf '100\tschedule\t\n' ;;
+  *"/runs/100/jobs"*) echo 1001 ;;
+  *"/check-runs/1001/annotations"*) printf 'bot-suggest review\t.github\ttests dev $c4\n' ;;
+esac
+EOF
+git checkout -q -b agent-suggest/fix/issue-9
+echo e > R/e.R; git add -A; git -c user.email=i@i -c user.name=datashield-implementer commit -qm "fix: by the implementer"
+echo f > R/f.R; g add -A; g commit -qm "fix: by a person"
+changes workflow_dispatch refs/heads/agent-suggest/fix/issue-9
+rc=1; if grep -qx "R/f.R" files_to_check.txt && ! grep -qx "R/e.R" files_to_check.txt; then rc=0; fi
+check "implementer's commit left out, a person's reviewed" "$rc"
 
 echo "$passed passed, $failed failed"
 [ "$failed" = 0 ]

@@ -1,0 +1,26 @@
+# Settings for methods-scan.yml, the researcher of the hub for missing
+# DataSHIELD functions (dev-notes/issue-agents.md, "A central hub"). The
+# hub's own config/methods-scan.yml is merged over this file key by key
+# (a list, e.g. queries, is replaced as a whole).
+
+# Named PubMed queries (the search syntax of the PubMed website: try a
+# query there first) come from the hub's own file, e.g.
+#   queries:
+#     - name: cohort-nutrition
+#       pubmed: '"cohort studies"[MeSH Terms] AND diet[MeSH Terms]'
+# No default here: a list of entries in the defaults would swallow the
+# hub's (read_config_yaml() merges with modifyList()).
+
+# Phase 0, the pilot: open-access papers compared, abstract against
+# methods section (a report only, nothing committed).
+pilot:
+  papers: 100             # papers asked for; those without a methods section drop out
+  months: 12              # published in the last months
+  batch: 5                # papers per Claude call
+  max_section_chars: 6000 # a methods section is cut to this
+  top: 20                 # methods listed as "only in the methods section"
+
+ncbi:
+  base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/
+  tool: datashield-workflows   # the tool name NCBI asks for; no e-mail is sent
+  rate_per_second: 3           # without an API key (NCBI_API_KEY: 10)

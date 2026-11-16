@@ -8,6 +8,9 @@ bot_names:
   - github-actions[bot]
   - semantic-release-bot
   - dependabot[bot]
+  # the implementer (implement-issue.yml) commits under this name; its
+  # commits bring their own documentation and tests
+  - datashield-implementer
 
 # Authors never credited in DESCRIPTION whose commits are still reviewed
 # like anyone else's (unlike bot_names): coding assistants that commit

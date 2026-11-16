@@ -459,10 +459,11 @@ adding a feature. So:
   commit). `run-docs.sh` drops its commits if they change anything but
   roxygen lines, `man/` and the RoxygenNote, or if the checks, run again,
   pass no longer. The PR gets a "Documentation" section (one line);
-- the roxygen, test and authors bots skip `agent-suggest/<type>/issue-<n>`
-  (`resolve-suggestion-scope.sh`); Claude Code sessions' agent-suggest
-  branches stay reviewed. A person's later commits on an implementer branch
-  aren't reviewed by the bots either — accepted.
+- ~~the roxygen, test and authors bots skip `agent-suggest/<type>/issue-<n>`
+  (`resolve-suggestion-scope.sh`)~~ Changed 2026-11-13 (user): the bots
+  review these branches, but leave out the implementer's own commits by
+  author (`datashield-implementer` in `bot_names`, `config/bot-authors.yml`);
+  a person's later commits there are reviewed.
 
 ## Triage, found in the first implementer test (2026-11-10)
 

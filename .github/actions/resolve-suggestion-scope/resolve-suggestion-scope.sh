@@ -20,10 +20,10 @@ field() { jq -r "$1 // empty" "$GITHUB_EVENT_PATH"; }
 # --- Runs that should do nothing ---------------------------------------------
 
 case "$branch" in bot-suggest/*) skip "this is the bot's own branch ($branch)." ;; esac
-# The implementer (implement-issue.yml) writes documentation and tests in
-# its own run; its branches are agent-suggest/<type>/issue-<n>. Other
-# agent-suggest/* branches (Claude Code sessions) are reviewed as usual.
-case "$branch" in agent-suggest/*/issue-*) skip "the implementer's branch ($branch) brings its own documentation and tests." ;; esac
+# The implementer's branches (agent-suggest/<type>/issue-<n>) are reviewed
+# like any other: its own commits, which bring their documentation and
+# tests, are left out by author (bot_names in bot-authors.yml), so only a
+# person's later commits there are reviewed (user, 2026-11-13).
 if [ "$event" = "push" ]; then
   case "$GITHUB_REF" in refs/tags/*) skip "a tag was pushed ($GITHUB_REF)." ;; esac
   [ "$(field '.deleted')" = "true" ] && skip "the branch $branch was deleted."
