@@ -322,10 +322,30 @@ the live caller used to validate changes before wider rollout.
     `progress.csv` (`watch_progress_table()`) go to the `data` branch at the
     end of every run, no pull request (user, 2026-11-16: a progress report
     has nothing to decide; the `report` input is kept, unused, so callers
-    passing it don't break; PRs stay for the candidates). Nightly in the runner (its caller's schedule), in the
-    implementer's `concurrency` group. Measured on Max 5x: about 2,000
-    papers per 5-hour session. Not yet built: classification of names and
-    "Exists?" (Opus), ranking, research, the candidate PR. **Runs in the
+    passing it don't break; PRs stay for the candidates). **Vocabulary
+    and "Exists?"** (built 2026-11-17, `R/classify_literature.R`, run by
+    `read-loop.sh` after the reading, not at the usage limit; a failure is
+    a warning): Opus (profiles `methods-classification`,
+    `methods-variants`, `methods-exists`) sorts names not classified yet
+    into methods and variants (`vocabulary.yml` on the data branch:
+    `names`, `variant_names`, `methods` with keywords, variants and
+    verdicts; a variant needing its own DataSHIELD function is a method),
+    then checks methods and variants named in `exists$min_papers` (3)
+    usable papers against the catalogue's function inventory
+    (FederatedMethods/packages' `datashield_functions_metadata.json` +
+    `package_list.csv`; retired packages and server functions left out;
+    `read_function_inventory()`): R preselects candidates by shared words
+    (`preselect_functions()`), Claude answers yes / partial / none /
+    unclear with function and quote, `check_exists_answer()` turns an
+    unchecked one into `unconfirmed` and a match in a development package
+    into `development` (shown as "no", user 2026-11-16); asked again only
+    when the candidates' hash changes. Call caps `vocabulary$max_calls`,
+    `exists$max_calls`. The report merges names (`paper_methods()`,
+    `resolve_method()`) and has an "In DataSHIELD" column. Nightly in the
+    runner (its caller's schedule), in the implementer's `concurrency`
+    group. Measured on Max 5x: about 2,000 papers per 5-hour session. Not
+    yet built: ranking, research (web search allowed, user 2026-11-17),
+    the candidate PR. **Runs in the
     private runner** (user, 2026-11-13): `FlorianSchw/datashield-agent-runner` calls it with
     `hub-repository`, and holds the subscription and NCBI secrets; the hub
     starts it with `literature-watch-start.yml` (checks `allowed-logins`,
