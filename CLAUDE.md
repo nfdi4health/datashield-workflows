@@ -15,6 +15,14 @@ workflow run actually used before assuming a fix did or didn't work; a run
 can be stale relative to what's currently on `main` if it started before a
 push landed.
 
+**Breaking changes (user, 2026-11-16):** before any commit that marks a
+breaking change (`type!:` or a `BREAKING CHANGE:` footer), and before any
+change that would break callers or users without such a marker, ask the user
+first: what breaks (inputs, arguments, file formats, behaviour), for whom,
+and whether a non-breaking way exists (e.g. the old name kept as a
+deprecated alias for a while). Applies from now on, not only once releases
+exist.
+
 **Test bed:** `nfdi4health/dsSupportClient` (a DataSHIELD client package) is
 the live caller used to validate changes before wider rollout.
 
