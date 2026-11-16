@@ -21,7 +21,9 @@ for v in GITHUB_TOKEN GH_TOKEN ACTIONS_RUNTIME_TOKEN ACTIONS_ID_TOKEN_REQUEST_TO
 done > "$out/secret-names.txt"
 # Values shaped like a GitHub or Anthropic token, whatever their name: a count.
 env | grep -cE '(ghs_|ghp_|gho_|ghu_|github_pat_|sk-ant-)' > "$out/token-values.txt"
-# A stored GitHub credential in the checkout.
+# A stored GitHub credential in the checkout: an auth header, or a token in
+# a remote's URL (claude-code-action writes one there).
 git config --get-all http.https://github.com/.extraheader | wc -l > "$out/git-header.txt"
+git config --get-regexp '^remote\..*\.url$' | grep -cE '://[^/@]+@' > "$out/git-remote-token.txt"
 Rscript -e 'cat(R.version.string)' > "$out/r.txt" 2>&1
 echo "finished" > "$out/finished"

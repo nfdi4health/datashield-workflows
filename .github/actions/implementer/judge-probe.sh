@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Judges what sandbox-probe.sh found inside the sandbox (run outside it, by
 # sandbox-probe.yml). Writes a table to the step summary and fails if one
-# check fails. Usage: judge-probe.sh <probe folder>
+# check fails; the table also goes to the log. Usage: judge-probe.sh <probe folder>
 set -u
 dir="${1:-.probe}"
-summary="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
 fail=0
-row() { echo "| $1 | $2 | $3 |" >> "$summary"; [ "$2" = "pass" ] || fail=1; }
+row() { echo "| $1 | $2 | $3 |" | tee -a "$summary"; [ "$2" = "pass" ] || fail=1; }
 read_or() { if [ -f "$1" ]; then tr -d '[:space:]' < "$1"; else echo "$2"; fi; }
 
-{ echo "## Implementer sandbox probe"; echo; echo "| Check | Result | Seen |"; echo "|---|---|---|"; } >> "$summary"
+{ echo "## Implementer sandbox probe"; echo; echo "| Check | Result | Seen |"; echo "|---|---|---|"; } | tee -a "$summary"
 
 if [ ! -f "$dir/finished" ]; then
   row "The agent ran the probe" fail "no result files: the agent didn't run it, or the sandbox stopped it"
@@ -41,6 +41,9 @@ if [ "$n" = "0" ]; then row "No token-shaped value in the environment" pass "0";
 
 n=$(read_or "$dir/git-header.txt" 0)
 if [ "$n" = "0" ]; then row "No stored GitHub credential in git" pass "0"; else row "No stored GitHub credential in git" fail "$n header(s)"; fi
+
+n=$(read_or "$dir/git-remote-token.txt" 0)
+if [ "$n" = "0" ]; then row "No token in a git remote's URL" pass "0"; else row "No token in a git remote's URL" fail "$n remote(s) with credentials in the URL"; fi
 
 if grep -q "R version" "$dir/r.txt" 2>/dev/null; then
   row "R runs inside the sandbox" pass "$(head -c 60 "$dir/r.txt")"
