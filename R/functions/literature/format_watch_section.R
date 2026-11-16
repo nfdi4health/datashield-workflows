@@ -30,5 +30,10 @@ format_watch_section <- function(title, entry, entries, top = 20) {
       "| Method | Papers |", "|---|---|",
       sprintf("| %s | %d |", s$only_in_section$method, s$only_in_section$papers))
   }
+  if (nrow(s$variants) > 0) {
+    lines <- c(lines, "", "**Variants named most often** (DataSHIELD may have the method but not the variant):", "",
+      "| Method | Variant | Papers |", "|---|---|---|",
+      sprintf("| %s | %s | %d |", s$variants$method, s$variants$variant, s$variants$papers))
+  }
   lines
 }

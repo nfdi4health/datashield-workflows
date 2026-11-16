@@ -105,6 +105,7 @@ test_that("the summary gives the shares by role and the methods only in the meth
   expect_equal(s$share_secondary, 0)
   expect_equal(s$abstract_only, 1)
   expect_equal(s$only_in_section$method, "multiple imputation")
+  expect_equal(nrow(s$variants), 0)
 })
 
 watch_entry <- function(pmids, method = "cox regression", in_abstract = TRUE) {
@@ -113,6 +114,26 @@ watch_entry <- function(pmids, method = "cox regression", in_abstract = TRUE) {
     papers = lapply(pmids, function(id) list(pmid = id, pmcid = paste0("PMC", id), title = "T",
       methods = list(list(name = method, role = "secondary", in_abstract = in_abstract, in_methods_section = TRUE)))))
 }
+
+test_that("variants are asked for, kept apart from the method's name and counted per paper", {
+  tool <- build_method_sources_tool()
+  item <- tool$input_schema$properties$papers$items$properties$methods$items
+  expect_true("variant" %in% unlist(item$required))
+  found <- data.frame(
+    id = c("1", "1", "2", "3"),
+    name = c("cox regression", "cox regression", "cox regression", "cox regression"),
+    variant = c("time-varying covariates", "time-varying covariates", "time-varying covariates", ""),
+    role = "main", in_abstract = TRUE, in_methods_section = TRUE
+  )
+  s <- summarise_method_sources(found, 3)
+  expect_equal(s$variants$method, "cox regression")
+  expect_equal(s$variants$variant, "time-varying covariates")
+  expect_equal(s$variants$papers, 2L)
+  entry <- watch_entry(c("1", "2"))
+  entry$papers[[1]]$methods[[1]]$variant <- "stratified"
+  report <- paste(format_watch_section("q", entry, list(entry)), collapse = "\n")
+  expect_match(report, "| cox regression | stratified | 1 |", fixed = TRUE)
+})
 
 test_that("a re-run of one query replaces its entry and keeps the others", {
   old <- merge_watch_data(NULL, "2026-11", "pilot", list(a = watch_entry("1"), b = watch_entry("2")))
@@ -159,8 +180,8 @@ test_that("watch_literature.R runs every query, keeps the month's other results 
   }
   local_global_mock(call_claude_tool = function(claude, tool, prompt) {
     list(papers = list(list(id = "111", methods = list(
-      list(name = "Cox regression", role = "main", in_abstract = TRUE, in_methods_section = TRUE),
-      list(name = "multiple imputation", role = "secondary", in_abstract = FALSE, in_methods_section = TRUE)))))
+      list(name = "Cox regression", variant = "Time-varying covariates", role = "main", in_abstract = TRUE, in_methods_section = TRUE),
+      list(name = "multiple imputation", variant = "", role = "secondary", in_abstract = FALSE, in_methods_section = TRUE)))))
   })
   before <- ls(globalenv(), all.names = TRUE)
   on.exit(rm(list = setdiff(ls(globalenv(), all.names = TRUE), before), envir = globalenv()), add = TRUE)
@@ -176,6 +197,9 @@ test_that("watch_literature.R runs every query, keeps the month's other results 
   expect_equal(names(data$queries), c("older", "cohort-nutrition", "cohort-diabetes"))
   expect_equal(data$queries[["cohort-nutrition"]]$papers[[1]]$pmid, "111")
   expect_null(data$queries[["cohort-nutrition"]]$papers[[1]]$abstract)
+  methods <- data$queries[["cohort-nutrition"]]$papers[[1]]$methods
+  expect_equal(methods[[1]]$variant, "time-varying covariates")
+  expect_null(methods[[2]]$variant)
   report <- readLines(file.path(dir, "literature-watch", "reports", "2026-11.md"))
   expect_true(any(grepl("## cohort-nutrition", report, fixed = TRUE)))
   expect_true(any(grepl("## older", report, fixed = TRUE)))

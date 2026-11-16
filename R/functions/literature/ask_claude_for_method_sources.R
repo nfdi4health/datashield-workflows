@@ -5,7 +5,7 @@
 # on; at the subscription's usage limit (is_usage_limit()) the calls stop
 # (attribute "stopped" TRUE). The PubMed IDs of the papers answered are
 # attribute "answered", their number "asked". Returns a data frame: id,
-# name, role, in_abstract, in_methods_section.
+# name, variant, role, in_abstract, in_methods_section.
 ask_claude_for_method_sources <- function(claude, papers, settings) {
   rows <- list()
   size <- settings$pilot$batch %||% 5
@@ -35,13 +35,14 @@ ask_claude_for_method_sources <- function(claude, papers, settings) {
     for (paper in answer$papers %||% list()) {
       if (!paper$id %in% p$pmid) next
       for (m in paper$methods %||% list()) {
-        rows[[length(rows) + 1]] <- data.frame(id = paper$id, name = normalise_method_name(m$name), role = m$role,
+        rows[[length(rows) + 1]] <- data.frame(id = paper$id, name = normalise_method_name(m$name),
+          variant = normalise_method_name(m$variant %||% ""), role = m$role,
           in_abstract = isTRUE(m$in_abstract), in_methods_section = isTRUE(m$in_methods_section))
       }
     }
   }
   found <- if (length(rows) == 0) {
-    data.frame(id = character(0), name = character(0), role = character(0),
+    data.frame(id = character(0), name = character(0), variant = character(0), role = character(0),
       in_abstract = logical(0), in_methods_section = logical(0))
   } else {
     do.call(rbind, rows)
