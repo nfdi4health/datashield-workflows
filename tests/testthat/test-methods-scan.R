@@ -81,12 +81,14 @@ test_that("a failed batch is left out and the others go on", {
   calls <- 0
   local_global_mock(call_claude_tool = function(claude, tool, prompt) {
     calls <<- calls + 1
-    if (calls == 1) stop("usage limit")
+    if (calls == 1) stop("Internal server error")
     list(papers = list(list(id = "2", methods = list(list(name = "t-test", role = "secondary", in_abstract = FALSE, in_methods_section = TRUE)))))
   })
   expect_message(found <- ask_claude_for_method_sources(list(prompt = "{{PAPERS}}", config = list()), papers, list(pilot = list(batch = 1))),
     "left out")
   expect_equal(found$id, "2")
+  expect_equal(attr(found, "asked"), 1)
+  expect_false(attr(found, "stopped"))
 })
 
 test_that("the pilot report gives the shares by role and the methods only in the methods section", {
@@ -145,4 +147,21 @@ test_that("scan_methods.R runs the pilot end to end and writes the report", {
   expect_true(any(grepl("**1** papers compared", report, fixed = TRUE)))
   expect_true(any(grepl("| multiple imputation | 1 |", report, fixed = TRUE)))
   expect_true(file.exists(file.path(dir, "methods_pilot.json")))
+})
+
+test_that("at the usage limit the calls stop, and the result says how far they got", {
+  papers <- data.frame(pmid = c("1", "2", "3"), abstract = c("a", "b", "c"), methods = c("m", "n", "o"))
+  calls <- 0
+  local_global_mock(call_claude_tool = function(claude, tool, prompt) {
+    calls <<- calls + 1
+    if (calls == 2) stop("Claude Code ended without an answer (error): 5-hour limit reached - resets 3pm")
+    list(papers = list(list(id = "1", methods = list(list(name = "t-test", role = "secondary", in_abstract = TRUE, in_methods_section = TRUE)))))
+  })
+  expect_message(found <- ask_claude_for_method_sources(list(prompt = "{{PAPERS}}", config = list()), papers, list(pilot = list(batch = 1))),
+    "usage limit was reached after 1 papers")
+  expect_equal(calls, 2)
+  expect_equal(attr(found, "asked"), 1)
+  expect_true(attr(found, "stopped"))
+  expect_true(is_usage_limit("You've hit your usage limit"))
+  expect_false(is_usage_limit("Internal server error"))
 })

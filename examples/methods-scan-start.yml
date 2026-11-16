@@ -1,0 +1,28 @@
+name: Methods Scan
+
+# In the hub of missing functions: starts the researcher in the private
+# runner repository (methods-scan.yml there). Only the logins listed may
+# start it; the bots' App needs Actions: write on the runner.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'pilot (abstract against methods section, a report only)'
+        default: pilot
+      query:
+        description: 'Query name in config/methods-scan.yml (empty: the first)'
+        default: ''
+
+jobs:
+  start:
+    permissions:
+      contents: read
+    uses: nfdi4health/datashield-workflows/.github/workflows/methods-scan-start.yml@main
+    with:
+      runner-repository: your-login/your-runner
+      mode: ${{ inputs.mode }}
+      query: ${{ inputs.query }}
+      allowed-logins: your-login
+    secrets:
+      app-client-id: ${{ secrets.APP_CLIENT_ID }}
+      app-private-key: ${{ secrets.APP_PRIVATE_KEY }}

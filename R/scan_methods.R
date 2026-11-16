@@ -50,8 +50,18 @@ if (nrow(papers) == 0) {
 
 claude <- claude_client("methods-extraction", "prompts/methods-extraction-prompt.md")
 found <- ask_claude_for_method_sources(claude, papers, settings)
-summary <- summarise_method_sources(found, nrow(papers), settings$pilot$top %||% 20)
+compared <- attr(found, "asked")
+if (compared == 0) {
+  stop("No paper could be compared (see the messages above): no report.", call. = FALSE)
+}
+summary <- summarise_method_sources(found, compared, settings$pilot$top %||% 20)
 report <- format_pilot_report(summary, query$name, period)
+if (isTRUE(attr(found, "stopped"))) {
+  # Not lost: the report covers the papers compared so far; a new run after
+  # the limit's reset starts again.
+  report <- c(report, "", sprintf("_Stopped at the subscription's usage limit after %d of %d papers; the numbers cover those._",
+    compared, nrow(papers)))
+}
 writeLines(report, "methods_pilot_report.md")
 write_json(list(query = query, period = period, papers = papers[, c("pmid", "pmcid", "title")], methods = found),
   "methods_pilot.json", auto_unbox = TRUE, pretty = TRUE)
