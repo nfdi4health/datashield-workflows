@@ -1,4 +1,4 @@
-name: Methods Scan
+name: Literature Watch
 
 # The researcher of the hub for missing DataSHIELD functions (e.g.
 # nfdi4health/datashield-function-ideas; dev-notes/issue-agents.md, "A
@@ -7,12 +7,15 @@ name: Methods Scan
 # lacks. Called from the private runner repository (decided 2026-11-13), so
 # it shares the implementer's queue (`concurrency` in the caller) and the
 # subscription token stays in one place; started there by hand, or from
-# the hub with methods-scan-start.yml. It reads the queries from the hub
-# (`hub-repository`) and proposes its results to the hub as a pull request
-# with the bots' App. Built one phase at a time; so far `pilot`: open-access
-# papers of one query, the methods named in the abstract against the
-# methods section, as scans/pilot-YYYY-MM.md. Claude reads the papers on
-# the subscription (R/scan_methods.R, profile methods-extraction).
+# the hub with literature-watch-start.yml. It runs every query of the hub's
+# config/literature-watch.yml (or the one named) and proposes the month's
+# data (literature-watch/data/YYYY-MM.yml) and report
+# (literature-watch/reports/YYYY-MM.md) to the hub as one
+# pull request with the bots' App; a re-run in the month updates it,
+# keeping the queries not run again. Built one phase at a time; so far
+# `pilot`: the methods named in the abstract against the methods section.
+# Claude reads the papers on the subscription (R/watch_literature.R,
+# profile methods-extraction).
 on:
   workflow_call:
     inputs:
@@ -22,12 +25,12 @@ on:
         type: string
         default: 'pilot'
       query:
-        description: 'The name of a query in the hub''s config/methods-scan.yml. Empty: the first.'
+        description: 'The name of one query in the hub''s config/literature-watch.yml. Empty: all of them.'
         required: false
         type: string
         default: ''
       hub-repository:
-        description: 'The hub (owner/name): its config/methods-scan.yml is read, and the results go there as a pull request. Empty: the calling repository itself, nothing proposed.'
+        description: 'The hub (owner/name): its config/literature-watch.yml is read, and the results go there as a pull request. Empty: the calling repository itself, nothing proposed.'
         required: false
         type: string
         default: ''
@@ -59,7 +62,7 @@ permissions:
   contents: read
 
 jobs:
-  scan:
+  watch:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -75,7 +78,7 @@ jobs:
           echo "::error::$ACTOR may not start runs on the subscription (subscription-logins)."
           exit 1
 
-      - name: Which repository holds the queries
+      - name: Which repository holds the queries, and the month
         id: hub
         env:
           HUB: ${{ inputs.hub-repository }}
@@ -86,6 +89,7 @@ jobs:
           else
             echo "repository=$GITHUB_REPOSITORY" >> "$GITHUB_OUTPUT"
           fi
+          echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
 
       # The hub's token: reading is open (a public hub), proposing needs the
       # App, for that repository only.
@@ -123,49 +127,68 @@ jobs:
       - name: Claude Code
         run: npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312  # zizmor: ignore[adhoc-packages] exact version, as in the other bots
 
-      - name: Scan
+      # A re-run in the same month builds on the month's open pull request:
+      # its files (the commit on top of the hub's branch) come into the
+      # checkout, so the queries not run again keep their results.
+      - name: The month's results so far
+        if: inputs.hub-repository != ''
         env:
-          SCAN_MODE: ${{ inputs.mode }}
-          SCAN_QUERY: ${{ inputs.query }}
+          BRANCH: bot-suggest/literature-watch/${{ steps.hub.outputs.month }}
+        run: |
+          if git fetch --quiet --depth=2 origin "refs/heads/$BRANCH" 2>/dev/null; then
+            mapfile -t files < <(git diff --name-only FETCH_HEAD~1 FETCH_HEAD)
+            if [ "${#files[@]}" -gt 0 ]; then
+              git checkout FETCH_HEAD -- "${files[@]}"
+              printf 'From the open pull request: %s\n' "${files[@]}"
+            fi
+          else
+            echo "No pull request of this month yet."
+          fi
+
+      - name: Watch
+        id: watch
+        env:
+          WATCH_MODE: ${{ inputs.mode }}
+          WATCH_QUERY: ${{ inputs.query }}
+          WATCH_MONTH: ${{ steps.hub.outputs.month }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
           NCBI_API_KEY: ${{ secrets.ncbi-api-key }}
         run: |
-          Rscript .shared-workflows/R/scan_methods.R
-          if [ -f methods_pilot_report.md ]; then cat methods_pilot_report.md >> "$GITHUB_STEP_SUMMARY"; fi
+          Rscript .shared-workflows/R/watch_literature.R
+          if [ -f watch_files.txt ]; then
+            while read -r f; do case "$f" in *.md) cat "$f" >> "$GITHUB_STEP_SUMMARY";; esac; done < watch_files.txt
+            { echo "files<<EOF"; cat watch_files.txt; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Keep the results
-        if: always()
+        if: always() && steps.watch.outputs.files != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: methods-scan-${{ inputs.mode }}
-          path: |
-            methods_pilot_report.md
-            methods_pilot.json
+          name: literature-watch-${{ steps.hub.outputs.month }}
+          path: ${{ steps.watch.outputs.files }}
           if-no-files-found: ignore
           retention-days: 30
 
-      # The pilot's report as a file in the hub's scans/, by pull request.
-      - name: Prepare the pilot report for the hub
-        id: report
-        if: inputs.hub-repository != '' && inputs.mode == 'pilot' && hashFiles('methods_pilot_report.md') != ''
+      # The month's data and report in the hub, by pull request.
+      - name: Describe the pull request
+        if: inputs.hub-repository != '' && hashFiles('watch_files.txt') != ''
+        id: describe
         run: |
-          month="$(date -u +%Y-%m)"
-          mkdir -p scans
-          cp methods_pilot_report.md "scans/pilot-$month.md"
-          echo "scans/pilot-$month.md" > scan_manifest.txt
-          printf 'The researcher'"'"'s pilot (phase 0): methods named in abstracts against methods sections. The report is the file in this pull request; the run is in the runner repository.\n' > scan_pr_body.md
-          echo "month=$month" >> "$GITHUB_OUTPUT"
+          printf 'The literature watch of %s: which statistical methods recent open-access papers use (data, and the report built from it). A re-run this month updates this pull request. The run is in the runner repository.\n' "$MONTH" > watch_pr_body.md
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+        env:
+          MONTH: ${{ steps.hub.outputs.month }}
 
-      - name: Propose the report to the hub
-        if: steps.report.outputs.month != ''
+      - name: Propose the results to the hub
+        if: steps.describe.outputs.ready == 'true'
         uses: $/.github/actions/propose-branch
         with:
-          manifest: scan_manifest.txt
-          branch: bot-suggest/scans/pilot-${{ steps.report.outputs.month }}
+          manifest: watch_files.txt
+          branch: bot-suggest/literature-watch/${{ steps.hub.outputs.month }}
           base: ${{ inputs.hub-branch }}
-          title: 'Researcher pilot: abstract or methods section? (${{ steps.report.outputs.month }})'
-          body-file: scan_pr_body.md
-          commit-message: 'docs: researcher pilot report ${{ steps.report.outputs.month }}'
+          title: 'Literature watch ${{ steps.hub.outputs.month }}'
+          body-file: watch_pr_body.md
+          commit-message: 'docs: literature watch ${{ steps.hub.outputs.month }}'
           token: ${{ steps.hub_token.outputs.token }}
           repository: ${{ inputs.hub-repository }}
 
@@ -176,5 +199,5 @@ jobs:
         continue-on-error: true
         uses: $/.github/actions/count-run
         with:
-          workflow: methods-scan
+          workflow: literature-watch
           job-status: ${{ job.status }}

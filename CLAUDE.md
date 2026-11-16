@@ -267,7 +267,7 @@ the live caller used to validate changes before wider rollout.
     tests `tests/node/implementer.test.mjs` (`node --test`).
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
-  - `route-idea.yml`, `methods-scan.yml` — for the hub of missing
+  - `route-idea.yml`, `literature-watch.yml` — for the hub of missing
     DataSHIELD functions, `nfdi4health/datashield-function-ideas` (main
     only; built 2026-11-13, **not yet run**; design in
     [dev-notes/issue-agents.md](dev-notes/issue-agents.md), "A central
@@ -277,23 +277,32 @@ the live caller used to validate changes before wider rollout.
     write), links it back with a hidden `routed-to` marker (copied once
     per target) and labels the hub issue `routed`; mentions in the copy
     are defused. Composite action `route-idea`, tests
-    `tests/shell/test-route-idea.sh`. Scan: the researcher, phase 0
-    `pilot` so far (open-access papers of one query from PubMed/PMC via
-    NCBI E-utilities; Haiku, profile `methods-extraction`, lists each
-    paper's methods with where they are named; report in the run summary,
-    an artifact and as `scans/pilot-YYYY-MM.md` in a pull request to the
-    hub, `bot-suggest/scans/pilot-<month>` via `propose-branch` with the
-    bots' App). **Runs in the private runner** (user, 2026-11-13):
-    `FlorianSchw/datashield-agent-runner` calls it with `hub-repository`,
-    sharing the implementer's `concurrency` group (one subscription, one
-    queue), and holds the subscription and NCBI secrets; the hub starts it
-    with `methods-scan-start.yml` (checks `allowed-logins`, then
-    `workflow_dispatch` through `dispatch-runner`, whose new `fields` input
-    passes `-f name=value`). At the subscription's usage limit
-    (`is_usage_limit()`, the implementer's pattern) the Claude calls stop
-    and the report covers the papers answered so far. Entry script
-    `R/scan_methods.R`, functions `R/functions/methods/`, settings
-    `config/methods-scan.yml` (queries in the hub's own copy), prompt
+    `tests/shell/test-route-idea.sh`. Literature watch (named so
+    2026-11-16, was `methods-scan`): the researcher, phase 0 `pilot` so
+    far (open-access papers from PubMed/PMC via NCBI E-utilities; Haiku,
+    profile `methods-extraction`, lists each paper's methods with where
+    they are named). A run takes every query of the hub's config (or the
+    one named) and writes the month's data
+    (`literature-watch/data/YYYY-MM.yml`: per query the search, period,
+    counts and per paper PubMed/PMC ID, title and methods, never the
+    papers' text) and the report built from it alone
+    (`literature-watch/reports/YYYY-MM.md`: all queries together, a paper
+    counted once, then a section per query; folders in `files`); both go
+    to the hub as one pull request, `bot-suggest/literature-watch/<month>`
+    via `propose-branch` with the bots' App. A re-run in the month takes
+    the open pull request's files first, so a query run again replaces only
+    its own entry (`merge_watch_data()`). **Runs in the private runner**
+    (user, 2026-11-13): `FlorianSchw/datashield-agent-runner` calls it with
+    `hub-repository`, sharing the implementer's `concurrency` group (one
+    subscription, one queue), and holds the subscription and NCBI secrets;
+    the hub starts it with `literature-watch-start.yml` (checks
+    `allowed-logins`, then `workflow_dispatch` through `dispatch-runner`,
+    whose `fields` input passes `-f name=value`). At the subscription's
+    usage limit (`is_usage_limit()`, the implementer's pattern) the Claude
+    calls stop, the queries not reached keep their earlier entry of the
+    month, and the report says how far it got. Entry script
+    `R/watch_literature.R`, functions `R/functions/literature/`, settings
+    `config/literature-watch.yml` (queries in the hub's own copy), prompt
     `prompts/methods-extraction-prompt.md`. The analysis bot's gap links
     point to the hub's issue form `analysis-method.yml` (`gap_issue_repo`,
     `texts$issue$template` / `fields`), with only the note on what is

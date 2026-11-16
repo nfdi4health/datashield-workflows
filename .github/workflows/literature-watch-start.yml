@@ -1,23 +1,23 @@
-name: Methods Scan Start
+name: Literature Watch Start
 
-# For the hub of missing DataSHIELD functions: starts the researcher in the
-# private runner repository (a workflow_dispatch there, with mode and
+# For the hub of missing DataSHIELD functions: starts the literature watch in
+# the private runner repository (a workflow_dispatch there, with mode and
 # query), so it waits in the same queue as the implementer: one
 # subscription, one run at a time (decided 2026-11-13). Only listed logins
 # may start it. The run reads the hub's queries and proposes its results to
-# the hub; see methods-scan.yml.
+# the hub; see literature-watch.yml.
 on:
   workflow_call:
     inputs:
       runner-repository:
-        description: 'The runner repository (owner/name) with the methods-scan caller.'
+        description: 'The runner repository (owner/name) with the literature-watch caller.'
         required: true
         type: string
       runner-workflow:
         description: 'The researcher''s workflow file in the runner.'
         required: false
         type: string
-        default: 'methods-scan.yml'
+        default: 'literature-watch.yml'
       runner-ref:
         description: 'The branch the runner workflow runs on.'
         required: false
@@ -29,12 +29,12 @@ on:
         type: string
         default: 'pilot'
       query:
-        description: 'The name of a query in the hub''s config/methods-scan.yml. Empty: the first.'
+        description: 'The name of one query in the hub''s config/literature-watch.yml. Empty: all of them.'
         required: false
         type: string
         default: ''
       allowed-logins:
-        description: 'Who may start a scan: exact GitHub logins, separated by commas or spaces.'
+        description: 'Who may start the literature watch: exact GitHub logins, separated by commas or spaces.'
         required: true
         type: string
     secrets:
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - name: May this login start a scan?
+      - name: May this login start the literature watch?
         env:
           LOGINS: ${{ inputs.allowed-logins }}
           ACTOR: ${{ github.triggering_actor }}
@@ -58,7 +58,7 @@ jobs:
           for login in $(tr ',' ' ' <<< "$LOGINS"); do
             [ "$login" = "$ACTOR" ] && exit 0
           done
-          echo "::error::$ACTOR may not start a scan (allowed-logins)."
+          echo "::error::$ACTOR may not start the literature watch (allowed-logins)."
           exit 1
 
       - name: Start the researcher in the runner

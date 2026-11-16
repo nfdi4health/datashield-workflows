@@ -303,8 +303,9 @@ subscription). **Built 2026-11-13, not yet run:** routing
 `pilot`), the analysis bot's gap links pointing to the hub, the hub's
 basics. **Moved into the runner the same day** (user): the runner calls
 `methods-scan.yml` in the implementer's queue, the hub starts it with
-`methods-scan-start.yml`, the pilot report goes to the hub as
-`scans/pilot-YYYY-MM.md` by pull request. **Next:** the pilot run (needs
+`methods-scan-start.yml`. **Renamed 2026-11-16** to `literature-watch.yml`:
+all queries per run, the month's data and report in
+`literature-watch/{data,reports}/YYYY-MM.*` by one pull request. **Next:** the pilot run (needs
 the runner's secrets), then
 by its result the vocabulary round, backfill and the monthly candidate PR
 with the three boxes; mirroring a routed issue's status back; the step

@@ -184,7 +184,7 @@ papers for federated methods.
 **Since 2026-11-13:** the hub is `nfdi4health/datashield-function-ideas`
 (name chosen by the user; main only; the researcher on the user's
 subscription). Built (not yet run): routing (`route-idea.yml`), the
-researcher's pilot (`methods-scan.yml`), the gap links, the hub's basics
+researcher's pilot (`methods-scan.yml`, since 2026-11-16 `literature-watch.yml`), the gap links, the hub's basics
 (README, issue forms, configs, callers). The rest below is still the
 design.
 
@@ -195,12 +195,21 @@ implementer's `concurrency` group, so the two never use the subscription
 at the same time (GitHub keeps one pending run per group: a third start
 while one runs and one waits replaces the waiting one). A public hub can't
 call the private runner's workflow, so the hub's caller
-(`methods-scan-start.yml`) checks the login and starts the runner's
+(`literature-watch-start.yml`) checks the login and starts the runner's
 workflow by `workflow_dispatch` with the bots' App (Actions: write on the
 runner). The runner checks out the hub for its queries and proposes the
-pilot report to it as a file, `scans/pilot-YYYY-MM.md`, by pull request
+month's results to it by pull request
 (App: Contents and Pull requests write on the hub). At the subscription's
 usage limit the run stops asking and reports what it has.
+
+**Files and name (user, 2026-11-16):** the workflow is the *literature
+watch* (`literature-watch.yml`; "scan" read like a security scan). A run
+takes all queries (or one); the month's results are two files under one
+folder, the data (`literature-watch/data/YYYY-MM.yml`: IDs, titles and
+method names per query, never the papers' text) and the report built from
+it (`literature-watch/reports/YYYY-MM.md`), in one pull request per month;
+a re-run of one query replaces only its entry. No mode or query in the
+names. The `scans/YYYY-MM.yml` of the design below is this data file.
 
 Originally: not built; no repository yet. Problem: the community had no natural place
 for gaps, demand and who works on what (an Excel file in someone's cloud,
