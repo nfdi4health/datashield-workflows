@@ -63,7 +63,7 @@ if (length(entries) == 0) {
 old <- if (file.exists(data_file)) read_yaml(data_file) else NULL
 data <- merge_watch_data(old, month, mode, entries)
 missing <- setdiff(vapply(settings$queries, function(q) q$name, ""), names(data$queries))
-report <- format_watch_report(data, settings$pilot$top %||% 20, missing)
+report <- format_watch_report(data, settings$pilot$top %||% 20, missing, settings$pilot$min_variant_papers %||% 2)
 
 dir.create(dirname(data_file), recursive = TRUE, showWarnings = FALSE)
 dir.create(dirname(report_file), recursive = TRUE, showWarnings = FALSE)

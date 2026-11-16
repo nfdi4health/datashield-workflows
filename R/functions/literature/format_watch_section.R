@@ -1,10 +1,10 @@
 # One section of the literature watch's report: the numbers of
 # summarise_method_sources() for the given entries. `entry` is the query's
 # own entry (its search and period), NULL for all queries together.
-format_watch_section <- function(title, entry, entries, top = 20) {
+format_watch_section <- function(title, entry, entries, top = 20, min_variant_papers = 2) {
   pct <- function(x) if (is.na(x)) "–" else sprintf("%.0f%%", 100 * x)
   found <- watch_entry_methods(entries)
-  s <- summarise_method_sources(found, attr(found, "papers"), top)
+  s <- summarise_method_sources(found, attr(found, "papers"), top, min_variant_papers)
   lines <- c(sprintf("## %s", title), "")
   if (!is.null(entry)) {
     lines <- c(lines, sprintf("PubMed: `%s`, open access, published %s to %s. Found %d, with a methods section %d, compared **%d**.",
@@ -31,7 +31,7 @@ format_watch_section <- function(title, entry, entries, top = 20) {
       sprintf("| %s | %d |", s$only_in_section$method, s$only_in_section$papers))
   }
   if (nrow(s$variants) > 0) {
-    lines <- c(lines, "", "**Variants named most often** (DataSHIELD may have the method but not the variant):", "",
+    lines <- c(lines, "", sprintf("**Variants named in at least %d papers** (DataSHIELD may have the method but not the variant):", min_variant_papers), "",
       "| Method | Variant | Papers |", "|---|---|---|",
       sprintf("| %s | %s | %d |", s$variants$method, s$variants$variant, s$variants$papers))
   }
