@@ -31,7 +31,7 @@ inputs:
     required: false
     default: ''
   fields:
-    description: 'Inputs passed to the runner workflow, one "name=value" per line (e.g. the researcher''s mode). Empty: none, as for the implementer, which reads its work from the labels.'
+    description: 'Inputs passed to the runner workflow, one "name=value" per line (e.g. the literature watch''s field). Empty: none, as for the implementer, which reads its work from the labels.'
     required: false
     default: ''
 

@@ -1,5 +1,5 @@
 # The literature watch's Claude calls: papers in batches of
-# settings$pilot$batch, each with its abstract and methods section; Claude
+# settings$reading$batch, each with its abstract and methods section; Claude
 # lists the methods and where each is named. Only methods of the given
 # papers are kept. A failed batch is left out with a message, the run goes
 # on; at the subscription's usage limit (is_usage_limit()) the calls stop
@@ -8,7 +8,7 @@
 # name, variant, role, in_abstract, in_methods_section.
 ask_claude_for_method_sources <- function(claude, papers, settings) {
   rows <- list()
-  size <- settings$pilot$batch %||% 5
+  size <- settings$reading$batch %||% 5
   answered <- character(0)
   stopped <- FALSE
   for (batch in split(seq_len(nrow(papers)), ceiling(seq_len(nrow(papers)) / size))) {

@@ -1,11 +1,12 @@
 name: Literature Watch Start
 
-# For the hub of missing DataSHIELD functions: starts the literature watch in
-# the private runner repository (a workflow_dispatch there, with mode and
-# query), so it waits in the same queue as the implementer: one
-# subscription, one run at a time (decided 2026-11-13). Only listed logins
-# may start it. The run reads the hub's queries and proposes its results to
-# the hub; see literature-watch.yml.
+# For the hub of missing DataSHIELD functions: starts the literature watch
+# in the private runner repository (a workflow_dispatch there, with field,
+# max-papers and report), so it waits in the same queue as the
+# implementer: one subscription, one run at a time (decided 2026-11-13).
+# Only listed logins may start it. The run reads the hub's fields, pushes
+# the data to the hub's data branch and proposes the report; see
+# literature-watch.yml.
 on:
   workflow_call:
     inputs:
@@ -23,16 +24,21 @@ on:
         required: false
         type: string
         default: 'main'
-      mode:
-        description: 'pilot (more modes follow).'
-        required: false
-        type: string
-        default: 'pilot'
-      query:
-        description: 'The name of one query in the hub''s config/literature-watch.yml. Empty: all of them.'
+      field:
+        description: 'One field of the hub''s config/literature-watch.yml. Empty: all of them.'
         required: false
         type: string
         default: ''
+      max-papers:
+        description: 'At most this many papers in this run (e.g. more over a holiday). Empty: papers_per_run of the hub''s config.'
+        required: false
+        type: string
+        default: ''
+      report:
+        description: 'The report pull request: always (default for a run started by hand), auto or never.'
+        required: false
+        type: string
+        default: 'always'
       allowed-logins:
         description: 'Who may start the literature watch: exact GitHub logins, separated by commas or spaces.'
         required: true
@@ -70,5 +76,6 @@ jobs:
           app-client-id: ${{ secrets.app-client-id }}
           app-private-key: ${{ secrets.app-private-key }}
           fields: |
-            mode=${{ inputs.mode }}
-            query=${{ inputs.query }}
+            field=${{ inputs.field }}
+            max-papers=${{ inputs.max-papers }}
+            report=${{ inputs.report }}

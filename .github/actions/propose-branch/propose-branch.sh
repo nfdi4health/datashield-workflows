@@ -32,7 +32,7 @@ git_with_token push --force origin "HEAD:refs/heads/$BRANCH"
 
 pr=$(gh pr list --repo "$REPOSITORY" --head "$BRANCH" --state open --json url --jq '.[0].url // empty')
 if [ -n "$pr" ]; then
-  gh pr edit "$pr" --repo "$REPOSITORY" --body-file "$BODY_FILE"
+  gh pr edit "$pr" --repo "$REPOSITORY" --title "$TITLE" --body-file "$BODY_FILE"
 else
   pr=$(gh pr create --repo "$REPOSITORY" --base "$BASE" --head "$BRANCH" --title "$TITLE" --body-file "$BODY_FILE")
 fi
