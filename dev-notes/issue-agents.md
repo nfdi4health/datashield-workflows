@@ -211,6 +211,14 @@ it (`literature-watch/reports/YYYY-MM.md`), in one pull request per month;
 a re-run of one query replaces only its entry. No mode or query in the
 names. The `scans/YYYY-MM.yml` of the design below is this data file.
 
+**Variants (user, 2026-11-16):** each method comes with a `variant`, how
+the paper deviates from the plain method ("time-varying covariates",
+"stratified", "penalised (lasso)"; empty for the plain one), kept apart
+from the name so the counts stay clean. Reason: DataSHIELD often has the
+plain method but not the variant, so the "Exists?" step below compares
+method *and* variant, and the vocabulary maps variants too. The report
+lists the variants named most often.
+
 Originally: not built; no repository yet. Problem: the community had no natural place
 for gaps, demand and who works on what (an Excel file in someone's cloud,
 hard to keep up). Idea: one public repository as the entry point for wishes

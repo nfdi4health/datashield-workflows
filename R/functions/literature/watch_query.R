@@ -29,7 +29,11 @@ watch_query <- function(query, settings, claude, today = Sys.Date()) {
   entry$papers <- lapply(answered, function(id) {
     rows <- found[found$id == id, ]
     list(pmid = id, pmcid = papers$pmcid[papers$pmid == id][1], title = papers$title[papers$pmid == id][1],
-      methods = lapply(seq_len(nrow(rows)), function(i) as.list(rows[i, c("name", "role", "in_abstract", "in_methods_section")])))
+      methods = lapply(seq_len(nrow(rows)), function(i) {
+        m <- as.list(rows[i, c("name", "variant", "role", "in_abstract", "in_methods_section")])
+        if (!nzchar(m$variant)) m$variant <- NULL  # the plain method: no key in the data file
+        m
+      }))
   })
   entry
 }
