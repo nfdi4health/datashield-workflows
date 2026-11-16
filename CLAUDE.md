@@ -240,7 +240,9 @@ the live caller used to validate changes before wider rollout.
     `dispatch-token`).
   - `implement-issue.yml`, `implementer-timer.yml`, `implementer-log.yml`
     — the implementer, step 3 of the issue flow (built 2026-11-09 on
-    `agent-suggest/feat/implementer`, **not yet run**; decisions in
+    `agent-suggest/feat/implementer`; **ran end to end 2026-11-13**:
+    dsSupportClient issue #95 → PR #96, runner run 43438424795, see the
+    issue-flow item in STILL OPEN; decisions in
     [dev-notes/implementer-plan.md](dev-notes/implementer-plan.md)).
     Called from the private runner `FlorianSchw/datashield-agent-runner`
     (subscription token, `concurrency` one run at a time). Jobs `pick`
@@ -265,6 +267,13 @@ the live caller used to validate changes before wider rollout.
     daily. Logic in the composite action `implementer` (Node,
     `implementer.mjs <command>`), prompts `prompts/implementer-*.md`,
     tests `tests/node/implementer.test.mjs` (`node --test`).
+    `sandbox-probe.yml` (2026-11-16, called from the runner by hand):
+    an agent with the implementer's Claude Code action, sandbox settings
+    and secret scrubbing runs only `.github/actions/implementer/sandbox-probe.sh`
+    inside the sandbox; `judge-probe.sh` then checks outside it that an
+    unlisted host is blocked, an allowed one reachable, no token variable,
+    token-shaped value or git credential is visible, and R runs (tests
+    `tests/shell/test-sandbox-probe.sh`).
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
   - `route-idea.yml`, `literature-watch.yml` — for the hub of missing
@@ -1359,16 +1368,19 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   `disclosure.settings_file`, default `config/ds-package-rules.yml`;
   `read_disclosure_settings()`, `triage_disclosure_lines()`). ~~**Docs
   pending:**~~ Done in the docs pass of 2026-11-12: both on `issue-triage.qmd`.
-- **Issue flow, step 3 of 3: the implementer**, built 2026-11-09, not yet
-  run (see the LAYOUT entry). First test on dsSupportClient: the user's
-  setup (done 2026-11-10: the bots' App got Issues and Actions read and
-  write and is installed on the runner; `CLAUDE_CODE_OAUTH_TOKEN` and the App
-  key in the runner), then one issue by hand
-  (`workflow_dispatch` with repository and issue). To check in it: that the
-  sandbox blocks an unlisted host (`curl`) and R installs and DSLite still
-  work, that `env` in the agent's shell shows no token, the format of
-  Claude Code's limit message (`parseLimit()`), the `settings` input of
-  claude-code-action, that the chain (`gh workflow run` with
-  `GITHUB_TOKEN`) starts the next run. Bots skip draft pull requests since
+- **Issue flow, step 3 of 3: the implementer**, built 2026-11-09, **ran
+  end to end 2026-11-13** on dsSupportClient: issue #95 (a data quality
+  report) → PR #96 (runner run 43438424795, started by the label check
+  through the App): tests from the spec (7 of 8 failing before), writer,
+  two correction rounds, maintainability and disclosure reviews with
+  re-checks, documentation step, approval re-checked before publishing,
+  R CMD check 0 errors / 0 warnings. Confirmed in it: the sandbox on
+  ubuntu-24.04 with R installs and DSLite working inside, the `settings`
+  input, the log, and the chain (`gh workflow run` with `GITHUB_TOKEN`
+  started run 7, which found nothing to do). **Still to check:** that the
+  sandbox blocks an unlisted host and that the agent's shell shows no token
+  (a normal run never tries either: needs a deliberate probe), and the
+  format of Claude Code's limit message (`parseLimit()`, only when a run
+  hits the limit). Bots skip draft pull requests since
   2026-11-09 (`resolve-suggestion-scope`; callers add `ready_for_review`).
   **Not decided:** new functions and design notes (user: another day).
