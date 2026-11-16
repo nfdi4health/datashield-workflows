@@ -10,8 +10,8 @@ format_method_section <- function(title, papers, years, recent, top = 20, charts
   table <- method_table(papers, years, recent, top)
   if (is.null(table)) return(c(lines, "No papers read yet.", ""))
   per_year <- attr(table, "papers_year")
-  lines <- c(lines, sprintf("Papers read: %d (%d of them in the last %d months, which the order below is based on).",
-    length(usable), attr(table, "papers_recent"), length(recent)), "",
+  lines <- c(lines, sprintf("Papers read: %d, %d of them usable (%d of these in the last %d months, which the order below is based on).",
+    length(papers), length(usable), attr(table, "papers_recent"), length(recent)), "",
     paste0("| Method | Share, last ", if (length(recent) <= 12) "year" else paste(length(recent) %/% 12, "years"), " | Papers | ",
       paste(years, collapse = " | "), " | Trend |"),
     paste0("|---|---|---|", paste(rep("---", length(years)), collapse = "|"), "|---|"),

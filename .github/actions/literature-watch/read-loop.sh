@@ -4,8 +4,10 @@
 # data branch, and starts the next stretch while the run's budget lasts
 # (watch_status.json: "chunk"). A stop at the usage limit, the budget or
 # an error loses at most the papers of the current stretch that weren't
-# written yet (R writes after every fetch). R runs without $HUB_TOKEN in
-# its environment.
+# written yet (R writes after every fetch). Then $REPORT_SCRIPT (if set)
+# writes the report and progress.csv into watch-data, pushed the same way,
+# also after a stop by an error. R runs without $HUB_TOKEN in its
+# environment.
 set -uo pipefail
 dir=watch-data
 push() {
@@ -36,6 +38,14 @@ while :; do
   echo "Stretch: $read papers ($stopped). $progress"
   [ "$stopped" = "chunk" ] || break
 done
+if [ -n "${REPORT_SCRIPT:-}" ]; then
+  if env -u HUB_TOKEN WATCH_DATA_DIR="$dir" Rscript "$REPORT_SCRIPT"; then
+    push "report" || { echo "::error::Pushing the report to the data branch failed."; stopped="error"; }
+  else
+    echo "::error::The report could not be built."
+    stopped="error"
+  fi
+fi
 {
   echo "### Literature watch"
   echo

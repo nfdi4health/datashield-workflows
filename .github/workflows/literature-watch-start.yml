@@ -2,10 +2,10 @@ name: Literature Watch Start
 
 # For the hub of missing DataSHIELD functions: starts the literature watch
 # in the private runner repository (a workflow_dispatch there, with field,
-# max-papers and report), so it waits in the same queue as the
+# max-papers and the unused report), so it waits in the same queue as the
 # implementer: one subscription, one run at a time (decided 2026-11-13).
-# Only listed logins may start it. The run reads the hub's fields, pushes
-# the data to the hub's data branch and proposes the report; see
+# Only listed logins may start it. The run reads the hub's fields and
+# pushes the data and the report to the hub's data branch; see
 # literature-watch.yml.
 on:
   workflow_call:
@@ -35,7 +35,7 @@ on:
         type: string
         default: ''
       report:
-        description: 'The report pull request: always (default for a run started by hand), auto or never.'
+        description: 'No longer used (the report goes to the data branch with every run); kept so callers that pass it keep working.'
         required: false
         type: string
         default: 'always'
