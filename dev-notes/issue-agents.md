@@ -219,6 +219,61 @@ plain method but not the variant, so the "Exists?" step below compares
 method *and* variant, and the vocabulary maps variants too. The report
 lists the variants named most often.
 
+**Fields, sampling and the backfill (user, 2026-11-16; after the pilot
+and PubMed's counts per year, which the user checked on the website):**
+
+- **The pilot's answer:** abstracts name 70% of the main analyses but only
+  18% (Sonnet, after the fixes: 14%) of the secondary methods, so the watch
+  reads methods sections. Sonnet 5.5 reads (Haiku before); with the
+  statistics subsection first, "named only in an abstract" fell from 184 to
+  20 in the same papers.
+- **The search:** `"Epidemiologic Studies"[MeSH Terms] AND (<field>) AND
+  "pubmed pmc open access"[filter] NOT (review[pt] OR systematic review[pt]
+  OR meta-analysis[pt])`; the design part and the filters are added by the
+  code, the field part comes from the hub's config, as broad parent
+  headings marked `[majr]` (MeSH explodes them, so e.g. "Cardiovascular
+  Diseases" includes myocardial infarction and stroke).
+- **Eleven fields** (from DataSHIELD's own publication list,
+  papers.datashield.org, plus fields where it isn't used yet):
+  cardiovascular, metabolic, mental-health, cancer, respiratory-allergy
+  (without infections), infections (COVID-19 dominates 2020-2023),
+  pregnancy-child, environment, nutrition, omics, lifestyle. Open-access
+  research articles 2022-2026: from about 3,900 (environment) to 68,600
+  (infections) per field, about 304,000 in all.
+- **A random sample per field and publication month**, not the newest
+  papers: all matching IDs of the month are listed once in a fixed random
+  order (with their count, so shares scale to the month's total) and the
+  first `target` are read. Raising the target later (25 -> 50 -> 75 ...)
+  reads only the next ones in the same order, so the data is a clean
+  random sample at every stage, and a month with fewer papers is simply
+  complete. Stages: 25 per month for the last 5 years (newest first, about
+  16,500 papers), then 50 for 10 years, then more as capacity allows,
+  possibly everything as a slow drip.
+- **A paper register:** each paper is read by Claude once, whichever field
+  or month finds it again; per paper the IDs, publication month, journal,
+  publication type, MeSH terms, PMC licence, the fields that found it and
+  the methods with their variants; never the text.
+- **Pace, measured 2026-11-16 on Max 5x:** 199 papers (about 40 Sonnet
+  calls, 9.5 minutes) used 10% of a 5-hour session and about 1% of the
+  week, so about 2,000 papers per session and roughly 20,000 per week.
+  Default: one run a night, capped at 1,500 papers (about half the weekly
+  limit stays free); settings in the hub's config (target per month, years
+  back, papers per run) and a one-off override when started by hand (e.g.
+  more over Christmas). Each run first reads the newest complete month,
+  then uses what's left for the backfill, and stops at the usage limit.
+- **Monthly runs read the month before last** (MeSH indexing and PMC
+  deposits lag), 50 per field.
+- **Ranking:** by share over the last 3 years, trend as tie-breaker; the
+  10-year series is for trend lines and context. Trends by year (a month
+  of 25 papers is too noisy), as shares, never counts (volume tripled
+  2017-2025); 2022-2023 marked in charts: all fields dip there, most likely
+  NLM's switch to automated MeSH indexing.
+- **Models:** Sonnet reads the papers; Opus classifies the names, decides
+  "Exists?" and does the research step (about 10 calls a month).
+- **For the user's meeting on 3 December:** the first stage's data and
+  report (11 fields, 5 years, trends, variants); a candidate list only if
+  the "Exists?" step is built and has run by then.
+
 **Classification and "Exists?" by Claude, no per-entry review (user,
 2026-11-16).** Nobody has time to check dozens of vocabulary entries or
 mappings by hand, and nobody knows every DataSHIELD function by heart. So
@@ -226,8 +281,7 @@ Claude does both jobs with a stronger model, and safeguards in code take
 the place of a person's review:
 
 - **Who does what:**
-  - Haiku keeps the bulk reading of papers (step 2), a narrow task many
-    times over.
+  - Sonnet reads the papers (step 2; Haiku until the pilot, 2026-11-16).
   - **Opus 5.5** classifies the month's new free-text names: which are the
     same method, method or variant, new method. This is few calls, only the
     names not yet in the vocabulary.
@@ -337,7 +391,7 @@ literature-watch (was methods-scan)
  0 State      R      last run date, decisions (data files), hub issues
                      and their method markers, vocabulary
  1 Fetch      R      PubMed/PMC E-utilities per query since last run
- 2 Extract    Haiku  batches of papers -> methods with variant
+ 2 Extract    Sonnet batches of papers -> methods with variant
  2b Classify  Opus   the month's new names -> same method / variant /
                      new method (written into the vocabulary)
  3 Count      R      per method and variant: papers, share, trend
@@ -345,7 +399,7 @@ literature-watch (was methods-scan)
                      (R preselects, checks the evidence); stored with
                      its evidence, asked again when the inventory changes
  5 Rank       R      drop filtered -> top max_candidates (10)
- 6 Research   Sonnet only those: description, federated approaches in
+ 6 Research   Opus   only those: description, federated approaches in
                      the literature, native R package, first disclosure
                      view (web search)
  7 Propose    R      scans/YYYY-MM.yml + PR, three boxes per candidate
