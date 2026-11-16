@@ -1,18 +1,26 @@
-# Settings for methods-scan.yml, the researcher of the hub for missing
-# DataSHIELD functions (dev-notes/issue-agents.md, "A central hub"). The
-# hub's own config/methods-scan.yml is merged over this file key by key
-# (a list, e.g. queries, is replaced as a whole).
+# Settings for literature-watch.yml, the researcher of the hub for
+# missing DataSHIELD functions (dev-notes/issue-agents.md, "A central
+# hub"). The hub's own config/literature-watch.yml is merged over this file
+# key by key (a list, e.g. queries, is replaced as a whole).
 
 # Named PubMed queries (the search syntax of the PubMed website: try a
 # query there first) come from the hub's own file, e.g.
 #   queries:
 #     - name: cohort-nutrition
 #       pubmed: '"cohort studies"[MeSH Terms] AND diet[MeSH Terms]'
-# No default here: a list of entries in the defaults would swallow the
-# hub's (read_config_yaml() merges with modifyList()).
+# Every run takes all of them (or the one named when started). The name is
+# the query's key in the month's data file and its section in the report.
+# No default here: each hub has its own.
+
+# Where a run's results go in the hub, one file per month each: the data
+# (IDs, titles and method names, never the papers' text) and the report
+# built from it.
+files:
+  data: literature-watch/data          # literature-watch/data/YYYY-MM.yml
+  reports: literature-watch/reports    # literature-watch/reports/YYYY-MM.md
 
 # Phase 0, the pilot: open-access papers compared, abstract against
-# methods section (a report only, nothing committed).
+# methods section.
 pilot:
   papers: 100             # papers asked for; those without a methods section drop out
   months: 12              # published in the last months
