@@ -1,4 +1,4 @@
-# The researcher's pilot (R/scan_methods.R, R/functions/methods/): NCBI's
+# The literature watch (R/watch_literature.R, R/functions/literature/): NCBI's
 # answers as recorded XML/JSON, Claude as a stand-in.
 
 pubmed_xml <- '<?xml version="1.0"?>
@@ -50,7 +50,7 @@ test_that("search_pubmed() asks esearch for the period and returns the ids", {
     httr2::response(status_code = 200, headers = list("content-type" = "application/json"),
       body = charToRaw('{"esearchresult": {"idlist": ["5", "4"]}}'))
   }
-  settings <- read_config_yaml("config/methods-scan.yml")
+  settings <- read_config_yaml("config/literature-watch.yml")
   ids <- httr2::with_mocked_responses(mock, search_pubmed("diet", "2025/11/13", "2026/11/13", 50, settings))
   expect_equal(ids, c("5", "4"))
   expect_match(seen$url, "esearch.fcgi$")
@@ -91,7 +91,7 @@ test_that("a failed batch is left out and the others go on", {
   expect_false(attr(found, "stopped"))
 })
 
-test_that("the pilot report gives the shares by role and the methods only in the methods section", {
+test_that("the summary gives the shares by role and the methods only in the methods section", {
   found <- data.frame(
     id = c("1", "1", "2", "2", "3"),
     name = c("cox regression", "multiple imputation", "cox regression", "multiple imputation", "splines"),
@@ -105,15 +105,44 @@ test_that("the pilot report gives the shares by role and the methods only in the
   expect_equal(s$share_secondary, 0)
   expect_equal(s$abstract_only, 1)
   expect_equal(s$only_in_section$method, "multiple imputation")
-  report <- paste(format_pilot_report(s, "cohort-nutrition", "2025-11-13 to 2026-11-13"), collapse = "\n")
-  expect_match(report, "| main analyses | 100% |", fixed = TRUE)
-  expect_match(report, "| multiple imputation | 2 |", fixed = TRUE)
 })
 
-test_that("scan_methods.R runs the pilot end to end and writes the report", {
+watch_entry <- function(pmids, method = "cox regression", in_abstract = TRUE) {
+  list(pubmed = "diet[tiab]", from = "2025-11-16", to = "2026-11-16", found = length(pmids),
+    with_methods_section = length(pmids), compared = length(pmids), stopped = FALSE,
+    papers = lapply(pmids, function(id) list(pmid = id, pmcid = paste0("PMC", id), title = "T",
+      methods = list(list(name = method, role = "secondary", in_abstract = in_abstract, in_methods_section = TRUE)))))
+}
+
+test_that("a re-run of one query replaces its entry and keeps the others", {
+  old <- merge_watch_data(NULL, "2026-11", "pilot", list(a = watch_entry("1"), b = watch_entry("2")))
+  new <- merge_watch_data(old, "2026-11", "pilot", list(b = watch_entry(c("3", "4"))))
+  expect_equal(names(new$queries), c("a", "b"))
+  expect_equal(new$queries$a$compared, 1)
+  expect_equal(new$queries$b$compared, 2)
+})
+
+test_that("the report has all queries together, a section per query, and counts a paper once", {
+  data <- merge_watch_data(NULL, "2026-11", "pilot",
+    list(a = watch_entry(c("1", "2"), "splines", FALSE), b = watch_entry(c("2", "3"))))
+  report <- paste(format_watch_report(data, missing = "c"), collapse = "\n")
+  expect_match(report, "# Literature watch 2026-11", fixed = TRUE)
+  expect_match(report, "## All queries", fixed = TRUE)
+  expect_match(report, "Papers compared, each counted once: **3**.", fixed = TRUE)
+  expect_match(report, "## a", fixed = TRUE)
+  expect_match(report, "| splines | 2 |", fixed = TRUE)
+  expect_match(report, "_Not run this month: c._", fixed = TRUE)
+  one <- paste(format_watch_report(merge_watch_data(NULL, "2026-11", "pilot", list(a = watch_entry("1")))), collapse = "\n")
+  expect_false(grepl("## All queries", one, fixed = TRUE))
+})
+
+test_that("watch_literature.R runs every query, keeps the month's other results and writes data and report", {
   dir <- withr::local_tempdir()
   dir.create(file.path(dir, "config"))
-  writeLines(c("queries:", "  - name: cohort-nutrition", "    pubmed: 'diet[tiab]'"), file.path(dir, "config", "methods-scan.yml"))
+  writeLines(c("queries:", "  - name: cohort-nutrition", "    pubmed: 'diet[tiab]'", "  - name: cohort-diabetes", "    pubmed: 'diabetes[tiab]'"),
+    file.path(dir, "config", "literature-watch.yml"))
+  dir.create(file.path(dir, "literature-watch", "data"), recursive = TRUE)
+  yaml::write_yaml(merge_watch_data(NULL, "2026-11", "pilot", list(older = watch_entry("9"))), file.path(dir, "literature-watch", "data", "2026-11.yml"))
   shared <- file.path(dir, ".shared-workflows")
   dir.create(shared)
   for (part in c("R", "config", "prompts")) file.copy(file.path(repo_root, part), shared, recursive = TRUE)
@@ -135,18 +164,24 @@ test_that("scan_methods.R runs the pilot end to end and writes the report", {
   })
   before <- ls(globalenv(), all.names = TRUE)
   on.exit(rm(list = setdiff(ls(globalenv(), all.names = TRUE), before), envir = globalenv()), add = TRUE)
-  withr::with_dir(dir, withr::with_envvar(c(SCAN_MODE = "pilot", SCAN_QUERY = ""), httr2::with_mocked_responses(mock, {
+  withr::with_dir(dir, withr::with_envvar(c(WATCH_MODE = "pilot", WATCH_QUERY = "", WATCH_MONTH = "2026-11"), httr2::with_mocked_responses(mock, {
     # the entry script sources the functions again: keep the stand-in
     stand_in <- get("call_claude_tool", globalenv())
     trace_source <- function(file, ...) { base::source(file, ...); assign("call_claude_tool", stand_in, globalenv()) }
-    sys.source(file.path(".shared-workflows", "R", "scan_methods.R"), envir = list2env(list(source = trace_source), parent = globalenv()))
+    sys.source(file.path(".shared-workflows", "R", "watch_literature.R"), envir = list2env(list(source = trace_source), parent = globalenv()))
   })))
-  expect_match(terms, '(diet[tiab]) AND "pubmed pmc open access"[filter]', fixed = TRUE)
-  report <- readLines(file.path(dir, "methods_pilot_report.md"))
-  expect_true(any(grepl("Query **cohort-nutrition**", report, fixed = TRUE)))
-  expect_true(any(grepl("**1** papers compared", report, fixed = TRUE)))
+  expect_match(terms[1], '(diet[tiab]) AND "pubmed pmc open access"[filter]', fixed = TRUE)
+  expect_match(terms[2], '(diabetes[tiab])', fixed = TRUE)
+  data <- yaml::read_yaml(file.path(dir, "literature-watch", "data", "2026-11.yml"))
+  expect_equal(names(data$queries), c("older", "cohort-nutrition", "cohort-diabetes"))
+  expect_equal(data$queries[["cohort-nutrition"]]$papers[[1]]$pmid, "111")
+  expect_null(data$queries[["cohort-nutrition"]]$papers[[1]]$abstract)
+  report <- readLines(file.path(dir, "literature-watch", "reports", "2026-11.md"))
+  expect_true(any(grepl("## cohort-nutrition", report, fixed = TRUE)))
+  expect_true(any(grepl("## older", report, fixed = TRUE)))
   expect_true(any(grepl("| multiple imputation | 1 |", report, fixed = TRUE)))
-  expect_true(file.exists(file.path(dir, "methods_pilot.json")))
+  expect_equal(readLines(file.path(dir, "watch_files.txt")),
+    c("literature-watch/data/2026-11.yml", "literature-watch/reports/2026-11.md"))
 })
 
 test_that("at the usage limit the calls stop, and the result says how far they got", {

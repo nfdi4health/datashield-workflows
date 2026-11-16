@@ -1,14 +1,15 @@
-# The pilot's Claude calls: papers in batches of settings$pilot$batch,
-# each with its abstract and methods section; Claude lists the methods and
-# where each is named. Only methods of the given papers are kept. A failed
-# batch is left out with a message, the run goes on; at the subscription's
-# usage limit (is_usage_limit()) the calls stop, and the papers asked about
-# answered so far are attribute "asked" of the result, with "stopped" TRUE. Returns
-# a data frame: id, name, role, in_abstract, in_methods_section.
+# The literature watch's Claude calls: papers in batches of
+# settings$pilot$batch, each with its abstract and methods section; Claude
+# lists the methods and where each is named. Only methods of the given
+# papers are kept. A failed batch is left out with a message, the run goes
+# on; at the subscription's usage limit (is_usage_limit()) the calls stop
+# (attribute "stopped" TRUE). The PubMed IDs of the papers answered are
+# attribute "answered", their number "asked". Returns a data frame: id,
+# name, role, in_abstract, in_methods_section.
 ask_claude_for_method_sources <- function(claude, papers, settings) {
   rows <- list()
   size <- settings$pilot$batch %||% 5
-  asked <- 0
+  answered <- character(0)
   stopped <- FALSE
   for (batch in split(seq_len(nrow(papers)), ceiling(seq_len(nrow(papers)) / size))) {
     p <- papers[batch, ]
@@ -19,7 +20,7 @@ ask_claude_for_method_sources <- function(claude, papers, settings) {
       error = function(e) {
         if (is_usage_limit(conditionMessage(e))) {
           limit <<- TRUE
-          message(sprintf("The subscription's usage limit was reached after %d papers: %s", asked, conditionMessage(e)))
+          message(sprintf("The subscription's usage limit was reached after %d papers: %s", length(answered), conditionMessage(e)))
         } else {
           message(sprintf("A batch of %d papers failed and is left out: %s", nrow(p), conditionMessage(e)))
         }
@@ -30,7 +31,7 @@ ask_claude_for_method_sources <- function(claude, papers, settings) {
       break
     }
     if (is.null(answer)) next
-    asked <- asked + nrow(p)
+    answered <- c(answered, p$pmid)
     for (paper in answer$papers %||% list()) {
       if (!paper$id %in% p$pmid) next
       for (m in paper$methods %||% list()) {
@@ -45,7 +46,8 @@ ask_claude_for_method_sources <- function(claude, papers, settings) {
   } else {
     do.call(rbind, rows)
   }
-  attr(found, "asked") <- asked
+  attr(found, "answered") <- answered
+  attr(found, "asked") <- length(answered)
   attr(found, "stopped") <- stopped
   found
 }
