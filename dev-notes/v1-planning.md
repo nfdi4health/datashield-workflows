@@ -321,8 +321,12 @@ from hub issue to design note and the implementer's new functions (still
 None before v1: they build on the refactored foundation, and they are
 the first real use of the new branch model (feature → dev → main,
 release). Order: label integrity → learning loop (collecting moved before v1, see K/L) →
-issue triage → spec review → central agent repo with implementer,
+issue triage → ~~spec review~~ → central agent repo with implementer,
 researcher, refactor agent. Design in [issue-agents.md](issue-agents.md).
+(Since then label integrity, triage, the implementer and the researcher's
+first phase were built before v1 after all. **No spec review step**
+(decided 2026-11-06): the triage comment is the spec, `bot-proceed` the
+only approval; noted here 2026-11-16, the list above was older.)
 
 ## 8. After v1: fewer checks on pull requests (user, 2026-11-12)
 
