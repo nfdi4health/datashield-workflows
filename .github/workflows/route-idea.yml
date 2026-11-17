@@ -9,15 +9,25 @@ name: Route Idea
 # with only public_repo: the copy opens in their name, in any public
 # repository, also of organisations where the App can't be installed),
 # else with a token of the bots' GitHub App, which must be installed on the
-# target repository (Issues: read and write). No Claude, no checkout; the
-# logic is in the composite action route-idea.
+# target repository (Issues: read and write). Started by anything but an
+# issue event (a push of the routes, or by hand), it instead creates the
+# routes' labels in the hub that don't exist yet. The routes come from the
+# hub's `routes-file` (default config/routes.yml, downloaded without a
+# token, so the hub must be public), or from the `routes` input if given.
+# No Claude, no checkout; the logic is in the composite action route-idea.
 on:
   workflow_call:
     inputs:
       routes:
-        description: 'Routing labels and their repositories, one per line: "dsClusterAnalysis = owner/dsClusterAnalysis". Label case is ignored.'
-        required: true
+        description: 'Routing labels and their repositories, one per line: "dsClusterAnalysis = owner/dsClusterAnalysis". Label case is ignored. Empty: read from routes-file.'
+        required: false
         type: string
+        default: ''
+      routes-file:
+        description: 'The hub''s file with the routes, used when routes is empty: a mapping `routes:` of `label: owner/repo` entries.'
+        required: false
+        type: string
+        default: 'config/routes.yml'
       allowed-logins:
         description: 'Who may route an idea: exact GitHub logins, separated by commas or spaces. A routing label set by anyone else is removed.'
         required: true
@@ -39,19 +49,55 @@ on:
         required: false
 
 jobs:
+  labels:
+    if: github.event_name != 'issues'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      # Without a token: the hub is public, and the jobs need no
+      # contents permission (a private hub passes `routes` instead).
+      - name: The routes file
+        if: inputs.routes == ''
+        env:
+          ROUTES_FILE: ${{ inputs.routes-file }}
+        run: |
+          mkdir -p "$(dirname "$ROUTES_FILE")"
+          curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$GITHUB_SHA/$ROUTES_FILE" -o "$ROUTES_FILE" ||
+            { echo "::error::Could not read $ROUTES_FILE of $GITHUB_REPOSITORY."; exit 1; }
+      - name: The routes' labels
+        uses: $/.github/actions/route-idea
+        with:
+          step: labels
+          routes: ${{ inputs.routes }}
+          routes-file: ${{ inputs.routes-file }}
+          token: ${{ github.token }}
+
   route:
+    if: github.event_name == 'issues'
     runs-on: ubuntu-latest
     permissions:
       issues: write
     env:
       HAS_ROUTE_TOKEN: ${{ secrets.route-token != '' }}
     steps:
+      # Without a token: the hub is public, and the jobs need no
+      # contents permission (a private hub passes `routes` instead).
+      - name: The routes file
+        if: inputs.routes == ''
+        env:
+          ROUTES_FILE: ${{ inputs.routes-file }}
+        run: |
+          mkdir -p "$(dirname "$ROUTES_FILE")"
+          curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$GITHUB_SHA/$ROUTES_FILE" -o "$ROUTES_FILE" ||
+            { echo "::error::Could not read $ROUTES_FILE of $GITHUB_REPOSITORY."; exit 1; }
       - name: Which repository, and may this login route?
         id: plan
         uses: $/.github/actions/route-idea
         with:
           step: plan
           routes: ${{ inputs.routes }}
+          routes-file: ${{ inputs.routes-file }}
           allowed-logins: ${{ inputs.allowed-logins }}
           token: ${{ github.token }}
 

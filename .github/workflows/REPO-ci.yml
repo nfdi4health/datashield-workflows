@@ -52,7 +52,6 @@ jobs:
           bash tests/shell/test-triage-gate.sh
           bash tests/shell/test-release-issues.sh
           bash tests/shell/test-route-idea.sh
-          bash tests/shell/test-sandbox-probe.sh
           bash tests/shell/test-literature-watch.sh
       # The implementer's scripts (Node 22 is on the runner image).
       - name: Run the Node tests

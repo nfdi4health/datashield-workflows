@@ -5,6 +5,12 @@ name: Route Idea
 on:
   issues:
     types: [labeled]
+  # Creates the route labels that don't exist yet whenever the routes
+  # change (and when started by hand).
+  push:
+    branches: [main]
+    paths: ['config/routes.yml', '.github/workflows/route-idea.yml']
+  workflow_dispatch:
 
 jobs:
   route:
@@ -13,9 +19,9 @@ jobs:
     uses: nfdi4health/datashield-workflows/.github/workflows/route-idea.yml@main
     with:
       allowed-logins: your-login
-      # label = owner/repo, one per line
-      routes: |
-        dsClusterAnalysis = your-org/dsClusterAnalysisClient
+      # The routes are in config/routes.yml:
+      #   routes:
+      #     dsClusterAnalysis: your-org/dsClusterAnalysisClient
     secrets:
       # Either a token that opens the copies in your name (a classic token
       # with only public_repo; any public repository) ...

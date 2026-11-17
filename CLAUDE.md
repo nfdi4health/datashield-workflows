@@ -275,33 +275,32 @@ the live caller used to validate changes before wider rollout.
     daily. Logic in the composite action `implementer` (Node,
     `implementer.mjs <command>`), prompts `prompts/implementer-*.md`,
     tests `tests/node/implementer.test.mjs` (`node --test`).
-    `sandbox-probe.yml` (2026-11-16, called from the runner by hand):
-    an agent with the implementer's Claude Code action, sandbox settings
-    and secret scrubbing runs only `.github/actions/implementer/sandbox-probe.sh`
-    inside the sandbox; `judge-probe.sh` then checks outside it that an
-    unlisted host is blocked, an allowed one reachable, no token variable,
-    token-shaped value or git credential is visible, and R runs (tests
-    `tests/shell/test-sandbox-probe.sh`). **First verdict (2026-11-17):**
-    network rules, git and R pass, but claude-code-action's token was
-    visible (`GITHUB_TOKEN`, `GH_TOKEN`, and in the remote URL);
-    `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` doesn't remove those. Fixed in
-    `sandboxSettings()` (the settings of every agent and the probe): `env`
-    blanks both, a `SessionStart` hook (`stripGitCredentials`) strips the
-    remote URLs and auth header. To confirm with the next probe run.
+    **Sandbox probe** (2026-11-16/17, a one-off test, removed afterwards,
+    user): an agent with the implementer's action and settings ran a probe
+    script; the network rules, git and R passed, but claude-code-action's
+    token was visible (`GITHUB_TOKEN`, `GH_TOKEN`, and in the remote URL),
+    which `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` doesn't remove. Fixed in
+    `sandboxSettings()`: `env` blanks both, a `SessionStart` hook
+    (`stripGitCredentials`) strips the remote URLs and auth header;
+    confirmed by the last run (runner run 44094807375, all eight checks
+    pass).
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
   - `route-idea.yml`, `literature-watch.yml` — for the hub of missing
     DataSHIELD functions, `nfdi4health/datashield-function-ideas` (main
     only; built 2026-11-13, **not yet run**; design in
     [dev-notes/issue-agents.md](dev-notes/issue-agents.md), "A central
-    hub"). Route: a routing label (input `routes`, lines `label =
-    owner/repo`) set by a login in `allowed-logins` copies the hub issue
+    hub"). Route: a routing label (the hub's `config/routes.yml`, a
+    mapping `routes:` of `label: owner/repo`, downloaded without a token
+    since 2026-11-17; or the input `routes`, lines `label = owner/repo`)
+    set by a login in `allowed-logins` copies the hub issue
     to that repository with the caller's `route-token` if given (user,
     2026-11-17: a classic token with only `public_repo`, so copies open in
     the maintainer's name in any public repository, also `datashield`'s),
     else the bots' App token (installed there, Issues: write), links it back with a hidden `routed-to` marker (copied once
     per target) and labels the hub issue `routed`; mentions in the copy
-    are defused. Composite action `route-idea`, tests
+    are defused. Any other event (a push of the routes, by hand) creates
+    the route labels the hub lacks (step `labels`). Composite action `route-idea`, tests
     `tests/shell/test-route-idea.sh`. Literature watch (named so
     2026-11-16, was `methods-scan`; the pilot's question is answered:
     abstracts name 70% of the main analyses but only 14-18% of the
@@ -385,23 +384,25 @@ the live caller used to validate changes before wider rollout.
     missing (not the step's title). **Docs pending:** a page each (a new
     sidebar section "Function ideas"), the analysis details page's gap
     link already updated.
-- This repository's own, non-reusable workflows (besides `ci.yml`,
-  `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `smoke-test.yml`
+- This repository's own, non-reusable workflows carry the prefix `REPO-`
+  (user, 2026-11-17: upper case, so others see at once in
+  `.github/workflows/` which ones aren't reusable). Besides `REPO-ci.yml`,
+  `REPO-self-test.yml`, `REPO-publish-docs.yml` and `REPO-collect-usage.yml`: `REPO-smoke-test.yml`
   (real Claude calls, 2026-11-13: `tests/smoke/` runs the roxygen and test
   entry scripts on `tests/fixtures/r-package` through Claude Code on the
   owner's subscription, secret `CLAUDE_CODE_OAUTH_TOKEN`; GitHub answered
   locally, nothing pushed; on PRs into `main`, monthly and by hand;
-  `Rscript tests/smoke.R`, skipped without the token), `pr-checks.yml`
+  `Rscript tests/smoke.R`, skipped without the token), `REPO-pr-checks.yml`
   (commit messages on PRs into dev/main, only `dev` into `main`),
-  `cleanup-agent-branches.yml` (calls `cleanup-suggestion-branch.yml` for
+  `REPO-cleanup-agent-branches.yml` (calls `cleanup-suggestion-branch.yml` for
   this repository's own agent branches; "Automatically delete head
-  branches" stays off, user 2026-11-09), `release-issue-labels.yml`
+  branches" stays off, user 2026-11-09), `REPO-release-issue-labels.yml`
   (calls `release-issues.yml`: `mark` on PRs merged into dev, `link` on the
   dev → main PR, `swap` after its merge; 2026-11-13) and
-  `release.yml` (semantic-release of this repository: `vX.Y.Z`, moving
+  `REPO-release.yml` (semantic-release of this repository: `vX.Y.Z`, moving
   `vX`, CHANGELOG.md, config `.github/release/releaserc.json` copied over
   the root `.releaserc.json` in the runner — the root one is the R-package
-  default of `package-release.yml`). `release.yml` only runs once the
+  default of `package-release.yml`). `REPO-release.yml` only runs once the
   repository variable `RELEASE_ENABLED` is `true` (at v1).
 - Branch-protection rulesets (formerly `rulesets/` + `apply-ruleset.yml`)
   now live in a separate private repo.
@@ -451,13 +452,13 @@ the live caller used to validate changes before wider rollout.
   `gh`/`jq`), `fixtures/` (made-up packages only: `r-package`,
   `ds-client` + `ds-server`), `shell/test-label-check.sh` and
   `shell/test-triage-gate.sh` (stand-in for
-  `gh`, needs `jq`). Run by `ci.yml` with the static checks;
+  `gh`, needs `jq`). Run by `REPO-ci.yml` with the static checks;
   locally `Rscript tests/testthat.R`, `bash tests/shell/test-scope.sh` and
   `bash tests/shell/test-label-check.sh`, `test-triage-gate.sh` and
   `test-release-issues.sh`, `node --test tests/node/*.test.mjs`. Locally with `LANG=C.UTF-8` (R stops reading
   files at the first non-ASCII character in the POSIX locale), and with a
   stand-in `yq` if the installed one isn't mikefarah's.
-  `self-test.yml` (not reusable) runs `roxygen-suggest.yml` and
+  `REPO-self-test.yml` (not reusable) runs `roxygen-suggest.yml` and
   `test-suggest.yml` and `authors-suggest.yml` themselves with the input `self-test-fixture:
   r-package` (fixture instead of the caller checkout via
   `tests/self-test/use-fixture.sh`, no token, `CLAUDE_RECORDED_ANSWERS`
@@ -474,7 +475,7 @@ the live caller used to validate changes before wider rollout.
   (outcome proposed / nothing / failed; channel release = a `vX` tag
   points to the commit that ran, dev = `@main` or a branch, i.e.
   development and testing). Anonymous; the download counts are the runs.
-  Only these (user's choice: Claude-assisted + authors). `collect-usage.yml` (not reusable,
+  Only these (user's choice: Claude-assisted + authors). `REPO-collect-usage.yml` (not reusable,
   "Usage counter files") keeps the release complete — the files for every
   workflow calling `count-run`, with this repository's own token. The
   daily counts are recorded by the private
@@ -487,8 +488,8 @@ the live caller used to validate changes before wider rollout.
   **A new Claude-assisted workflow gets the same last step** (copy it,
   with its own `workflow:` name); the collector adds its files. Design:
   [dev-notes/usage-counting.md](dev-notes/usage-counting.md).
-- `docs/` — Quarto site, published to GitHub Pages by `publish-docs.yml`
-  (non-reusable, like `collect-usage.yml`). One page per workflow, grouped in the
+- `docs/` — Quarto site, published to GitHub Pages by `REPO-publish-docs.yml`
+  (non-reusable, like `REPO-collect-usage.yml`). One page per workflow, grouped in the
   sidebar via `docs/_quarto.yml` (sections: Getting started, Pull request
   checks, Release, Bot suggestions, Analysis projects, Issue flow, Workflow upkeep;
   Roadmap last, whose "Recent changes" section serves as release notes).
@@ -724,7 +725,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
     now none keeps it); App tokens request only contents +
     pull-requests. The repo name `FlorianSchw/package-workflows` is still
     hard-coded in `count-run.sh` (change at the move). actionlint (1.7.12)
-    predates `$/`: `ci.yml` ignores that message.
+    predates `$/`: `REPO-ci.yml` ignores that message.
   - **Federation rules** match `job_workflow_ref` exactly (incl.
     `@refs/heads/main`); tags need a prefix/condition match.
   - **Usage counting** relies on it: runs on a `vX` tag count as
@@ -732,7 +733,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
     (`8d11341`) before the first real release, and recommend pinning
     `@vX` in the docs.
 - **v1 work on branch `v1/foundation`** (2026-10-16, pushed, not merged —
-  `main` only with the user): this repository's own CI (`ci.yml`:
+  `main` only with the user): this repository's own CI (`REPO-ci.yml`:
   testthat incl. end-to-end runs of the roxygen, test and authors bots on
   `tests/fixtures/r-package` with recorded Claude/GitHub answers, shell
   tests, actionlint, shellcheck, zizmor; green); external actions pinned
@@ -843,7 +844,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   caller sets `dry-run: true` until its first real release.
 - **Decided 2026-11-13 for this repository's releases:** published
   directly (`draftRelease: false` in `.github/release/releaserc.json`),
-  issues marked and closed through `release-issue-labels.yml`, no
+  issues marked and closed through `REPO-release-issue-labels.yml`, no
   semantic-release comments or labels. The list below is about the shared
   R-package config (`.releaserc.json`).
 - Release config (`.releaserc.json`, `@semantic-release/github`), undecided:
@@ -895,12 +896,12 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   **Done 2026-11-12:** both run on pull requests and on pushes to `dev` /
   `main` only; the self-tests also only when `R/`, `config/`, `prompts/`,
   `.github/` or `tests/` change. The original item:
-  `self-test.yml` and `ci.yml` run on every `push` (any branch) *and* every
+  `REPO-self-test.yml` and `REPO-ci.yml` run on every `push` (any branch) *and* every
   `pull_request`, so a PR's checks run twice: 6 self-test jobs (roxygen,
   tests, authors × both events) plus 2 "Check the results", and CI twice.
   Options: `push` only for `dev` and `main`, `pull_request` for the rest; the
   self-tests (not required by the rulesets) also only when `R/`, `config/`,
-  `prompts/`, `.github/` or `tests/` change — not `ci.yml`, whose jobs are
+  `prompts/`, `.github/` or `tests/` change — not `REPO-ci.yml`, whose jobs are
   required checks (a required check skipped by a path filter never reports
   and blocks the PR, seen on dsSupportClient #75). Part of the refactoring
   pass with the agents' definitions and the cross-repo overlaps.
@@ -1377,7 +1378,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   the first triage the author's comment restarts the wait. Bugs and ideas get a
   spec. Hidden text gets a note, and an attempt to steer the bot the label
   `bot-suspicious`. Still to confirm: the seven categories. No
-  own self-test (`self-test.yml`).
+  own self-test (`REPO-self-test.yml`).
   **Review round (2026-11-09, user's choices):** model `claude-sonnet-5-5`
   (`tool_choice_type: auto`, adaptive thinking, `effort: medium`);
   `allowed-logins` without the `FlorianSchw` default: required in
