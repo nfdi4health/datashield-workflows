@@ -9,6 +9,9 @@
 #         copied there before? Writes target=owner/repo, owner, repo to
 #         GITHUB_OUTPUT, or nothing. A route label set by anyone else is
 #         removed, with a comment.
+#   labels  Creates every route's label in the hub that doesn't exist
+#         yet (colour LABEL_COLOR, description "Route to owner/repo");
+#         existing labels are left as they are.
 #   copy  Opens the issue in TARGET with TARGET_TOKEN (the caller's
 #         route-token, or an App token for that repository), then comments on the hub issue with the link
 #         and a hidden marker, and adds ROUTED_LABEL (GH_TOKEN).
@@ -16,7 +19,16 @@
 # Reads the event file; no issue text passes through an expression.
 set -euo pipefail
 
-step="${1:?plan or copy}"
+step="${1:?plan, copy or labels}"
+
+# Without ROUTES, the routes come from ROUTES_FILE: a YAML mapping
+#   routes:
+#     dsSurvival: datashield/dsSurvivalClient   # a comment
+# read line by line (no YAML library needed), as "label = owner/repo".
+if [ -z "${ROUTES:-}" ] && [ -n "${ROUTES_FILE:-}" ]; then
+  [ -f "$ROUTES_FILE" ] || { echo "No routes: $ROUTES_FILE doesn't exist." >&2; exit 1; }
+  ROUTES="$(sed -nE 's/^[[:space:]]+([A-Za-z0-9_.-]+):[[:space:]]*([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)[[:space:]]*(#.*)?$/\1 = \2/p' "$ROUTES_FILE")"
+fi
 event_field() { jq -r "$1 // \"\"" "$GITHUB_EVENT_PATH"; }
 number="$(event_field .issue.number)"
 lower() { tr '[:upper:]' '[:lower:]' <<< "$1"; }
@@ -50,6 +62,19 @@ is_allowed() {
 marker() { printf '<!-- routed-to: %s -->' "$1"; }
 
 case "$step" in
+  labels)
+    existing="$(gh api --paginate "repos/$GITHUB_REPOSITORY/labels?per_page=100" --jq '.[].name' | tr '[:upper:]' '[:lower:]')"
+    while IFS= read -r line; do
+      line="${line%%#*}"
+      [[ "$line" == *=* ]] || continue
+      label="$(sed 's/^ *//; s/ *$//' <<< "${line%%=*}")"
+      repo="$(sed 's/^ *//; s/ *$//' <<< "${line#*=}")"
+      if grep -qxF "$(lower "$label")" <<< "$existing"; then continue; fi
+      gh api "repos/$GITHUB_REPOSITORY/labels" -f name="$label" -f color="${LABEL_COLOR:-1d76db}" \
+        -f description="Route to $repo" > /dev/null
+      echo "Created the label $label."
+    done <<< "${ROUTES:-}"
+    ;;
   plan)
     [ "$(event_field .action)" = labeled ] || { echo "Not a label being set."; exit 0; }
     label="$(event_field .label.name)"
