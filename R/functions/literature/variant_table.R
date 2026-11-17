@@ -1,9 +1,11 @@
 # The variants of a set of usable papers: method, variant and in how many
-# papers, those named in at least `min_papers`, most frequent first.
-variant_table <- function(papers, min_papers = 2, top = 20) {
+# papers, those named in at least `min_papers`, most frequent first. In
+# the vocabulary's terms (paper_methods()), keys, not labels.
+variant_table <- function(papers, min_papers = 2, top = 20, vocab = list()) {
   rows <- unlist(lapply(Filter(function(p) isTRUE(p$usable), papers), function(p) {
-    v <- Filter(function(m) nzchar(m$variant %||% ""), p$methods)
-    unique(vapply(v, function(m) paste(m$name, m$variant, sep = "\r"), ""))
+    m <- paper_methods(p, vocab)
+    m <- m[m$variant != "", , drop = FALSE]
+    unique(paste(m$method, m$variant, sep = "\r"))
   }))
   if (length(rows) == 0) return(NULL)
   counts <- table(rows)

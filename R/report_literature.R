@@ -23,7 +23,7 @@ state <- read_months_state(dir)
 progress <- watch_progress(state, fields, months, target, queries)
 complete <- all(progress$months_complete == progress$months)
 reg <- read_register(dir)
-report <- format_watch_report(reg, state, fields, queries, months, progress, settings, today)
+report <- format_watch_report(reg, state, fields, queries, months, progress, settings, today, read_vocabulary(dir))
 
 # Next to the data on the data branch (read-loop.sh pushes it): the report
 # and progress.csv, for a dashboard or anyone reading along. No pull

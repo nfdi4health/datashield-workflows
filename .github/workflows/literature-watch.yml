@@ -13,9 +13,12 @@ name: Literature Watch
 # (newest first); Sonnet reads each paper's abstract and methods section
 # once and lists its methods (R/watch_literature.R, profile
 # methods-extraction). The data goes to the hub's data branch after every
-# stretch of papers, and at the end of each run the report and
-# progress.csv (literature-watch/reports/ on that branch); no pull
-# request, as a progress report has nothing to decide. At
+# stretch of papers. Then Opus sorts the new method names into the
+# vocabulary and checks the methods named often enough against the
+# DataSHIELD functions' documentation (R/classify_literature.R). At the
+# end of each run the report and progress.csv go to the same branch
+# (literature-watch/reports/); no pull request, as a progress report has
+# nothing to decide. At
 # the subscription's usage limit or after papers_per_run (or max-papers)
 # papers the run stops; the next one carries on.
 on:
@@ -150,6 +153,7 @@ jobs:
         id: read
         env:
           SCRIPT: .shared-workflows/R/watch_literature.R
+          CLASSIFY_SCRIPT: .shared-workflows/R/classify_literature.R
           REPORT_SCRIPT: .shared-workflows/R/report_literature.R
           WATCH_FIELD: ${{ inputs.field }}
           MAX_PAPERS: ${{ inputs.max-papers }}
