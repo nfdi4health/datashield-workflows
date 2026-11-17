@@ -302,8 +302,18 @@ the live caller used to validate changes before wider rollout.
     the maintainer's name in any public repository, also `datashield`'s),
     else the bots' App token (installed there, Issues: write), links it back with a hidden `routed-to` marker (copied once
     per target) and labels the hub issue `routed`; mentions in the copy
-    are defused. Any other event (a push of the routes, by hand) creates
-    the route labels the hub lacks (step `labels`). Composite action `route-idea`, tests
+    are defused. A push of the routes (or a run by hand) creates
+    the route labels the hub lacks (step `labels`). **Status back to the
+    hub** (user, 2026-11-17; step `sync`, on the caller's schedule and by
+    hand, `issues: write` only, reads the public copies): per `routed` hub
+    issue and copy ("Tracked in owner/repo#n"), a change of state gets one
+    short comment with a hidden `<!-- route-status: owner/repo#n STATE -->`;
+    closed as completed → the hub issue is closed as completed once every
+    copy is (only in the run that sees it, so a hub issue reopened by hand
+    stays open); not planned / duplicate → `declined-label`
+    (`declined-there`), the idea stays open; reopened → the label goes and
+    a hub issue closed as completed opens again. Nothing is written to the
+    targets. Composite action `route-idea`, tests
     `tests/shell/test-route-idea.sh`. Literature watch (named so
     2026-11-16, was `methods-scan`; the pilot's question is answered:
     abstracts name 70% of the main analyses but only 14-18% of the
