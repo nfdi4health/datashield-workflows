@@ -143,7 +143,7 @@ on:
         type: string
         default: 'bot-suspicious'
       label-triaged:
-        description: 'The triage''s label, removed when the implementer takes an issue (the triage step is over).'
+        description: 'The triage''s label, exchanged for label-completed once the run is done and the pull request open; a failed run, a question or a limit keeps it.'
         required: false
         type: string
         default: 'bot-triaged'

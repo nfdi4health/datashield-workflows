@@ -257,9 +257,7 @@ the live caller used to validate changes before wider rollout.
     (the approved issues are the list: `bot-proceed` without
     `bot-in-progress`, oldest approval first; approval from the timeline,
     spec = newest triage comment, type from the `bug`/`enhancement`
-    label; a refused issue loses the label with a comment; a picked one
-    loses `bot-triaged` (input `label-triaged`, 2026-11-17: the triage
-    step is over, so dashboards don't show it as waiting for approval)), `implement`
+    label; a refused issue loses the label with a comment), `implement`
     (no writing token; claude-code-action with Claude Code's sandbox,
     hosts input `allowed-hosts`; writer, `run-checks.sh` = rcmdcheck,
     maintainability reviewer, up to two correction rounds unrolled in the
@@ -267,7 +265,10 @@ the live caller used to validate changes before wider rollout.
     `publish` (approval checked again; normal PR, or draft for a failed
     attempt; `Refs` only, closing keywords and mentions stripped, also
     from commit messages; labels `bot-completed` / `bot-failed` /
-    `bot-needs-input`; at a subscription limit `bot-in-progress` goes,
+    `bot-needs-input`; `bot-triaged` is exchanged for `bot-completed` only
+    then, when the run is done and the pull request open (input
+    `label-triaged`, user 2026-11-17: a failed run, a question or a limit
+    keeps it); at a subscription limit `bot-in-progress` goes,
     `bot-proceed` stays, and a `repository_dispatch` `implementer-timer`
     to the target starts `implementer-timer.yml` there, which waits until
     the reset), `finish` (event log, then `gh workflow run` of itself for
