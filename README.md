@@ -11,7 +11,7 @@ what each workflow does, copyable caller files, and the setup they need.
 
 | Path | Content |
 |---|---|
-| `.github/workflows/` | The reusable workflows, plus this repository's own: `ci.yml` and `self-test.yml` (tests), `pr-checks.yml`, `release.yml`, `publish-docs.yml` (builds the site), `collect-usage.yml` (usage counter files) |
+| `.github/workflows/` | The reusable workflows, plus this repository's own: `repo-ci.yml` and `repo-self-test.yml` (tests), `repo-pr-checks.yml`, `repo-release.yml`, `repo-publish-docs.yml` (builds the site), `repo-collect-usage.yml` (usage counter files) |
 | `.github/actions/` | Composite actions used by the workflows |
 | `R/`, `config/`, `prompts/` | Scripts, settings and prompts of the bot suggestion workflows |
 | `docs/` | Source of the documentation site (Quarto) |

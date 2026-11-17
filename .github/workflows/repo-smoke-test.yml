@@ -4,7 +4,7 @@ name: Smoke test
 # bots on the made-up package tests/fixtures/r-package, answered by Claude
 # through Claude Code on the owner's subscription (secret
 # CLAUDE_CODE_OAUTH_TOKEN of this repository; only the owner works here).
-# Checks what the recorded answers of ci.yml and self-test.yml can't:
+# Checks what the recorded answers of repo-ci.yml and repo-self-test.yml can't:
 # models still available, tool schemas accepted, answers that fit what R
 # expects. Nothing is pushed or posted (GitHub answered locally). About
 # five calls per run. Runs on pull requests into main (releases), monthly,

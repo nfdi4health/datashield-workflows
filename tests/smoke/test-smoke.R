@@ -5,7 +5,7 @@
 # still answered locally (404), nothing is pushed or posted. It checks
 # what recorded answers can't: that the models in config/claude.yml are
 # available, that each tool schema is accepted and answered, and that
-# the answers fit what R expects. Run by .github/workflows/smoke-test.yml:
+# the answers fit what R expects. Run by .github/workflows/repo-smoke-test.yml:
 #   Rscript tests/smoke.R
 # Skipped without CLAUDE_CODE_OAUTH_TOKEN.
 

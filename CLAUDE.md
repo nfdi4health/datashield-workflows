@@ -385,23 +385,24 @@ the live caller used to validate changes before wider rollout.
     missing (not the step's title). **Docs pending:** a page each (a new
     sidebar section "Function ideas"), the analysis details page's gap
     link already updated.
-- This repository's own, non-reusable workflows (besides `ci.yml`,
-  `self-test.yml`, `publish-docs.yml`, `collect-usage.yml`): `smoke-test.yml`
+- This repository's own, non-reusable workflows carry the prefix `repo-`
+  (user, 2026-11-17), so they stand apart from the reusable ones (besides `repo-ci.yml`,
+  `repo-self-test.yml`, `repo-publish-docs.yml`, `repo-collect-usage.yml`): `repo-smoke-test.yml`
   (real Claude calls, 2026-11-13: `tests/smoke/` runs the roxygen and test
   entry scripts on `tests/fixtures/r-package` through Claude Code on the
   owner's subscription, secret `CLAUDE_CODE_OAUTH_TOKEN`; GitHub answered
   locally, nothing pushed; on PRs into `main`, monthly and by hand;
-  `Rscript tests/smoke.R`, skipped without the token), `pr-checks.yml`
+  `Rscript tests/smoke.R`, skipped without the token), `repo-pr-checks.yml`
   (commit messages on PRs into dev/main, only `dev` into `main`),
-  `cleanup-agent-branches.yml` (calls `cleanup-suggestion-branch.yml` for
+  `repo-cleanup-agent-branches.yml` (calls `cleanup-suggestion-branch.yml` for
   this repository's own agent branches; "Automatically delete head
-  branches" stays off, user 2026-11-09), `release-issue-labels.yml`
+  branches" stays off, user 2026-11-09), `repo-release-issue-labels.yml`
   (calls `release-issues.yml`: `mark` on PRs merged into dev, `link` on the
   dev → main PR, `swap` after its merge; 2026-11-13) and
-  `release.yml` (semantic-release of this repository: `vX.Y.Z`, moving
+  `repo-release.yml` (semantic-release of this repository: `vX.Y.Z`, moving
   `vX`, CHANGELOG.md, config `.github/release/releaserc.json` copied over
   the root `.releaserc.json` in the runner — the root one is the R-package
-  default of `package-release.yml`). `release.yml` only runs once the
+  default of `package-release.yml`). `repo-release.yml` only runs once the
   repository variable `RELEASE_ENABLED` is `true` (at v1).
 - Branch-protection rulesets (formerly `rulesets/` + `apply-ruleset.yml`)
   now live in a separate private repo.
@@ -451,13 +452,13 @@ the live caller used to validate changes before wider rollout.
   `gh`/`jq`), `fixtures/` (made-up packages only: `r-package`,
   `ds-client` + `ds-server`), `shell/test-label-check.sh` and
   `shell/test-triage-gate.sh` (stand-in for
-  `gh`, needs `jq`). Run by `ci.yml` with the static checks;
+  `gh`, needs `jq`). Run by `repo-ci.yml` with the static checks;
   locally `Rscript tests/testthat.R`, `bash tests/shell/test-scope.sh` and
   `bash tests/shell/test-label-check.sh`, `test-triage-gate.sh` and
   `test-release-issues.sh`, `node --test tests/node/*.test.mjs`. Locally with `LANG=C.UTF-8` (R stops reading
   files at the first non-ASCII character in the POSIX locale), and with a
   stand-in `yq` if the installed one isn't mikefarah's.
-  `self-test.yml` (not reusable) runs `roxygen-suggest.yml` and
+  `repo-self-test.yml` (not reusable) runs `roxygen-suggest.yml` and
   `test-suggest.yml` and `authors-suggest.yml` themselves with the input `self-test-fixture:
   r-package` (fixture instead of the caller checkout via
   `tests/self-test/use-fixture.sh`, no token, `CLAUDE_RECORDED_ANSWERS`
@@ -474,7 +475,7 @@ the live caller used to validate changes before wider rollout.
   (outcome proposed / nothing / failed; channel release = a `vX` tag
   points to the commit that ran, dev = `@main` or a branch, i.e.
   development and testing). Anonymous; the download counts are the runs.
-  Only these (user's choice: Claude-assisted + authors). `collect-usage.yml` (not reusable,
+  Only these (user's choice: Claude-assisted + authors). `repo-collect-usage.yml` (not reusable,
   "Usage counter files") keeps the release complete — the files for every
   workflow calling `count-run`, with this repository's own token. The
   daily counts are recorded by the private
@@ -487,8 +488,8 @@ the live caller used to validate changes before wider rollout.
   **A new Claude-assisted workflow gets the same last step** (copy it,
   with its own `workflow:` name); the collector adds its files. Design:
   [dev-notes/usage-counting.md](dev-notes/usage-counting.md).
-- `docs/` — Quarto site, published to GitHub Pages by `publish-docs.yml`
-  (non-reusable, like `collect-usage.yml`). One page per workflow, grouped in the
+- `docs/` — Quarto site, published to GitHub Pages by `repo-publish-docs.yml`
+  (non-reusable, like `repo-collect-usage.yml`). One page per workflow, grouped in the
   sidebar via `docs/_quarto.yml` (sections: Getting started, Pull request
   checks, Release, Bot suggestions, Analysis projects, Issue flow, Workflow upkeep;
   Roadmap last, whose "Recent changes" section serves as release notes).
@@ -724,7 +725,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
     now none keeps it); App tokens request only contents +
     pull-requests. The repo name `FlorianSchw/package-workflows` is still
     hard-coded in `count-run.sh` (change at the move). actionlint (1.7.12)
-    predates `$/`: `ci.yml` ignores that message.
+    predates `$/`: `repo-ci.yml` ignores that message.
   - **Federation rules** match `job_workflow_ref` exactly (incl.
     `@refs/heads/main`); tags need a prefix/condition match.
   - **Usage counting** relies on it: runs on a `vX` tag count as
@@ -732,7 +733,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
     (`8d11341`) before the first real release, and recommend pinning
     `@vX` in the docs.
 - **v1 work on branch `v1/foundation`** (2026-10-16, pushed, not merged —
-  `main` only with the user): this repository's own CI (`ci.yml`:
+  `main` only with the user): this repository's own CI (`repo-ci.yml`:
   testthat incl. end-to-end runs of the roxygen, test and authors bots on
   `tests/fixtures/r-package` with recorded Claude/GitHub answers, shell
   tests, actionlint, shellcheck, zizmor; green); external actions pinned
@@ -843,7 +844,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   caller sets `dry-run: true` until its first real release.
 - **Decided 2026-11-13 for this repository's releases:** published
   directly (`draftRelease: false` in `.github/release/releaserc.json`),
-  issues marked and closed through `release-issue-labels.yml`, no
+  issues marked and closed through `repo-release-issue-labels.yml`, no
   semantic-release comments or labels. The list below is about the shared
   R-package config (`.releaserc.json`).
 - Release config (`.releaserc.json`, `@semantic-release/github`), undecided:
@@ -895,12 +896,12 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   **Done 2026-11-12:** both run on pull requests and on pushes to `dev` /
   `main` only; the self-tests also only when `R/`, `config/`, `prompts/`,
   `.github/` or `tests/` change. The original item:
-  `self-test.yml` and `ci.yml` run on every `push` (any branch) *and* every
+  `repo-self-test.yml` and `repo-ci.yml` run on every `push` (any branch) *and* every
   `pull_request`, so a PR's checks run twice: 6 self-test jobs (roxygen,
   tests, authors × both events) plus 2 "Check the results", and CI twice.
   Options: `push` only for `dev` and `main`, `pull_request` for the rest; the
   self-tests (not required by the rulesets) also only when `R/`, `config/`,
-  `prompts/`, `.github/` or `tests/` change — not `ci.yml`, whose jobs are
+  `prompts/`, `.github/` or `tests/` change — not `repo-ci.yml`, whose jobs are
   required checks (a required check skipped by a path filter never reports
   and blocks the PR, seen on dsSupportClient #75). Part of the refactoring
   pass with the agents' definitions and the cross-repo overlaps.
@@ -1377,7 +1378,7 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   the first triage the author's comment restarts the wait. Bugs and ideas get a
   spec. Hidden text gets a note, and an attempt to steer the bot the label
   `bot-suspicious`. Still to confirm: the seven categories. No
-  own self-test (`self-test.yml`).
+  own self-test (`repo-self-test.yml`).
   **Review round (2026-11-09, user's choices):** model `claude-sonnet-5-5`
   (`tool_choice_type: auto`, adaptive thinking, `effort: medium`);
   `allowed-logins` without the `FlorianSchw` default: required in
