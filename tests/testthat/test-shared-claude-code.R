@@ -26,6 +26,22 @@ test_that("call_claude_tool() goes through Claude Code with a subscription token
   expect_true("SHARED PART" %in% call && "PER FUNCTION" %in% call)
 })
 
+test_that("a profile's web_search lets Claude Code search the web, and only that", {
+  dir <- withr::local_tempdir()
+  log <- file.path(dir, "call.txt")
+  fake <- file.path(dir, "fake-claude")
+  writeLines(c("#!/bin/sh", sprintf("printf '%%s\\n' \"$@\" > %s", log),
+    "echo '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"num_turns\":1,\"structured_output\":{\"title\":\"x\"}}'"), fake)
+  Sys.chmod(fake, "755")
+  withr::local_envvar(CLAUDE_CODE_OAUTH_TOKEN = "sub", CLAUDE_BIN = fake)
+  claude <- list(config = list(tool_name = "submit_x", web_search = 8), auth = claude_auth(""))
+  call_claude_tool(claude, list(description = "x", input_schema = list(type = "object", properties = list(title = list(type = "string")))), "p")
+  call <- readLines(log)
+  expect_equal(call[which(call == "--tools") + 1], "WebSearch")
+  expect_equal(call[which(call == "--allowedTools") + 1], "WebSearch")
+  expect_equal(call[which(call == "--max-turns") + 1], "19")
+})
+
 test_that("read_claude_code_result() stops on errors and limits", {
   expect_error(read_claude_code_result('{"type":"result","subtype":"success","is_error":true,"result":"You have hit your limit"}'), "hit your limit")
   expect_error(read_claude_code_result("not json"), "no JSON")

@@ -28,11 +28,13 @@ STUB
 #!/usr/bin/env bash
 echo "$*" >> git_calls
 case "$*" in *"diff --cached --quiet"*) exit 1 ;; esac
+case "$*" in *" push "*) if [ -f push_fails_once ]; then rm push_fails_once; exit 1; fi ;; esac
 exit 0
 STUB
   chmod +x "$work/bin/"*
   [ -n "${REPORT_FAILS:-}" ] && touch "$work/report_fails"
   [ -n "${CLASSIFY_FAILS:-}" ] && touch "$work/classify_fails"
+  [ -n "${PUSH_FAILS_ONCE:-}" ] && touch "$work/push_fails_once"
   (cd "$work" && PATH="$work/bin:$PATH" HUB_TOKEN="${2:-}" DATA_BRANCH=data SCRIPT=x.R REPORT_SCRIPT="${3:-}" CLASSIFY_SCRIPT="${4:-}" MAX_PAPERS="" \
     GITHUB_OUTPUT="$work/out" GITHUB_STEP_SUMMARY="$work/summary" bash "$loop" > /dev/null 2>&1; echo $? > "$work/exit")
 }
@@ -77,6 +79,25 @@ check "at the usage limit the vocabulary step waits" "$([ -f "$work/classify_env
 CLASSIFY_FAILS=1 run_loop 'done 3 1497' secret report.R classify.R
 check "a failed vocabulary step still gives a report" "$(grep -c 'literature watch, report' "$work/git_calls")" 1
 check "and doesn't fail the step" "$(cat "$work/exit")" 0
+
+PUSH_FAILS_ONCE=1 run_loop 'done 3 1497' secret
+check "a rejected push is put on top of the branch and pushed again" "$(grep -c 'pull --quiet --rebase origin data' "$work/git_calls")" 1
+check "and the run goes on" "$(cat "$work/exit")" 0
+
+# tracked-ideas.sh: the markers of the hub's issues, with a stand-in for gh.
+tracked="$here/../../.github/actions/literature-watch/tracked-ideas.sh"
+work="$(mktemp -d)"
+mkdir -p "$work/bin"
+cat > "$work/bin/gh" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' '[{"number":3,"body":"x <!-- literature-watch-method: fine-gray -->"},{"number":4,"pull_request":{},"body":"<!-- literature-watch-method: pr-only -->"}]'
+printf '%s\n' '[{"number":9,"body":null},{"number":12,"body":"<!--literature-watch-method: cox-regression/tvc -->"}]'
+STUB
+chmod +x "$work/bin/gh"
+(cd "$work" && PATH="$work/bin:$PATH" HUB=o/hub GH_TOKEN=t bash "$tracked" out.json > /dev/null)
+check "tracked ideas: markers of issues on every page, not of pull requests" "$(jq -c . "$work/out.json")" '{"fine-gray":3,"cox-regression/tvc":12}'
+(cd "$work" && HUB="" bash "$tracked" none.json > /dev/null)
+check "without a hub: an empty list" "$(cat "$work/none.json")" "{}"
 
 [ "$failures" -eq 0 ] || { echo "$failures failure(s)"; exit 1; }
 echo "all passed"

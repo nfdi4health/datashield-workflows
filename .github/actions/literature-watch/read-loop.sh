@@ -20,7 +20,11 @@ push() {
   git -C "$dir" commit --quiet -m "data: literature watch, $1"
   local auth
   auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$HUB_TOKEN" | base64 -w0)"
-  git -C "$dir" -c "http.https://github.com/.extraheader=$auth" push --quiet origin "HEAD:refs/heads/$DATA_BRANCH"
+  # The hub's candidate workflow may have added decisions.json meanwhile:
+  # then put this commit on top of it and push again.
+  git -C "$dir" -c "http.https://github.com/.extraheader=$auth" push --quiet origin "HEAD:refs/heads/$DATA_BRANCH" ||
+    { git -C "$dir" -c "http.https://github.com/.extraheader=$auth" pull --quiet --rebase origin "$DATA_BRANCH" &&
+      git -C "$dir" -c "http.https://github.com/.extraheader=$auth" push --quiet origin "HEAD:refs/heads/$DATA_BRANCH"; }
 }
 remaining="${MAX_PAPERS:-}"
 stopped="error"

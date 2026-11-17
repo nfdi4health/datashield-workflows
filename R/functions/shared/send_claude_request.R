@@ -5,7 +5,8 @@
 # every response's token usage is logged (log_claude_usage()). Stops with
 # a clear error on a rejected request (logging the tool definition, never
 # the prompt), on a response cut off at max_tokens, and on a refusal.
-# `forced`: tool_choice names the tool; otherwise "auto".
+# `forced`: tool_choice names the tool; otherwise "auto". A profile's
+# `web_search` (the most searches) adds the server-side web search tool.
 send_claude_request <- function(claude, tool, messages, forced, renewed = FALSE) {
   config <- claude$config
   if (forced) {
@@ -17,7 +18,8 @@ send_claude_request <- function(claude, tool, messages, forced, renewed = FALSE)
     model = config$model,
     max_tokens = config$max_tokens,
     thinking = config$thinking,
-    tools = list(tool),
+    tools = c(list(tool), if (as.integer(config$web_search %||% 0) > 0)
+      list(list(type = "web_search_20250305", name = "web_search", max_uses = as.integer(config$web_search)))),
     tool_choice = tool_choice,
     messages = messages
   )
