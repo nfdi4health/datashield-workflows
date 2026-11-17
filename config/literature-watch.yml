@@ -71,6 +71,22 @@ exists:
   functions_url: https://raw.githubusercontent.com/FederatedMethods/packages/main/datashield_functions_metadata.json
   packages_url: https://raw.githubusercontent.com/FederatedMethods/packages/main/package_list.csv
 
+# The candidates: once the first round is complete, and then once a month,
+# the most used methods (and variants) DataSHIELD lacks (`none` or
+# `partial`; `development` doesn't count) are researched by Claude (with
+# web search) and proposed to the hub as a pull request, three boxes per
+# candidate: open an issue, not now, don't suggest again. Methods with a
+# hub issue (open or closed) are left out; a "don't suggest again" comes
+# back when its papers reach `resuggest_factor` times the count at the
+# decision. The decisions are kept in decisions.yml under `data`.
+candidates:
+  max: 10               # candidates per pull request
+  min_papers: 5         # in the recent years (report$share_years)
+  branch_prefix: bot-suggest/literature-watch/candidates
+  folder: literature-watch/candidates    # on the hub's main branch, one file per month
+  resuggest_factor: 2
+  examples: 3           # example papers per candidate
+
 # The report.
 report:
   top: 20                 # methods listed per section

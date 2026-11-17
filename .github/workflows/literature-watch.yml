@@ -39,8 +39,13 @@ on:
         required: false
         type: string
         default: 'auto'
+      candidates:
+        description: 'The candidate pull request to the hub: auto (once the first round is complete, then once a month), always (this run, e.g. to show it early) or never.'
+        required: false
+        type: string
+        default: 'auto'
       hub-repository:
-        description: 'The hub (owner/name): its config/literature-watch.yml is read, the data and the report go to its data branch. Empty: the calling repository, nothing pushed.'
+        description: 'The hub (owner/name): its config/literature-watch.yml is read, the data and the report go to its data branch, the candidates to it as a pull request. Empty: the calling repository, nothing pushed.'
         required: false
         type: string
         default: ''
@@ -64,7 +69,7 @@ on:
         description: 'Token of a Claude subscription (claude setup-token).'
         required: true
       app-client-id:
-        description: 'Client ID of the bots'' GitHub App, installed on the hub (Contents and Pull requests: read and write). Needed with hub-repository.'
+        description: 'Client ID of the bots'' GitHub App, installed on the hub (Contents and Pull requests: read and write, Issues: read). Needed with hub-repository.'
         required: false
       app-private-key:
         description: 'Its private key.'
@@ -105,7 +110,8 @@ jobs:
             echo "repository=$GITHUB_REPOSITORY" >> "$GITHUB_OUTPUT"
           fi
 
-      # The hub's token, for that repository only: pushing the data branch.
+      # The hub's token, for that repository only: pushing the data branch,
+      # reading its issues and proposing the candidates.
       - name: Token for the hub
         id: hub_token
         if: inputs.hub-repository != ''
@@ -116,6 +122,8 @@ jobs:
           owner: ${{ steps.hub.outputs.owner }}
           repositories: ${{ steps.hub.outputs.name }}
           permission-contents: write
+          permission-pull-requests: write
+          permission-issues: read
 
       # The hub's main branch: its config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -145,7 +153,8 @@ jobs:
           packages: any::httr2, any::jsonlite, any::purrr, any::yaml, any::xml2, any::processx, any::openssl
 
       # The same pinned Claude Code as the other bots; single calls without
-      # tools, so no sandbox.
+      # shell or file tools (the research step may search the web), so no
+      # sandbox.
       - name: Claude Code
         run: npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312  # zizmor: ignore[adhoc-packages] exact version, as in the other bots
 
@@ -162,6 +171,44 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
           NCBI_API_KEY: ${{ secrets.ncbi-api-key }}
         run: bash .shared-workflows/.github/actions/literature-watch/read-loop.sh
+
+      # The methods already tracked by a hub issue (its hidden marker), for
+      # the candidates; R gets the list, not the token.
+      - name: Tracked ideas
+        if: inputs.hub-repository != '' && inputs.candidates != 'never'
+        env:
+          HUB: ${{ inputs.hub-repository }}
+          GH_TOKEN: ${{ steps.hub_token.outputs.token }}
+        run: bash .shared-workflows/.github/actions/literature-watch/tracked-ideas.sh tracked.json
+
+      - name: Candidates
+        id: candidates
+        if: steps.read.outcome == 'success' && inputs.candidates != 'never'
+        env:
+          WATCH_DATA_DIR: watch-data
+          WATCH_CANDIDATES: ${{ inputs.candidates }}
+          WATCH_TRACKED: tracked.json
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
+        run: |
+          Rscript .shared-workflows/R/candidates_literature.R
+          {
+            echo "due=$(cat candidates_due.txt)"
+            echo "title=$(head -n 1 candidates_title.txt 2>/dev/null)"
+            echo "month=$(date -u +%Y-%m)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Propose the candidates to the hub
+        if: steps.candidates.outputs.due == 'yes' && inputs.hub-repository != ''
+        uses: $/.github/actions/propose-branch
+        with:
+          manifest: candidates_files.txt
+          branch: bot-suggest/literature-watch/candidates-${{ steps.candidates.outputs.month }}
+          base: ${{ inputs.hub-branch }}
+          title: ${{ steps.candidates.outputs.title }}
+          body-file: candidates_body.md
+          commit-message: 'docs: literature watch candidates ${{ steps.candidates.outputs.month }}'
+          token: ${{ steps.hub_token.outputs.token }}
+          repository: ${{ inputs.hub-repository }}
 
       - name: Keep the data
         if: always()

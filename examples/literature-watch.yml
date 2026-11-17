@@ -17,6 +17,9 @@ on:
       max-papers:
         description: 'At most this many papers in this run (empty: papers_per_run of the hub''s config)'
         default: ''
+      candidates:
+        description: 'The candidate pull request: auto, always (this run) or never'
+        default: 'auto'
 
 concurrency:
   group: claude-subscription
@@ -30,6 +33,7 @@ jobs:
     with:
       field: ${{ inputs.field }}
       max-papers: ${{ inputs.max-papers }}
+      candidates: ${{ inputs.candidates || 'auto' }}
       hub-repository: your-org/your-hub
     secrets:
       claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

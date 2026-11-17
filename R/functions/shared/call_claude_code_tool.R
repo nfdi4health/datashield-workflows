@@ -5,7 +5,9 @@
 # pathway"). Claude Code runs locked down so it behaves like one call: no
 # tools at all (--tools ""), no settings, hooks, plugins or MCP servers
 # (claude_code_isolation_args(); not --bare, which ignores the OAuth
-# token), an empty working directory, its answer checked against the tool's schema
+# token) — except web search when the profile sets `web_search` (the most
+# searches; then only the WebSearch tool, and more turns), an empty
+# working directory, its answer checked against the tool's schema
 # (--json-schema). It gets only its own credential. What doesn't carry
 # over: the cache marker (the prompt is sent as one text), server-side
 # fallback, our retry rules; a usage limit ends the call with an error,
@@ -23,8 +25,10 @@ call_claude_code_tool <- function(claude, tool, prompt, bin = Sys.getenv("CLAUDE
   prompt_file <- file.path(dir, "prompt.md")
   writeLines(text, prompt_file, useBytes = TRUE)
 
+  searches <- as.integer(config$web_search %||% 0)
+  tools <- if (searches > 0) c("--tools", "WebSearch", "--allowedTools", "WebSearch") else c("--tools", "")
   args <- c("-p", claude_code_isolation_args(), "--output-format", "json", "--no-session-persistence",
-    "--tools", "", "--max-turns", "3",
+    tools, "--max-turns", as.character(3 + 2 * searches),
     "--json-schema", paste(readLines(schema_file, warn = FALSE), collapse = ""))
   if (nzchar(config$model %||% "")) args <- c(args, "--model", config$model)
   if (nzchar(config$effort %||% "")) args <- c(args, "--effort", config$effort)

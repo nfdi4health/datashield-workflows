@@ -333,6 +333,14 @@ the place of a person's review:
   extracted from the packages' roxygen by the user's script there): title
   and description per function, no arguments, so the evidence quote comes
   from those. Retired packages and server functions are left out.
+- **Built 2026-11-17** (`R/candidates_literature.R`,
+  `literature-candidates.yml`): ranking, research (Opus with web search)
+  and the candidate PR with three boxes; decisions in `decisions.json` on
+  the data branch (not on `main`: the merge job writes them there through
+  the Contents API, and the literature watch reads its data branch anyway;
+  the candidate file itself is on `main` through the PR). The first one
+  after the first round is complete, or by hand with `candidates:
+  always`. Not built: matching ideas people opened without a marker.
 
 Originally: not built; no repository yet. Problem: the community had no natural place
 for gaps, demand and who works on what (an Excel file in someone's cloud,

@@ -152,3 +152,18 @@ methods-exists:
       type: adaptive
     effort: medium
     max_tokens: 32000
+
+# The literature watch's research step (R/candidates_literature.R): for
+# each of the month's top candidates, what the method is, R packages that
+# do it, federated approaches in the literature and a first disclosure
+# view, with web search (user, 2026-11-17).
+methods-research:
+  anthropic:
+    tool_name: submit_candidate_research
+    model: claude-opus-5-5
+    tool_choice_type: auto
+    thinking:
+      type: adaptive
+    effort: high
+    max_tokens: 32000
+    web_search: 8          # at most this many searches per candidate
