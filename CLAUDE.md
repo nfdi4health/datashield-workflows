@@ -281,7 +281,9 @@ the live caller used to validate changes before wider rollout.
     token was visible (`GITHUB_TOKEN`, `GH_TOKEN`, and in the remote URL),
     which `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` doesn't remove. Fixed in
     `sandboxSettings()`: `env` blanks both, a `SessionStart` hook
-    (`stripGitCredentials`) strips the remote URLs and auth header.
+    (`stripGitCredentials`) strips the remote URLs and auth header;
+    confirmed by the last run (runner run 44094807375, all eight checks
+    pass).
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
   - `route-idea.yml`, `literature-watch.yml` — for the hub of missing
