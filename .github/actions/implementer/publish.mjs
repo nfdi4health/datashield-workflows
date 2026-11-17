@@ -162,7 +162,7 @@ export async function publish(api, ctx) {
       if (!openPullRequest) {
         const compare = `https://github.com/${repository}/compare/${base}...${branch}`;
         await comment(api, repository, issue, `Branch \`${branch}\` is pushed (no pull request opened): ${compare}\n\n${body}`);
-        const labelsNow = failed ? { remove: done, add: [labels.failed] } : { remove: [...done, labels.failed], add: [labels.completed] };
+        const labelsNow = failed ? { remove: done, add: [labels.failed] } : { remove: [...done, labels.failed, labels.triaged], add: [labels.completed] };
         await setLabels(api, repository, issue, labelsNow);
         return failed ? { result: "failed", reason, branch } : { result: "completed", branch };
       }
@@ -188,6 +188,8 @@ export async function publish(api, ctx) {
     return { result: "failed", reason, pr: prUrl };
   }
   await comment(api, repository, issue, `Pull request: ${prUrl}`);
-  await setLabels(api, repository, issue, { remove: [...done, labels.failed], add: [labels.completed] });
+  // Only now is the triage's `bot-triaged` exchanged for `bot-completed`
+  // (user, 2026-11-17): a failed run, a question or a limit keeps it.
+  await setLabels(api, repository, issue, { remove: [...done, labels.failed, labels.triaged], add: [labels.completed] });
   return { result: "completed", pr: prUrl };
 }
