@@ -281,7 +281,13 @@ the live caller used to validate changes before wider rollout.
     inside the sandbox; `judge-probe.sh` then checks outside it that an
     unlisted host is blocked, an allowed one reachable, no token variable,
     token-shaped value or git credential is visible, and R runs (tests
-    `tests/shell/test-sandbox-probe.sh`).
+    `tests/shell/test-sandbox-probe.sh`). **First verdict (2026-11-17):**
+    network rules, git and R pass, but claude-code-action's token was
+    visible (`GITHUB_TOKEN`, `GH_TOKEN`, and in the remote URL);
+    `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` doesn't remove those. Fixed in
+    `sandboxSettings()` (the settings of every agent and the probe): `env`
+    blanks both, a `SessionStart` hook (`stripGitCredentials`) strips the
+    remote URLs and auth header. To confirm with the next probe run.
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
   - `route-idea.yml`, `literature-watch.yml` — for the hub of missing
@@ -343,9 +349,25 @@ the live caller used to validate changes before wider rollout.
     `exists$max_calls`. The report merges names (`paper_methods()`,
     `resolve_method()`) and has an "In DataSHIELD" column. Nightly in the
     runner (its caller's schedule), in the implementer's `concurrency`
-    group. Measured on Max 5x: about 2,000 papers per 5-hour session. Not
-    yet built: ranking, research (web search allowed, user 2026-11-17),
-    the candidate PR. **Runs in the
+    group. Measured on Max 5x: about 2,000 papers per 5-hour session. **Candidates**
+    (built 2026-11-17, `R/candidates_literature.R`, after the reading
+    step; input `candidates`: auto = once the first round is complete,
+    then monthly; always; never): `rank_candidates()` (methods and
+    variants with verdict none / partial, share of recent usable papers,
+    trend; statuses tracked / skipped / deferred / new from hub issues'
+    `<!-- literature-watch-method: KEY -->` markers, listed by
+    `tracked-ideas.sh`, and `decisions.json` on the data branch), Opus with
+    web search researches the top `candidates$max` (profile
+    `methods-research`, `web_search: 8`: `--tools WebSearch` on Claude
+    Code, the server tool on the API), and `propose-branch` opens
+    `bot-suggest/literature-watch/candidates-YYYY-MM` with
+    `literature-watch/candidates/YYYY-MM.json` and three boxes per
+    candidate. In the hub, `literature-candidates.yml` (Node,
+    `.github/actions/literature-candidates/candidates.mjs`): `check` keeps
+    the PR red until each candidate has exactly one box, `apply` on merge
+    opens the idea issues (with marker) and writes `decisions.json` to the
+    data branch through the Contents API (`read-loop.sh` rebases a rejected
+    push). Not built: matching issues people opened themselves (no marker). **Runs in the
     private runner** (user, 2026-11-13): `FlorianSchw/datashield-agent-runner` calls it with
     `hub-repository`, and holds the subscription and NCBI secrets; the hub
     starts it with `literature-watch-start.yml` (checks `allowed-logins`,
