@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     # Push and PR runs of one branch write the same bot branch: one at a time.
     concurrency:
-      # A self-test run (this repository's self-test.yml) gets a queue of its
+      # A self-test run (this repository's REPO-self-test.yml) gets a queue of its
       # own, so quick merges don't cancel each other's waiting runs.
       group: roxygen-suggest-${{ github.repository }}-${{ github.head_ref || github.ref_name }}${{ inputs.self-test-fixture != '' && format('-self-test-{0}', github.run_id) || '' }}
       cancel-in-progress: false
