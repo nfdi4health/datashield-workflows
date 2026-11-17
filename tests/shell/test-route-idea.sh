@@ -83,5 +83,13 @@ check "the copy links back to the hub issue" "$rc"
 rc=1; if ! grep -q "for @someone" "$WORK/calls" && [ ! -e pwned ] && [ ! -e "$WORK/pwned" ]; then rc=0; fi
 check "mentions are defused and the title is never run" "$rc"
 
+# labels: creates the route labels the hub lacks (the stand-in answers the
+# label list from $WORK/comments), leaves existing ones alone.
+printf 'dsSurvival\nbug\n' > "$WORK/comments"
+run labels maintainer x
+rc=1; if grep -q 'api repos/hub/ideas/labels -f name=dsClusterAnalysis -f color=1d76db -f description=Route to target-owner/dsCluster' "$WORK/calls" \
+  && ! grep -q 'name=dsSurvival' "$WORK/calls"; then rc=0; fi
+check "labels: missing route labels are created, existing ones (any case) left alone" "$rc"
+
 echo "$passed passed, $failed failed"
 [ "$failed" = 0 ]

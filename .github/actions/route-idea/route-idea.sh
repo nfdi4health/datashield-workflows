@@ -9,6 +9,9 @@
 #         copied there before? Writes target=owner/repo, owner, repo to
 #         GITHUB_OUTPUT, or nothing. A route label set by anyone else is
 #         removed, with a comment.
+#   labels  Creates every route's label in the hub that doesn't exist
+#         yet (colour LABEL_COLOR, description "Route to owner/repo");
+#         existing labels are left as they are.
 #   copy  Opens the issue in TARGET with TARGET_TOKEN (the caller's
 #         route-token, or an App token for that repository), then comments on the hub issue with the link
 #         and a hidden marker, and adds ROUTED_LABEL (GH_TOKEN).
@@ -50,6 +53,19 @@ is_allowed() {
 marker() { printf '<!-- routed-to: %s -->' "$1"; }
 
 case "$step" in
+  labels)
+    existing="$(gh api --paginate "repos/$GITHUB_REPOSITORY/labels?per_page=100" --jq '.[].name' | tr '[:upper:]' '[:lower:]')"
+    while IFS= read -r line; do
+      line="${line%%#*}"
+      [[ "$line" == *=* ]] || continue
+      label="$(sed 's/^ *//; s/ *$//' <<< "${line%%=*}")"
+      repo="$(sed 's/^ *//; s/ *$//' <<< "${line#*=}")"
+      if grep -qxF "$(lower "$label")" <<< "$existing"; then continue; fi
+      gh api "repos/$GITHUB_REPOSITORY/labels" -f name="$label" -f color="${LABEL_COLOR:-1d76db}" \
+        -f description="Route to $repo" > /dev/null
+      echo "Created the label $label."
+    done <<< "${ROUTES:-}"
+    ;;
   plan)
     [ "$(event_field .action)" = labeled ] || { echo "Not a label being set."; exit 0; }
     label="$(event_field .label.name)"

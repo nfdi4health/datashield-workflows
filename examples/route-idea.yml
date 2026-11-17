@@ -5,6 +5,12 @@ name: Route Idea
 on:
   issues:
     types: [labeled]
+  # Creates the route labels that don't exist yet whenever this file
+  # changes (and when started by hand).
+  push:
+    branches: [main]
+    paths: ['.github/workflows/route-idea.yml']
+  workflow_dispatch:
 
 jobs:
   route:

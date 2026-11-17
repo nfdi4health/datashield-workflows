@@ -6,7 +6,7 @@ description: >
 
 inputs:
   step:
-    description: 'plan or copy.'
+    description: 'plan, copy or labels.'
     required: true
   routes:
     description: 'Lines "label = owner/repo".'
@@ -31,6 +31,10 @@ inputs:
     description: 'copy: the label the hub issue gets once copied.'
     required: false
     default: 'routed'
+  label-color:
+    description: 'labels: the colour of new route labels.'
+    required: false
+    default: '1d76db'
 
 outputs:
   target:
@@ -57,4 +61,5 @@ runs:
         TARGET: ${{ inputs.target }}
         TARGET_TOKEN: ${{ inputs.target-token }}
         ROUTED_LABEL: ${{ inputs.routed-label }}
+        LABEL_COLOR: ${{ inputs.label-color }}
       run: bash "$GITHUB_ACTION_PATH/route-idea.sh" "$STEP"
