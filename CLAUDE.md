@@ -275,19 +275,15 @@ the live caller used to validate changes before wider rollout.
     daily. Logic in the composite action `implementer` (Node,
     `implementer.mjs <command>`), prompts `prompts/implementer-*.md`,
     tests `tests/node/implementer.test.mjs` (`node --test`).
-    `sandbox-probe.yml` (2026-11-16, called from the runner by hand):
-    an agent with the implementer's Claude Code action, sandbox settings
-    and secret scrubbing runs only `.github/actions/implementer/sandbox-probe.sh`
-    inside the sandbox; `judge-probe.sh` then checks outside it that an
-    unlisted host is blocked, an allowed one reachable, no token variable,
-    token-shaped value or git credential is visible, and R runs (tests
-    `tests/shell/test-sandbox-probe.sh`). **First verdict (2026-11-17):**
-    network rules, git and R pass, but claude-code-action's token was
-    visible (`GITHUB_TOKEN`, `GH_TOKEN`, and in the remote URL);
-    `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` doesn't remove those. Fixed in
-    `sandboxSettings()` (the settings of every agent and the probe): `env`
-    blanks both, a `SessionStart` hook (`stripGitCredentials`) strips the
-    remote URLs and auth header. To confirm with the next probe run.
+    **Sandbox probe** (2026-11-16/17, a one-off test, removed afterwards,
+    user): an agent with the implementer's action and settings ran a probe
+    script; the network rules, git and R passed, but claude-code-action's
+    token was visible (`GITHUB_TOKEN`, `GH_TOKEN`, and in the remote URL),
+    which `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` doesn't remove. Fixed in
+    `sandboxSettings()`: `env` blanks both, a `SessionStart` hook
+    (`stripGitCredentials`) strips the remote URLs and auth header;
+    confirmed by the last run (runner run 44094807375, all eight checks
+    pass).
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
   - `route-idea.yml`, `literature-watch.yml` — for the hub of missing
