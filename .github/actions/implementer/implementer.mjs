@@ -133,7 +133,11 @@ const commands = {
       return writeOutputs({ found: "false" });
     }
     writeFileSync(env.SPEC_FILE, next.spec);
-    await setLabels(api, next.repository, next.issue, { remove: [cfg.labels.failed, cfg.labels.needsInput], add: [cfg.labels.inProgress] });
+    // The triage step is over once the implementer takes the issue: its
+    // label goes, so "waiting for the maintainer's decision" isn't shown
+    // next to the implementer's own labels (user, 2026-11-17).
+    await setLabels(api, next.repository, next.issue,
+      { remove: [cfg.labels.failed, cfg.labels.needsInput, cfg.labels.triaged], add: [cfg.labels.inProgress] });
     console.log(`Working on ${next.repository}#${next.issue}.`);
     const { repository, owner, name, issue, base, setup, server, serverBranch, type, typeNote, branch, sha, existingPr } = next;
     return writeOutputs({

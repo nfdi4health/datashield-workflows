@@ -433,6 +433,13 @@ test("a limit pauses the runner until its reset", () => {
 
 // --- small parts --------------------------------------------------------------
 
+test("the triage label is known, so picking an issue removes it", () => {
+  assert.equal(labelNames({}).triaged, "bot-triaged");
+  assert.equal(labelNames({ LABEL_TRIAGED: "triaged" }).triaged, "triaged");
+  const script = readFileSync(new URL("../../.github/actions/implementer/implementer.mjs", import.meta.url), "utf8");
+  assert.match(script, /remove: \[cfg\.labels\.failed, cfg\.labels\.needsInput, cfg\.labels\.triaged\]/);
+});
+
 test("prompts, sandbox settings, the API", async () => {
   assert.equal(fillPrompt("Round {{ROUND}} of {{BASE}} {{OTHER}}", { ROUND: 1, BASE: "dev" }), "Round 1 of dev {{OTHER}}");
   assert.deepEqual(sandboxSettings("github.com, p3m.dev").sandbox.network.allowedDomains, ["github.com", "p3m.dev"]);

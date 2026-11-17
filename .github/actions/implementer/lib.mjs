@@ -50,6 +50,7 @@ export function labelNames(env = process.env) {
     failed: env.LABEL_FAILED || "bot-failed",
     needsInput: env.LABEL_NEEDS_INPUT || "bot-needs-input",
     suspicious: env.LABEL_SUSPICIOUS || "bot-suspicious",
+    triaged: env.LABEL_TRIAGED || "bot-triaged",
   };
 }
 

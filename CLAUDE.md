@@ -257,7 +257,9 @@ the live caller used to validate changes before wider rollout.
     (the approved issues are the list: `bot-proceed` without
     `bot-in-progress`, oldest approval first; approval from the timeline,
     spec = newest triage comment, type from the `bug`/`enhancement`
-    label; a refused issue loses the label with a comment), `implement`
+    label; a refused issue loses the label with a comment; a picked one
+    loses `bot-triaged` (input `label-triaged`, 2026-11-17: the triage
+    step is over, so dashboards don't show it as waiting for approval)), `implement`
     (no writing token; claude-code-action with Claude Code's sandbox,
     hosts input `allowed-hosts`; writer, `run-checks.sh` = rcmdcheck,
     maintainability reviewer, up to two correction rounds unrolled in the

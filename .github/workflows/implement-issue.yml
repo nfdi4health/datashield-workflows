@@ -142,6 +142,11 @@ on:
         required: false
         type: string
         default: 'bot-suspicious'
+      label-triaged:
+        description: 'The triage''s label, removed when the implementer takes an issue (the triage step is over).'
+        required: false
+        type: string
+        default: 'bot-triaged'
     secrets:
       claude-code-oauth-token:
         description: 'From `claude setup-token`: the subscription the agent runs on.'
@@ -167,6 +172,7 @@ env:
   LABEL_FAILED: ${{ inputs.label-failed }}
   LABEL_NEEDS_INPUT: ${{ inputs.label-needs-input }}
   LABEL_SUSPICIOUS: ${{ inputs.label-suspicious }}
+  LABEL_TRIAGED: ${{ inputs.label-triaged }}
 
 jobs:
   pick:
