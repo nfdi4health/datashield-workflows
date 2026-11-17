@@ -49,7 +49,7 @@ Built 2026-10-02 for the KPIs the user has to report on service usage.
   matrix workflow is ever counted: only in `strategy.job-index == 0`.)
 - **Never breaks a run:** `if: always()` (also counts failed runs),
   `continue-on-error: true`, the script always exits 0, `--max-time 10`.
-- **Collector** (`repo-collect-usage.yml`, not reusable, runs in this repo
+- **Collector** (`REPO-collect-usage.yml`, not reusable, runs in this repo
   only): daily at 05:17 UTC, by hand, and on pushes to `main` that change
   workflows. It creates the release if missing, uploads the missing files
   for every workflow calling `count-run` (a newly counted workflow is
@@ -127,7 +127,7 @@ repo (columns, same-day replace, next day).
   repo as pre-v1 history; then the old files are removed.
 - **Central private repo `datashield-kpi-reporting`** (nfdi4health).
   **Built 2026-10-26, split instead of moved (user's decision):** this
-  repository keeps creating the counter files (`repo-collect-usage.yml`, now
+  repository keeps creating the counter files (`REPO-collect-usage.yml`, now
   "Usage counter files", own token, no longer writes `usage-data`); the
   KPI repo only reads the public counts daily (`R/collect_counts.R`,
   `.github/workflows/collect.yml`) into `usage.csv` on its `main` —
