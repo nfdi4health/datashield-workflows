@@ -167,3 +167,16 @@ methods-research:
     effort: high
     max_tokens: 32000
     web_search: 8          # at most this many searches per candidate
+
+# The hub's "Exists?" check of new issues (R/check_ideas.R): what method an
+# issue asks for, its keywords and similar hub issues, read from the
+# untrusted issue text. The verdict itself is the `methods-exists` call.
+idea-reading:
+  anthropic:
+    tool_name: submit_idea_method
+    model: claude-sonnet-5-5
+    tool_choice_type: auto
+    thinking:
+      type: adaptive
+    effort: low
+    max_tokens: 8000

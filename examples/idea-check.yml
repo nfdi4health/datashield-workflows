@@ -1,0 +1,25 @@
+name: Idea Check
+
+# In the private runner repository: the "Exists in DataSHIELD?" check of
+# the hub's new issues, on the Claude subscription. Started by the hub
+# (idea-check-start.yml) and by hand. Its own concurrency group, so a
+# queued check never pushes a queued implementer or literature watch run
+# out of the shared queue (GitHub keeps one pending run per group).
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: idea-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    permissions:
+      contents: read
+    uses: nfdi4health/datashield-workflows/.github/workflows/idea-check.yml@main
+    with:
+      hub-repository: your-org/your-hub
+    secrets:
+      claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      app-client-id: ${{ secrets.APP_CLIENT_ID }}
+      app-private-key: ${{ secrets.APP_PRIVATE_KEY }}

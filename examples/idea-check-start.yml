@@ -1,0 +1,24 @@
+name: Idea Check
+
+# In the hub of missing functions: a new issue starts the "Exists in
+# DataSHIELD?" check in the private runner repository (idea-check.yml
+# there), which comments on the issue with the closest DataSHIELD functions
+# and labels it exists / exists-partly / in-development. By hand only the
+# logins listed may start it; the bots' App needs Actions: write on the
+# runner.
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+jobs:
+  start:
+    permissions:
+      contents: read
+    uses: nfdi4health/datashield-workflows/.github/workflows/idea-check-start.yml@main
+    with:
+      runner-repository: your-login/your-runner
+      allowed-logins: your-login
+    secrets:
+      app-client-id: ${{ secrets.APP_CLIENT_ID }}
+      app-private-key: ${{ secrets.APP_PRIVATE_KEY }}

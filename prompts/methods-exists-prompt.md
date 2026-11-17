@@ -18,7 +18,8 @@ For each method (`id` as given), answer:
   - `none`: no candidate does it;
   - `unclear`: the documents don't say enough to decide.
 - `function`: for `yes` and `partial`, the candidate as `package::function`,
-  exactly as listed; else `""`.
+  exactly as listed; else `""`. If several candidates do it, name one whose
+  status is production.
 - `quote`: for `yes` and `partial`, words copied exactly from that
   function's title or description that show it (at most 25 words); else
   `""`.
