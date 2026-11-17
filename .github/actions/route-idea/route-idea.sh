@@ -103,12 +103,12 @@ case "$step" in
     # Mentions in the copy would notify people a second time: @name loses
     # its effect with a zero-width space after the @.
     body="$(event_field .issue.body | sed 's/@\([A-Za-z0-9]\)/@\xe2\x80\x8b\1/g')"
-    copy_body="$(printf 'Copied from %s, the place for missing DataSHIELD functions: votes and discussion stay there.\n\n---\n\n%s\n\n<!-- function-idea: %s#%s -->' \
+    copy_body="$(printf 'Copied from %s, where missing DataSHIELD functions are collected. Discussion and work happen here; a 👍 there counts the demand.\n\n---\n\n%s\n\n<!-- function-idea: %s#%s -->' \
       "$url" "$body" "$GITHUB_REPOSITORY" "$number")"
     new_url="$(GH_TOKEN="$TARGET_TOKEN" gh api "repos/$TARGET/issues" -f title="$title" -f body="$copy_body" --jq '.html_url')"
     new_ref="$TARGET#${new_url##*/}"
     gh api "repos/$GITHUB_REPOSITORY/issues/$number/comments" \
-      -f body="$(printf 'Tracked in %s: work on it happens there.\n\n%s' "$new_ref" "$(marker "$TARGET")")" > /dev/null
+      -f body="$(printf 'Tracked in %s: discussion and work happen there. A 👍 on this issue still counts the demand.\n\n%s' "$new_ref" "$(marker "$TARGET")")" > /dev/null
     gh api "repos/$GITHUB_REPOSITORY/issues/$number/labels" -f "labels[]=${ROUTED_LABEL:-routed}" > /dev/null
     echo "Copied to $new_url."
     ;;
