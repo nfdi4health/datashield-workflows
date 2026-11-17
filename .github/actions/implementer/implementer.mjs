@@ -88,6 +88,19 @@ export function parseReview(text) {
   return { must_fix: [], comments: raw.trim() ? [`The reviewer's answer was not valid JSON: ${raw.trim().slice(0, 500)}`] : [] };
 }
 
+// Before the agent's first command: no token left in a git remote's URL
+// or in an auth header of the checkout. claude-code-action writes its
+// GitHub token into the remote URL; nothing in the agent's job pushes (the
+// result leaves as a bundle), so the remote needs none.
+export const stripGitCredentials =
+  "for r in $(git remote 2>/dev/null); do git remote set-url \"$r\" \"$(git remote get-url \"$r\" | sed -E 's#://[^/@]+@#://#')\"; done; " +
+  "git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null; true";
+
+// Claude Code's settings for the agents: the sandbox (only the listed
+// hosts), and no GitHub token where the agent's commands could read it.
+// claude-code-action passes its token to Claude Code as GITHUB_TOKEN and
+// GH_TOKEN, which CLAUDE_CODE_SUBPROCESS_ENV_SCRUB doesn't remove (the
+// sandbox probe, 2026-11-17); `env` blanks them for the session.
 export function sandboxSettings(hosts) {
   return {
     sandbox: {
@@ -96,6 +109,8 @@ export function sandboxSettings(hosts) {
       allowUnsandboxedCommands: false,
       network: { allowedDomains: splitLogins(hosts) },
     },
+    env: { GITHUB_TOKEN: "", GH_TOKEN: "" },
+    hooks: { SessionStart: [{ hooks: [{ type: "command", command: stripGitCredentials }] }] },
   };
 }
 

@@ -11,7 +11,7 @@ import { commitType, listQueue, parseRequest, pickNext, verifyIssue } from "../.
 import { finalOutcome, nextRound, parseLimit, readExecution, splitDisclosureReview } from "../../.github/actions/implementer/outcome.mjs";
 import { failureComment, needsInputComment, publish, pullRequestBody, reviewChanges } from "../../.github/actions/implementer/publish.mjs";
 import { mergeEvents, statusRows, timelineEvents, toCsv } from "../../.github/actions/implementer/log.mjs";
-import { fillPrompt, oracleNote, pausedUntil, promptValues, sandboxSettings } from "../../.github/actions/implementer/implementer.mjs";
+import { fillPrompt, oracleNote, pausedUntil, promptValues, sandboxSettings, stripGitCredentials } from "../../.github/actions/implementer/implementer.mjs";
 
 const cfg = {
   labels: labelNames({}),
@@ -436,12 +436,28 @@ test("a limit pauses the runner until its reset", () => {
 test("prompts, sandbox settings, the API", async () => {
   assert.equal(fillPrompt("Round {{ROUND}} of {{BASE}} {{OTHER}}", { ROUND: 1, BASE: "dev" }), "Round 1 of dev {{OTHER}}");
   assert.deepEqual(sandboxSettings("github.com, p3m.dev").sandbox.network.allowedDomains, ["github.com", "p3m.dev"]);
+  assert.deepEqual(sandboxSettings("").env, { GITHUB_TOKEN: "", GH_TOKEN: "" });
+  assert.equal(sandboxSettings("").hooks.SessionStart[0].hooks[0].command, stripGitCredentials);
   await assert.rejects(githubApi("t", async () => ({ ok: false, status: 403 }))("x"), /HTTP 403/);
   assert.equal(await githubApi("t", async () => ({ ok: false, status: 404 }))("x"), null);
   assert.deepEqual(await githubApi("t", async () => ({ ok: true, status: 204 }))("x"), {});
   const pages = [Array(100).fill("a"), ["last"]];
   let call = 0;
   assert.equal((await listAll(async () => pages[call++], "x?y=1")).length, 101);
+});
+
+test("the session-start hook takes the token out of the remote URLs and the auth header", () => {
+  const dir = mkdtempSync(join(tmpdir(), "strip-"));
+  const git = (...args) => execFileSync("git", ["-C", dir, ...args], { encoding: "utf8" }).trim();
+  git("init", "-q");
+  git("remote", "add", "origin", "https://x-access-token:ghs_secret@github.com/o/r.git");
+  git("remote", "add", "plain", "https://github.com/o/p.git");
+  git("config", "--local", "http.https://github.com/.extraheader", "AUTHORIZATION: basic abc");
+  execFileSync("bash", ["-c", stripGitCredentials], { cwd: dir });
+  assert.equal(git("remote", "get-url", "origin"), "https://github.com/o/r.git");
+  assert.equal(git("remote", "get-url", "plain"), "https://github.com/o/p.git");
+  assert.throws(() => git("config", "--local", "--get", "http.https://github.com/.extraheader"));
+  execFileSync("bash", ["-c", stripGitCredentials], { cwd: tmpdir() });
 });
 
 test("the composite action declares every output implementer.mjs writes", () => {

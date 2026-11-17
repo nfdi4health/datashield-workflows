@@ -281,7 +281,13 @@ the live caller used to validate changes before wider rollout.
     inside the sandbox; `judge-probe.sh` then checks outside it that an
     unlisted host is blocked, an allowed one reachable, no token variable,
     token-shaped value or git credential is visible, and R runs (tests
-    `tests/shell/test-sandbox-probe.sh`).
+    `tests/shell/test-sandbox-probe.sh`). **First verdict (2026-11-17):**
+    network rules, git and R pass, but claude-code-action's token was
+    visible (`GITHUB_TOKEN`, `GH_TOKEN`, and in the remote URL);
+    `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` doesn't remove those. Fixed in
+    `sandboxSettings()` (the settings of every agent and the probe): `env`
+    blanks both, a `SessionStart` hook (`stripGitCredentials`) strips the
+    remote URLs and auth header. To confirm with the next probe run.
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
   - `route-idea.yml`, `literature-watch.yml` — for the hub of missing
