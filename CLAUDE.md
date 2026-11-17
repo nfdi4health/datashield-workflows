@@ -311,7 +311,7 @@ the live caller used to validate changes before wider rollout.
     closed as completed → the hub issue is closed as completed once every
     copy is (only in the run that sees it, so a hub issue reopened by hand
     stays open); not planned / duplicate → `declined-label`
-    (`declined-there`), the idea stays open; reopened → the label goes and
+    (`declined`), the idea stays open; reopened → the label goes and
     a hub issue closed as completed opens again. Nothing is written to the
     targets. Composite action `route-idea`, tests
     `tests/shell/test-route-idea.sh`. Literature watch (named so

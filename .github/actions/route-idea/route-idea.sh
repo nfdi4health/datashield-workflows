@@ -132,7 +132,7 @@ case "$step" in
 
   sync)
     routed="${ROUTED_LABEL:-routed}"
-    declined="${DECLINED_LABEL:-declined-there}"
+    declined="${DECLINED_LABEL:-declined}"
     gh api --paginate "repos/$GITHUB_REPOSITORY/issues?state=all&per_page=100&labels=$(jq -rn --arg l "$routed" '$l | @uri')" \
       --jq '.[] | select(.pull_request == null) | "\(.number) \(.state) \(.state_reason // "")"' > "${RUNNER_TEMP:-/tmp}/routed.txt"
     while read -r n hub_state hub_reason; do

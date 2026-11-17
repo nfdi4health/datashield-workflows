@@ -38,7 +38,7 @@ inputs:
   declined-label:
     description: 'sync: the label a hub issue gets when a copy is closed without being done.'
     required: false
-    default: 'declined-there'
+    default: 'declined'
   label-color:
     description: 'labels: the colour of new route labels.'
     required: false

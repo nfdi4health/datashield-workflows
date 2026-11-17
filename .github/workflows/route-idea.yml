@@ -45,7 +45,7 @@ on:
         description: 'The label a hub issue gets when a copy is closed without being done (not planned, duplicate); it goes again if the copy is reopened.'
         required: false
         type: string
-        default: 'declined-there'
+        default: 'declined'
     secrets:
       route-token:
         description: 'A token that opens the copies instead of the App, e.g. a classic token with only public_repo (the copies open in its owner''s name). Used only after the routing label was checked.'

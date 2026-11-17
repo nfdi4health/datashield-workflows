@@ -112,7 +112,7 @@ check "a missing routes file stops the run" "$rc"
 sync_run() {  # sync_run: runs the sync step with the files in $WORK/sync
   : > "$WORK/calls"
   PATH="$WORK/syncbin:$PATH" GITHUB_REPOSITORY=hub/ideas GH_TOKEN=hub-token RUNNER_TEMP="$WORK" \
-    GITHUB_EVENT_PATH=/dev/null ROUTED_LABEL=routed DECLINED_LABEL=declined-there bash "$SCRIPT" sync > "$WORK/log" 2>&1
+    GITHUB_EVENT_PATH=/dev/null ROUTED_LABEL=routed DECLINED_LABEL=declined bash "$SCRIPT" sync > "$WORK/log" 2>&1
 }
 mkdir -p "$WORK/syncbin" "$WORK/sync"
 cat > "$WORK/syncbin/gh" <<STANDIN
@@ -141,7 +141,7 @@ rc=1; if grep -q 'issues/12/comments -f body=Done: target/pkg#7 was closed as co
   && grep -q 'PATCH repos/hub/ideas/issues/12 -f state=closed -f state_reason=completed' <<< "$calls"; then rc=0; fi
 check "sync: a copy closed as completed closes the hub issue, with one comment" "$rc"
 rc=1; if grep -q 'issues/13/comments -f body=target/pkg#8 was closed there as not planned.*route-status: target/pkg#8 not-planned' <<< "$calls" \
-  && grep -q 'issues/13/labels -f labels\[\]=declined-there' <<< "$calls" && ! grep -q 'PATCH repos/hub/ideas/issues/13' <<< "$calls"; then rc=0; fi
+  && grep -q 'issues/13/labels -f labels\[\]=declined' <<< "$calls" && ! grep -q 'PATCH repos/hub/ideas/issues/13' <<< "$calls"; then rc=0; fi
 check "sync: a copy closed as not planned labels the hub issue, which stays open" "$rc"
 rc=1; if ! grep -q 'issues/14/comments -f' <<< "$calls"; then rc=0; fi
 check "sync: nothing changed, nothing written" "$rc"
@@ -159,7 +159,7 @@ echo "open " > "$WORK/sync/copy-8"
 sync_run
 calls="$(tr '\n' ' ' < "$WORK/calls")"
 rc=1; if grep -q 'issues/12/comments -f body=target/pkg#7 was reopened' <<< "$calls" && grep -q 'PATCH repos/hub/ideas/issues/12 -f state=open' <<< "$calls" \
-  && grep -q 'DELETE repos/hub/ideas/issues/13/labels/declined-there' <<< "$calls"; then rc=0; fi
+  && grep -q 'DELETE repos/hub/ideas/issues/13/labels/declined' <<< "$calls"; then rc=0; fi
 check "sync: a reopened copy reopens the hub issue and removes the declined label" "$rc"
 
 echo "$passed passed, $failed failed"
