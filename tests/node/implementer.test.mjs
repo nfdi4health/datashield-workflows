@@ -311,6 +311,7 @@ test("completed: a normal pull request, bot-completed, the approval used up", as
   assert.equal(pr.body.draft, false);
   assert.equal(pr.body.title, "fix: A bug");
   assert.ok(calls.some((c) => c.method === "DELETE" && c.path.endsWith("/labels/bot-proceed")));
+  assert.ok(calls.some((c) => c.method === "DELETE" && c.path.endsWith("/labels/bot-triaged")));
   assert.deepEqual(calls.find((c) => c.path.endsWith("/labels") && c.method === "POST").body.labels, ["bot-completed"]);
 });
 
@@ -321,6 +322,7 @@ test("failed: a draft pull request, a comment saying why, bot-failed", async () 
   assert.equal(calls.find((c) => c.path === "repos/org/pkg/pulls").body.draft, true);
   assert.match(calls.find((c) => c.path.endsWith("/comments")).body.body, /Checks still fail/);
   assert.deepEqual(calls.find((c) => c.path.endsWith("/labels") && c.method === "POST").body.labels, ["bot-failed"]);
+  assert.ok(!calls.some((c) => c.path.endsWith("/labels/bot-triaged")));
 });
 
 test("open-pull-request false: the branch is pushed, the link goes to the issue, no pull request", async () => {
@@ -347,6 +349,7 @@ test("needs input: the question as a comment, no push, bot-needs-input", async (
   assert.equal(out.result, "needs-input");
   assert.equal(pushed, false);
   assert.deepEqual(calls.find((c) => c.path.endsWith("/labels") && c.method === "POST").body.labels, ["bot-needs-input"]);
+  assert.ok(!calls.some((c) => c.path.endsWith("/labels/bot-triaged")));
 });
 
 test("limit: bot-in-progress removed, bot-proceed kept, a timer within six hours, none beyond", async () => {
@@ -432,6 +435,11 @@ test("a limit pauses the runner until its reset", () => {
 });
 
 // --- small parts --------------------------------------------------------------
+
+test("the triage label is known", () => {
+  assert.equal(labelNames({}).triaged, "bot-triaged");
+  assert.equal(labelNames({ LABEL_TRIAGED: "triaged" }).triaged, "triaged");
+});
 
 test("prompts, sandbox settings, the API", async () => {
   assert.equal(fillPrompt("Round {{ROUND}} of {{BASE}} {{OTHER}}", { ROUND: 1, BASE: "dev" }), "Round 1 of dev {{OTHER}}");
