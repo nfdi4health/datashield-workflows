@@ -71,7 +71,8 @@ jobs:
     # Quick successive pushes to the plan: the newest run replaces the
     # older one, instead of both force-pushing the same bot branch.
     concurrency:
-      group: datashield-analysis-${{ github.repository }}-${{ github.ref }}
+      # A self-test run gets a queue of its own (see roxygen-suggest.yml).
+      group: datashield-analysis-${{ github.repository }}-${{ github.ref }}${{ inputs.self-test-fixture != '' && format('-self-test-{0}', github.run_id) || '' }}
       cancel-in-progress: true
     # Installs + per step an agent run (config agent.timeout_minutes) or
     # Claude calls, with test runs; caps a hanging run.
