@@ -83,5 +83,29 @@ check "the copy links back to the hub issue" "$rc"
 rc=1; if ! grep -q "for @someone" "$WORK/calls" && [ ! -e pwned ] && [ ! -e "$WORK/pwned" ]; then rc=0; fi
 check "mentions are defused and the title is never run" "$rc"
 
+# labels: creates the route labels the hub lacks (the stand-in answers the
+# label list from $WORK/comments), leaves existing ones alone.
+printf 'dsSurvival\nbug\n' > "$WORK/comments"
+run labels maintainer x
+rc=1; if grep -q 'api repos/hub/ideas/labels -f name=dsClusterAnalysis -f color=1d76db -f description=Route to target-owner/dsCluster' "$WORK/calls" \
+  && ! grep -q 'name=dsSurvival' "$WORK/calls"; then rc=0; fi
+check "labels: missing route labels are created, existing ones (any case) left alone" "$rc"
+
+# routes from a file, when ROUTES is empty
+cat > "$WORK/routes.yml" <<'YAML'
+# Routing labels
+routes:
+  dsClusterAnalysis: target-owner/dsCluster   # client
+  dsSupportClient: owner/dsSupportClient
+YAML
+: > "$WORK/comments"; : > "$WORK/calls"; : > "$WORK/out"
+jq -n '{action: "labeled", sender: {login: "maintainer"}, label: {name: "dssupportclient"}, issue: {number: 12}}' > "$WORK/event.json"
+PATH="$BIN:$PATH" GITHUB_EVENT_PATH="$WORK/event.json" GITHUB_REPOSITORY=hub/ideas GITHUB_OUTPUT="$WORK/out" \
+  GH_TOKEN=hub-token ROUTES="" ROUTES_FILE="$WORK/routes.yml" ALLOWED_LOGINS=maintainer bash "$SCRIPT" plan > "$WORK/log" 2>&1
+grep -qx "target=owner/dsSupportClient" "$WORK/out"
+check "routes come from the file when the input is empty" $?
+rc=1; if ! ROUTES="" ROUTES_FILE="$WORK/missing.yml" GITHUB_EVENT_PATH="$WORK/event.json" bash "$SCRIPT" plan > /dev/null 2>&1; then rc=0; fi
+check "a missing routes file stops the run" "$rc"
+
 echo "$passed passed, $failed failed"
 [ "$failed" = 0 ]
