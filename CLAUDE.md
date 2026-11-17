@@ -387,8 +387,8 @@ the live caller used to validate changes before wider rollout.
     link already updated.
 - This repository's own, non-reusable workflows carry the prefix `REPO-`
   (user, 2026-11-17: upper case, so others see at once in
-  `.github/workflows/` which ones aren't reusable) (besides `REPO-ci.yml`,
-  `REPO-self-test.yml`, `REPO-publish-docs.yml`, `REPO-collect-usage.yml`): `REPO-smoke-test.yml`
+  `.github/workflows/` which ones aren't reusable). Besides `REPO-ci.yml`,
+  `REPO-self-test.yml`, `REPO-publish-docs.yml` and `REPO-collect-usage.yml`: `REPO-smoke-test.yml`
   (real Claude calls, 2026-11-13: `tests/smoke/` runs the roxygen and test
   entry scripts on `tests/fixtures/r-package` through Claude Code on the
   owner's subscription, secret `CLAUDE_CODE_OAUTH_TOKEN`; GitHub answered
