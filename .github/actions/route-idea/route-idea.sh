@@ -19,7 +19,16 @@
 # Reads the event file; no issue text passes through an expression.
 set -euo pipefail
 
-step="${1:?plan or copy}"
+step="${1:?plan, copy or labels}"
+
+# Without ROUTES, the routes come from ROUTES_FILE: a YAML mapping
+#   routes:
+#     dsSurvival: datashield/dsSurvivalClient   # a comment
+# read line by line (no YAML library needed), as "label = owner/repo".
+if [ -z "${ROUTES:-}" ] && [ -n "${ROUTES_FILE:-}" ]; then
+  [ -f "$ROUTES_FILE" ] || { echo "No routes: $ROUTES_FILE doesn't exist." >&2; exit 1; }
+  ROUTES="$(sed -nE 's/^[[:space:]]+([A-Za-z0-9_.-]+):[[:space:]]*([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)[[:space:]]*(#.*)?$/\1 = \2/p' "$ROUTES_FILE")"
+fi
 event_field() { jq -r "$1 // \"\"" "$GITHUB_EVENT_PATH"; }
 number="$(event_field .issue.number)"
 lower() { tr '[:upper:]' '[:lower:]' <<< "$1"; }

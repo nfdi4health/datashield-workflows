@@ -12,6 +12,10 @@ inputs:
     description: 'Lines "label = owner/repo".'
     required: false
     default: ''
+  routes-file:
+    description: 'Used when routes is empty: a file with a mapping `routes:` of `label: owner/repo` entries.'
+    required: false
+    default: ''
   allowed-logins:
     description: 'Who may route: exact GitHub logins, separated by commas or spaces.'
     required: false
@@ -57,6 +61,7 @@ runs:
         GH_TOKEN: ${{ inputs.token }}
         STEP: ${{ inputs.step }}
         ROUTES: ${{ inputs.routes }}
+        ROUTES_FILE: ${{ inputs.routes-file }}
         ALLOWED_LOGINS: ${{ inputs.allowed-logins }}
         TARGET: ${{ inputs.target }}
         TARGET_TOKEN: ${{ inputs.target-token }}
