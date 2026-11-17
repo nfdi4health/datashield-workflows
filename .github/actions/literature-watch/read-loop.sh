@@ -4,7 +4,10 @@
 # data branch, and starts the next stretch while the run's budget lasts
 # (watch_status.json: "chunk"). A stop at the usage limit, the budget or
 # an error loses at most the papers of the current stretch that weren't
-# written yet (R writes after every fetch). Then $REPORT_SCRIPT (if set)
+# written yet (R writes after every fetch). Then $CLASSIFY_SCRIPT (if set,
+# and the reading didn't stop at the usage limit) updates the vocabulary
+# and the "Exists?" verdicts, pushed as its own commit; a failure there is
+# a warning, the report still follows. Then $REPORT_SCRIPT (if set)
 # writes the report and progress.csv into watch-data, pushed the same way,
 # also after a stop by an error. R runs without $HUB_TOKEN in its
 # environment.
@@ -38,6 +41,13 @@ while :; do
   echo "Stretch: $read papers ($stopped). $progress"
   [ "$stopped" = "chunk" ] || break
 done
+if [ -n "${CLASSIFY_SCRIPT:-}" ] && [ "$stopped" != "limit" ]; then
+  if env -u HUB_TOKEN WATCH_DATA_DIR="$dir" Rscript "$CLASSIFY_SCRIPT"; then
+    push "vocabulary" || { echo "::error::Pushing the vocabulary to the data branch failed."; stopped="error"; }
+  else
+    echo "::warning::The vocabulary step failed; the next run tries again."
+  fi
+fi
 if [ -n "${REPORT_SCRIPT:-}" ]; then
   if env -u HUB_TOKEN WATCH_DATA_DIR="$dir" Rscript "$REPORT_SCRIPT"; then
     push "report" || { echo "::error::Pushing the report to the data branch failed."; stopped="error"; }

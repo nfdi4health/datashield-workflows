@@ -2,7 +2,7 @@
 # round and its progress per field, all fields together (each paper once),
 # one section per field, and the searches in use. Shares per year, never
 # counts (the number of papers grows every year).
-format_watch_report <- function(reg, state, fields, queries, months, progress, settings, today) {
+format_watch_report <- function(reg, state, fields, queries, months, progress, settings, today, vocab = list()) {
   r <- settings$report
   target <- settings$sampling$target_per_month %||% 25
   years <- sort(unique(substr(months, 1, 4)))
@@ -20,13 +20,13 @@ format_watch_report <- function(reg, state, fields, queries, months, progress, s
     "| Field | Months complete | Papers read |", "|---|---|---|",
     sprintf("| %s | %d / %d | %d / %d |", progress$field, progress$months_complete, progress$months, progress$papers_read, progress$sample_size),
     sprintf("| **all** | %d / %d | %d / %d |", sum(progress$months_complete), sum(progress$months), sum(progress$papers_read), sum(progress$sample_size)), "")
-  lines <- c(lines, format_method_section("All fields", all_papers, years, recent, r$top %||% 20, r$chart_methods %||% 5, r$min_variant_papers %||% 2))
+  lines <- c(lines, format_method_section("All fields", all_papers, years, recent, r$top %||% 20, r$chart_methods %||% 5, r$min_variant_papers %||% 2, vocab))
   for (f in names(by_field)) {
-    lines <- c(lines, format_method_section(f, by_field[[f]], years, recent, 10, 0, r$min_variant_papers %||% 2))
+    lines <- c(lines, format_method_section(f, by_field[[f]], years, recent, 10, 0, r$min_variant_papers %||% 2, vocab))
   }
   searches <- vapply(fields, field_search, "", settings = settings)
   c(lines, "## Searches", "",
     "| Field | Version | Search |", "|---|---|---|",
     sprintf("| %s | `%s` | `%s` |", names(by_field), unlist(queries[names(by_field)]), gsub("|", "\\|", searches, fixed = TRUE)), "",
-    "_Notes: shares are per year of publication; all fields dip in 2022-2023, most likely NLM's switch to automated MeSH indexing, so read changes around those years with care. Method names aren't merged into synonyms yet (\"t-test\" and \"Student's t-test\" are counted apart); that comes with the vocabulary step._")
+    "_Notes: shares are per year of publication; all fields dip in 2022-2023, most likely NLM's switch to automated MeSH indexing, so read changes around those years with care. Method names are merged by the vocabulary (`vocabulary.yml`, Claude); names not classified yet are shown as the papers gave them. \"In DataSHIELD\" is Claude's verdict against the functions' documentation in the package catalogue, with the function it found; \"partly\" means the plain method or only some of it, \"no (in development)\" a match only in a development package, \"unconfirmed\" an answer whose evidence didn't check out, \"–\" not checked yet (fewer papers than the threshold)._")
 }

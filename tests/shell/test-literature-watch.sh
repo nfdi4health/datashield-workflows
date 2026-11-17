@@ -15,6 +15,7 @@ run_loop() {
   printf '%s\n' "$1" > "$work/answers"
   cat > "$work/bin/Rscript" <<'STUB'
 #!/usr/bin/env bash
+if [ "$1" = "classify.R" ]; then echo "${HUB_TOKEN:-unset}" > classify_env; [ -f classify_fails ] && exit 1; exit 0; fi
 if [ "$1" = "report.R" ]; then echo "${HUB_TOKEN:-unset}" > report_env; [ -f report_fails ] && exit 1; exit 0; fi
 n=$(cat calls 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > calls
 echo "${HUB_TOKEN:-unset} ${WATCH_MAX_PAPERS:-empty}" >> rscript_env
@@ -31,7 +32,8 @@ exit 0
 STUB
   chmod +x "$work/bin/"*
   [ -n "${REPORT_FAILS:-}" ] && touch "$work/report_fails"
-  (cd "$work" && PATH="$work/bin:$PATH" HUB_TOKEN="${2:-}" DATA_BRANCH=data SCRIPT=x.R REPORT_SCRIPT="${3:-}" MAX_PAPERS="" \
+  [ -n "${CLASSIFY_FAILS:-}" ] && touch "$work/classify_fails"
+  (cd "$work" && PATH="$work/bin:$PATH" HUB_TOKEN="${2:-}" DATA_BRANCH=data SCRIPT=x.R REPORT_SCRIPT="${3:-}" CLASSIFY_SCRIPT="${4:-}" MAX_PAPERS="" \
     GITHUB_OUTPUT="$work/out" GITHUB_STEP_SUMMARY="$work/summary" bash "$loop" > /dev/null 2>&1; echo $? > "$work/exit")
 }
 
@@ -63,6 +65,18 @@ check "with its own message" "$(grep -c 'literature watch, report' "$work/git_ca
 
 REPORT_FAILS=1 run_loop 'done 3 1497' secret report.R
 check "a report that fails fails the step" "$(cat "$work/exit")" 1
+
+run_loop $'budget 250 1250' secret report.R classify.R
+check "the vocabulary step runs after the reading, without the hub token" "$(cat "$work/classify_env")" "unset"
+check "and is pushed as its own commit" "$(grep -c 'literature watch, vocabulary' "$work/git_calls")" 1
+check "before the report" "$(grep -c 'literature watch, report' "$work/git_calls")" 1
+
+run_loop 'limit 40 1460' secret report.R classify.R
+check "at the usage limit the vocabulary step waits" "$([ -f "$work/classify_env" ] && echo ran || echo skipped)" skipped
+
+CLASSIFY_FAILS=1 run_loop 'done 3 1497' secret report.R classify.R
+check "a failed vocabulary step still gives a report" "$(grep -c 'literature watch, report' "$work/git_calls")" 1
+check "and doesn't fail the step" "$(cat "$work/exit")" 0
 
 [ "$failures" -eq 0 ] || { echo "$failures failure(s)"; exit 1; }
 echo "all passed"

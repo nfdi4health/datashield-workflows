@@ -317,10 +317,22 @@ the place of a person's review:
   with their verdict and evidence. Questioning a wrong verdict there is one
   entry, not a list to check. The vocabulary file grows by itself; nobody
   ticks boxes for it.
-- **Not decided yet:** the granularity rule (when a variant becomes a
-  method of its own; draft: when it needs its own DataSHIELD function) and
-  whether `partial` counts as a gap for ranking. To be settled with real
-  examples from the pilot.
+- **Decided (user, 2026-11-17):** a variant becomes a method of its own
+  when it would need its own DataSHIELD function (a different estimation
+  procedure, not an option). For ranking, `none` and `partial` count as
+  gaps; `development` doesn't (a very artificial category for now): the
+  report shows it as "no" with the development package's function as a
+  note. `unclear` is listed, not ranked. The research step may use web
+  search (top candidates only). The vocabulary lives on the `data`
+  branch, the candidates' decisions on `main` through the candidate PR;
+  the first candidate PR after the first round is complete (about 28
+  November), then monthly.
+- **Built 2026-11-17** (`R/classify_literature.R`): the vocabulary and
+  "Exists?". The inventory is the catalogue's own
+  (`FederatedMethods/packages`, `datashield_functions_metadata.json`,
+  extracted from the packages' roxygen by the user's script there): title
+  and description per function, no arguments, so the evidence quote comes
+  from those. Retired packages and server functions are left out.
 
 Originally: not built; no repository yet. Problem: the community had no natural place
 for gaps, demand and who works on what (an Excel file in someone's cloud,

@@ -2,13 +2,18 @@
 # once per method: the share of papers using it over the `recent` months
 # (the ranking), and per year of `years` its share, with the papers read
 # that year and the trend (method_trend()). The `top` methods by recent
-# share. Names aren't merged into synonyms yet (the vocabulary step).
-method_table <- function(papers, years, recent, top = 20) {
+# share. Methods in the vocabulary's terms (paper_methods(): names merged
+# into methods, names that aren't methods left out); with an empty
+# vocabulary the reader's own names.
+method_table <- function(papers, years, recent, top = 20, vocab = list()) {
   papers <- Filter(function(p) isTRUE(p$usable), papers)
   if (length(papers) == 0) return(NULL)
   year <- substr(vapply(papers, function(p) p$month, ""), 1, 4)
   in_recent <- vapply(papers, function(p) p$month %in% recent, logical(1))
-  used <- lapply(papers, function(p) unique(vapply(p$methods, function(m) m$name, "")))
+  used <- lapply(papers, function(p) {
+    m <- paper_methods(p, vocab)
+    unique(m$method[m$variant == ""])
+  })
   all <- sort(unique(unlist(used)))
   if (length(all) == 0) return(NULL)
   n_year <- vapply(years, function(y) sum(year == y), numeric(1))
