@@ -9,8 +9,8 @@
 #         copied there before? Writes target=owner/repo, owner, repo to
 #         GITHUB_OUTPUT, or nothing. A route label set by anyone else is
 #         removed, with a comment.
-#   copy  Opens the issue in TARGET with TARGET_TOKEN (an App token for
-#         that repository), then comments on the hub issue with the link
+#   copy  Opens the issue in TARGET with TARGET_TOKEN (the caller's
+#         route-token, or an App token for that repository), then comments on the hub issue with the link
 #         and a hidden marker, and adds ROUTED_LABEL (GH_TOKEN).
 #
 # Reads the event file; no issue text passes through an expression.
@@ -72,7 +72,7 @@ case "$step" in
     ;;
 
   copy)
-    : "${TARGET:?}" "${TARGET_TOKEN:?no App token for the target repository}"
+    : "${TARGET:?}" "${TARGET_TOKEN:?no token for the target repository (route-token or the App)}"
     title="$(event_field .issue.title)"
     url="$(event_field .issue.html_url)"
     # Mentions in the copy would notify people a second time: @name loses

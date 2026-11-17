@@ -17,5 +17,9 @@ jobs:
       routes: |
         dsClusterAnalysis = your-org/dsClusterAnalysisClient
     secrets:
+      # Either a token that opens the copies in your name (a classic token
+      # with only public_repo; any public repository) ...
+      route-token: ${{ secrets.ROUTE_TOKEN }}
+      # ... or the bots' App, installed on every target repository.
       app-client-id: ${{ secrets.APP_CLIENT_ID }}
       app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
