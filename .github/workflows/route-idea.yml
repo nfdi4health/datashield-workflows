@@ -11,7 +11,11 @@ name: Route Idea
 # else with a token of the bots' GitHub App, which must be installed on the
 # target repository (Issues: read and write). Started by anything but an
 # issue event (a push of the routes, or by hand), it instead creates the
-# routes' labels in the hub that don't exist yet. The routes come from the
+# routes' labels in the hub that don't exist yet. On a schedule (and by
+# hand) it checks the copies: a change gets one short comment on the hub
+# issue; the hub issue is closed as completed once every copy is, gets
+# `declined-label` when one is closed otherwise, and opens again when a
+# copy is reopened. Nothing is ever written to the target repositories. The routes come from the
 # hub's `routes-file` (default config/routes.yml, downloaded without a
 # token, so the hub must be public), or from the `routes` input if given.
 # No Claude, no checkout; the logic is in the composite action route-idea.
@@ -37,6 +41,11 @@ on:
         required: false
         type: string
         default: 'routed'
+      declined-label:
+        description: 'The label a hub issue gets when a copy is closed without being done (not planned, duplicate); it goes again if the copy is reopened.'
+        required: false
+        type: string
+        default: 'declined'
     secrets:
       route-token:
         description: 'A token that opens the copies instead of the App, e.g. a classic token with only public_repo (the copies open in its owner''s name). Used only after the routing label was checked.'
@@ -50,7 +59,7 @@ on:
 
 jobs:
   labels:
-    if: github.event_name != 'issues'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -121,3 +130,17 @@ jobs:
           target: ${{ steps.plan.outputs.target }}
           target-token: ${{ secrets.route-token || steps.target_token.outputs.token }}
           routed-label: ${{ inputs.routed-label }}
+
+  sync:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: How the copies are doing
+        uses: $/.github/actions/route-idea
+        with:
+          step: sync
+          token: ${{ github.token }}
+          routed-label: ${{ inputs.routed-label }}
+          declined-label: ${{ inputs.declined-label }}

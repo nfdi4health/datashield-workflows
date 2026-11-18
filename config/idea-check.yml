@@ -1,0 +1,37 @@
+# Settings for idea-check.yml, the "Exists in DataSHIELD?" check of new
+# issues in the hub of missing DataSHIELD functions (R/check_ideas.R). The
+# hub's own config/idea-check.yml is merged over this file key by key.
+# The function inventory and its addresses come from the `exists` section
+# of config/literature-watch.yml, so both checks use the same functions.
+# How many issues per run and which labels to skip are the workflow's
+# inputs (max-issues, skip-labels).
+
+max_issue_chars: 4000    # of an issue's text, for Claude
+candidates: 15           # functions R preselects for Claude
+similar: 3               # similar hub issues named at most
+closest: 5               # functions listed in the comment
+max_note_chars: 300      # of Claude's notes in the comment
+
+# A label per verdict; a verdict without one gets none (`none` is what the
+# hub expects, `unclear` and `unconfirmed` say nothing reliable).
+labels:
+  "yes": exists
+  partial: exists-partly
+  development: in-development
+
+texts:
+  heading: "**Exists in DataSHIELD?**"
+  read_as: "Read as: %s."
+  verdicts:
+    "yes": "Probably yes: `%s` seems to do this (its documentation: \"%s\")."
+    partial: "Partly: `%s` covers some of it (its documentation: \"%s\")."
+    development: "Only in development: `%s` seems to do this (its documentation: \"%s\"), but its package isn't released for production yet."
+    none: "No function of the DataSHIELD packages seems to do this."
+    unclear: "Couldn't tell from the functions' documentation."
+    unconfirmed: "Couldn't tell from the functions' documentation."
+  not_method: "This doesn't read as a statistical method or analysis, so it wasn't checked against the DataSHIELD functions."
+  note: "Note: %s"
+  closest: "Closest functions:"
+  similar: "Similar ideas here: %s."
+  literature: "The literature watch knows this method: named in %d of the %d usable papers read so far. It won't propose it again as a candidate."
+  footer: "Checked against the DataSHIELD package catalogue (FederatedMethods/packages) on %s, from the functions' titles and descriptions only, so read a function's documentation before relying on this. The check runs once per issue; delete this comment to have it run again."

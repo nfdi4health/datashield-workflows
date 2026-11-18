@@ -42,6 +42,11 @@ const record = {
   deferred: [{ key: "splines", papers: 9 }],
 };
 
+test("a rising candidate's issue says so, with its recent share", () => {
+  const b = issueBody({ ...record.candidates[0], list: "rising", recent_share: 0.2 }, "https://github.com/o/hub/pull/3");
+  assert.match(b, /as a method on the rise: used in 12\.0% .*, 20\.0% in the last years, trend rising/);
+});
+
 test("an issue carries the brief, a marker, and no mentions", () => {
   const c = record.candidates[0];
   assert.equal(issueTitle(c), "Method: Fine-Gray regression");
@@ -50,7 +55,7 @@ test("an issue carries the brief, a marker, and no mentions", () => {
   assert.match(b, /<!-- literature-watch-method: fine-gray -->$/);
   assert.match(b, /`cmprsk::crr`/);
   assert.match(b, /A @​paper/);
-  assert.match(b, /12% of the sampled/);
+  assert.match(b, /12.0% of the sampled health research papers of all years read \(41 papers\), trend rising/);
 });
 
 test("decisions are recorded with their papers, the pull request and the issue", () => {

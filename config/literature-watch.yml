@@ -46,7 +46,7 @@ files:
   data: literature-watch/data
   reports: literature-watch/reports
 
-# The vocabulary (R/classify_literature.R, after the reading of each run):
+# The vocabulary (R/vocabulary_literature.R, the job after the reading):
 # Claude (Opus) sorts the method names the papers gave into methods and
 # variants (vocabulary.yml under `data`, written by the workflow, never by
 # hand); only names not classified yet are asked about.
@@ -54,16 +54,17 @@ vocabulary:
   batch: 60            # names per call
   max_calls: 15        # calls per run for names and variants together
 
-# "Exists in DataSHIELD?": each method (and variant) named in at least
-# `min_papers` usable papers is checked against the functions of the
-# DataSHIELD packages, from the catalogue's inventory (FederatedMethods/
-# packages, which also gives each package's status; retired ones are left
-# out). R picks the `candidates` functions sharing most words with the
-# method, Claude answers with the function and a quote from its title or
-# description, which R checks. Asked again only when those candidates
-# change.
+# "Exists in DataSHIELD?" (R/candidates_literature.R, when candidates are
+# due): down the ranking of the most used methods and variants, each is
+# checked against the functions of the DataSHIELD packages, from the
+# catalogue's inventory (FederatedMethods/packages, which also gives each
+# package's status; retired ones are left out), until each list has its
+# gaps (`candidates$most_used`, `candidates$rising`). R picks the `candidates` functions sharing most words
+# with the method, Claude answers with the function and a quote from its
+# title or description, which R checks. Asked again only when those
+# candidates change. Not every night and not for every method: only where
+# a candidate could come from.
 exists:
-  min_papers: 3
   candidates: 15
   batch: 5             # methods per call
   max_calls: 15
@@ -72,16 +73,21 @@ exists:
   packages_url: https://raw.githubusercontent.com/FederatedMethods/packages/main/package_list.csv
 
 # The candidates: once the first round is complete, and then once a month,
-# the most used methods (and variants) DataSHIELD lacks (`none` or
-# `partial`; `development` doesn't count) are researched by Claude (with
-# web search) and proposed to the hub as a pull request, three boxes per
+# two lists of methods (and variants) DataSHIELD lacks (`none` or
+# `partial`; `development` doesn't count): the `most_used` ones by share
+# over all years read, and the `rising` ones (a rising trend, p < 0.05,
+# ordered by their share in the last `report$share_years` years), without
+# the first list's candidates and their variants (user, 2026-11-18). They
+# are researched by Claude (with web search) and proposed to the hub as a
+# pull request, three boxes per
 # candidate: open an issue, not now, don't suggest again. Methods with a
 # hub issue (open or closed) are left out; a "don't suggest again" comes
 # back when its papers reach `resuggest_factor` times the count at the
 # decision. The decisions are kept in decisions.yml under `data`.
 candidates:
-  max: 10               # candidates per pull request
-  min_papers: 5         # in the recent years (report$share_years)
+  most_used: 7          # candidates by share over all years
+  rising: 3             # candidates on the rise
+  min_papers: 5         # over all years read
   branch_prefix: bot-suggest/literature-watch/candidates
   folder: literature-watch/candidates    # on the hub's main branch, one file per month
   resuggest_factor: 2

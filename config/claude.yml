@@ -115,7 +115,7 @@ methods-extraction:
     effort: low        # a reading task; thinking counts towards max_tokens
     max_tokens: 16000
 
-# The literature watch's vocabulary (R/classify_literature.R): which method
+# The literature watch's vocabulary (R/vocabulary_literature.R): which method
 # names mean the same method, method or variant, few calls a night (only
 # names not classified yet), so the strong model (user, 2026-11-16).
 methods-classification:
@@ -140,7 +140,7 @@ methods-variants:
     effort: medium
     max_tokens: 32000
 
-# The literature watch's "Exists in DataSHIELD?" (R/classify_literature.R):
+# The literature watch's "Exists in DataSHIELD?" (R/candidates_literature.R, down the ranking):
 # a method and its variant against the candidate functions' documentation,
 # with the line that shows it (R checks it).
 methods-exists:
@@ -167,3 +167,16 @@ methods-research:
     effort: high
     max_tokens: 32000
     web_search: 8          # at most this many searches per candidate
+
+# The hub's "Exists?" check of new issues (R/check_ideas.R): what method an
+# issue asks for, its keywords and similar hub issues, read from the
+# untrusted issue text. The verdict itself is the `methods-exists` call.
+idea-reading:
+  anthropic:
+    tool_name: submit_idea_method
+    model: claude-sonnet-5-5
+    tool_choice_type: auto
+    thinking:
+      type: adaptive
+    effort: low
+    max_tokens: 8000

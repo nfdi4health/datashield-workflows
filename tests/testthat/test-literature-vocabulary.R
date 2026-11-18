@@ -1,5 +1,5 @@
 # The literature watch's vocabulary and "Exists in DataSHIELD?"
-# (R/classify_literature.R, R/functions/literature/): Claude and the
+# (R/vocabulary_literature.R, R/functions/literature/): Claude and the
 # inventory as stand-ins.
 
 paper <- function(pmid, methods, month = "2026-09", usable = TRUE) {
@@ -118,33 +118,59 @@ test_that("check_exists_answer() keeps verdicts only with a listed function and 
   expect_equal(none$verdict, "none")
 })
 
-test_that("exists_round() asks once, gives none without candidates, and asks again only when the candidates change", {
+test_that("exists_for_ranked() checks down the ranking until enough gaps, and asks again only when the candidates change", {
   v <- empty_vocab()
-  v$methods[["cox-regression"]] <- list(name = "Cox regression", keywords = list("cox", "proportional hazards"))
-  v$methods[["kaplan-meier"]] <- list(name = "Kaplan-Meier estimator", keywords = list("kaplan", "survival curve"))
-  v$names[["cox"]] <- list(method = "cox-regression")
-  v$names[["km"]] <- list(method = "kaplan-meier")
-  reg <- register(paper("1", list("cox", "km")), paper("2", list("cox", "km")), paper("3", list("cox", "km")))
-  settings <- list(exists = list(min_papers = 3, candidates = 5, batch = 5))
-  asked <- 0
+  v$methods[["cox-regression"]] <- list(name = "Cox regression", keywords = list("cox", "proportional hazards"),
+    variants = list(stratified = list(name = "stratified")))
+  v$methods[["kaplan-meier"]] <- list(name = "Kaplan-Meier estimator", keywords = list("kaplan", "survival curve"),
+    variants = list(weighted = list(name = "weighted")))
+  v$methods[["fine-gray"]] <- list(name = "Fine-Gray regression", keywords = list("fine-gray", "competing risks"))
+  ranked <- data.frame(key = c("kaplan-meier/weighted", "cox-regression/stratified", "cox-regression", "fine-gray"),
+    method = c("kaplan-meier", "cox-regression", "cox-regression", "fine-gray"),
+    variant = c("weighted", "stratified", "", ""), status = "new")
+  settings <- list(exists = list(candidates = 5, batch = 5))
+  asked <- list()
   local_global_mock(call_claude_tool = function(claude, tool, prompt) {
-    asked <<- asked + 1
-    expect_match(prompt, "dsSurvivalClient::ds.coxph (status: production)", fixed = TRUE)
-    list(methods = list(list(id = "m1", verdict = "yes", `function` = "dsSurvivalClient::ds.coxph",
-      quote = "Distributed Cox Proportional Hazards Model", note = "")))
+    asked[[length(asked) + 1]] <<- prompt
+    blocks <- strsplit(prompt, "<method ")[[1]][-1]
+    list(methods = lapply(seq_along(blocks), function(k) {
+      b <- blocks[k]
+      if (grepl("Variant: stratified", b, fixed = TRUE)) {
+        list(id = paste0("m", k), verdict = "partial", `function` = "dsSurvivalClient::ds.coxph",
+          quote = "Distributed Cox Proportional Hazards Model", note = "Not stratified.")
+      } else if (grepl("Method: Cox regression", b, fixed = TRUE)) {
+        list(id = paste0("m", k), verdict = "yes", `function` = "dsSurvivalClient::ds.coxph",
+          quote = "Distributed Cox Proportional Hazards Model", note = "")
+      } else {
+        list(id = paste0("m", k), verdict = "none", `function` = "", quote = "", note = "Nothing.")
+      }
+    }))
   })
   claude <- list(prompt = "{{METHODS}}", config = list())
-  r <- exists_round(v, reg, claude, inventory, settings, as.Date("2026-11-17"), "fp", 10)
-  expect_equal(asked, 1)
-  expect_equal(r$vocab$methods[["cox-regression"]]$exists$verdict, "yes")
-  expect_equal(r$vocab$methods[["kaplan-meier"]]$exists$verdict, "none")
+  r <- exists_for_ranked(ranked, v, claude, inventory, settings, as.Date("2026-11-17"), "fp", 10, want = 1)
+  # Kaplan-Meier has no candidates (R: none), so its variant is covered by
+  # it; Cox regression is asked before its variant; the stratified variant
+  # is the first gap, and the walk stops there: Fine-Gray isn't looked at.
+  expect_equal(r$gaps, "cox-regression/stratified")
   expect_equal(r$vocab$methods[["kaplan-meier"]]$exists$by, "R")
-  again <- exists_round(r$vocab, reg, claude, inventory, settings, as.Date("2026-11-18"), "fp", 10)
-  expect_equal(asked, 1)
+  expect_null(r$vocab$methods[["kaplan-meier"]]$variants$weighted$exists)
+  expect_null(r$vocab$methods[["fine-gray"]]$exists)
+  expect_equal(r$ranked$verdict[r$ranked$key == "cox-regression"], "yes")
+  expect_true(r$complete)
+  n <- length(asked)
+  again <- exists_for_ranked(ranked, r$vocab, claude, inventory, settings, as.Date("2026-11-18"), "fp", 10, want = 1)
+  expect_equal(length(asked), n)
+  expect_equal(again$gaps, "cox-regression/stratified")
+  more <- exists_for_ranked(ranked, r$vocab, claude, inventory, settings, as.Date("2026-11-18"), "fp", 10, want = 2)
+  expect_equal(more$gaps, c("cox-regression/stratified", "fine-gray"))
   inv2 <- rbind(inventory, data.frame(package = "dsSurvivalClient", fn = "ds.coxphSLMA", title = "Cox regression per study",
     description = "Cox proportional hazards per study, pooled by meta-analysis.", status = "production"))
-  exists_round(again$vocab, reg, claude, inv2, settings, as.Date("2026-11-19"), "fp", 10)
-  expect_equal(asked, 2)
+  n <- length(asked)
+  exists_for_ranked(ranked, more$vocab, claude, inv2, settings, as.Date("2026-11-19"), "fp", 10, want = 1)
+  expect_gt(length(asked), n)
+  none <- exists_for_ranked(ranked, v, claude, inventory, settings, as.Date("2026-11-17"), "fp", 0, want = 1)
+  expect_false(none$complete)
+  expect_length(none$gaps, 0)
 })
 
 test_that("method_table() merges names the vocabulary maps to one method", {
@@ -161,7 +187,7 @@ test_that("method_table() merges names the vocabulary maps to one method", {
   expect_true(any(grepl("| Fisher's exact test | 100% | 2 | 100% | – | – |", section, fixed = TRUE)))
 })
 
-test_that("classify_literature.R classifies names and variants, checks existence and writes the vocabulary", {
+test_that("vocabulary_literature.R classifies names and variants and writes the vocabulary, without Exists?", {
   dir <- withr::local_tempdir()
   dir.create(file.path(dir, "config"))
   writeLines(c("exists:", "  min_papers: 2", "  functions_url: https://example.org/functions.json",
@@ -211,15 +237,15 @@ test_that("classify_literature.R classifies names and variants, checks existence
   stand_in <- get("call_claude_tool", globalenv())
   trace_source <- function(file, ...) { base::source(file, ...); assign("call_claude_tool", stand_in, globalenv()) }
   withr::with_dir(dir, withr::with_envvar(c(WATCH_TODAY = "2026-11-17", WATCH_DATA_DIR = "watch-data", CLAUDE_CODE_OAUTH_TOKEN = "x"),
-    httr2::with_mocked_responses(mock, sys.source(file.path(".shared-workflows", "R", "classify_literature.R"),
+    httr2::with_mocked_responses(mock, sys.source(file.path(".shared-workflows", "R", "vocabulary_literature.R"),
       envir = list2env(list(source = trace_source), parent = globalenv())))))
   v <- read_vocabulary(data)
   expect_equal(v$names[["cox proportional hazards model"]]$method, "cox-regression")
   expect_equal(v$names[["p-value"]]$method, "")
-  expect_equal(v$methods[["cox-regression"]]$exists$verdict, "yes")
-  expect_equal(v$methods[["cox-regression"]]$exists[["function"]], "dsSurvivalClient::ds.coxph")
+  expect_null(v$methods[["cox-regression"]]$exists)
   expect_equal(v$methods[["cox-regression"]]$variants[["time-varying-covariates"]]$name, "time-varying covariates")
-  expect_equal(tools, c("submit_method_classes", "submit_variant_classes", "submit_exists_verdicts"))
+  expect_equal(tools, c("submit_method_classes", "submit_variant_classes"))
   readers <- utils::read.csv(file.path(data, "readers.csv"))
-  expect_setequal(readers$group, c("names", "variants", "exists"))
+  expect_setequal(readers$group, c("names", "variants"))
+  expect_equal(readLines(file.path(dir, "vocabulary_status.txt")), "done")
 })

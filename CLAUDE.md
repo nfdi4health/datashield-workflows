@@ -286,14 +286,19 @@ the live caller used to validate changes before wider rollout.
     `sandboxSettings()`: `env` blanks both, a `SessionStart` hook
     (`stripGitCredentials`) strips the remote URLs and auth header;
     confirmed by the last run (runner run 44094807375, all eight checks
-    pass).
+    pass). claude-code-action 1.0.273+ (Dependabot #133) adds, with
+    `allowed_bots`, a credential helper that answers with `$GH_TOKEN`
+    (blank there); the hook removes it too (2026-11-18). Rerun the probe
+    after the bump.
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
   - `route-idea.yml`, `literature-watch.yml` — for the hub of missing
     DataSHIELD functions, `nfdi4health/datashield-function-ideas` (main
     only; built 2026-11-13, **not yet run**; design in
     [dev-notes/issue-agents.md](dev-notes/issue-agents.md), "A central
-    hub"). Route: a routing label (the hub's `config/routes.yml`, a
+    hub"). The copy carries the newest idea-check comment by a bot,
+    without its markers (user, 2026-11-18: the package's maintainers don't
+    start from scratch). Route: a routing label (the hub's `config/routes.yml`, a
     mapping `routes:` of `label: owner/repo`, downloaded without a token
     since 2026-11-17; or the input `routes`, lines `label = owner/repo`)
     set by a login in `allowed-logins` copies the hub issue
@@ -302,8 +307,18 @@ the live caller used to validate changes before wider rollout.
     the maintainer's name in any public repository, also `datashield`'s),
     else the bots' App token (installed there, Issues: write), links it back with a hidden `routed-to` marker (copied once
     per target) and labels the hub issue `routed`; mentions in the copy
-    are defused. Any other event (a push of the routes, by hand) creates
-    the route labels the hub lacks (step `labels`). Composite action `route-idea`, tests
+    are defused. A push of the routes (or a run by hand) creates
+    the route labels the hub lacks (step `labels`). **Status back to the
+    hub** (user, 2026-11-17; step `sync`, on the caller's schedule and by
+    hand, `issues: write` only, reads the public copies): per `routed` hub
+    issue and copy ("Tracked in owner/repo#n"), a change of state gets one
+    short comment with a hidden `<!-- route-status: owner/repo#n STATE -->`;
+    closed as completed → the hub issue is closed as completed once every
+    copy is (only in the run that sees it, so a hub issue reopened by hand
+    stays open); not planned / duplicate → `declined-label`
+    (`declined`), the idea stays open; reopened → the label goes and
+    a hub issue closed as completed opens again. Nothing is written to the
+    targets. Composite action `route-idea`, tests
     `tests/shell/test-route-idea.sh`. Literature watch (named so
     2026-11-16, was `methods-scan`; the pilot's question is answered:
     abstracts name 70% of the main analyses but only 14-18% of the
@@ -326,38 +341,58 @@ the live caller used to validate changes before wider rollout.
     branch: `read-loop.sh` runs `R/watch_literature.R` (`run_watch_chunk()`)
     in stretches of 250 papers and pushes after each, up to
     `papers_per_run` (1,500) or the input `max-papers`, stopping at the
-    usage limit; R never sees the hub token. The report
+    usage limit; R never sees the hub token. The App token lasts an hour, the
+    run up to 5½ (run 44202459011 lost its vocabulary and report pushes at
+    67 minutes, 2026-11-18): `push()` renews it after 40 minutes with
+    `hub-token.sh` (JWT signed with the App's key, `iss` = client ID; token
+    for the hub only, Contents: write), the key never reaches R; the steps
+    after the reading make fresh tokens (`hub_token_after`, `hub_token_pr`). The report
     (`R/report_literature.R`, `format_watch_report()`: progress, shares per
     year with a trend test, Mermaid charts, variants, searches) and
     `progress.csv` (`watch_progress_table()`) go to the `data` branch at the
     end of every run, no pull request (user, 2026-11-16: a progress report
     has nothing to decide; the `report` input is kept, unused, so callers
-    passing it don't break; PRs stay for the candidates). **Vocabulary
-    and "Exists?"** (built 2026-11-17, `R/classify_literature.R`, run by
-    `read-loop.sh` after the reading, not at the usage limit; a failure is
-    a warning): Opus (profiles `methods-classification`,
-    `methods-variants`, `methods-exists`) sorts names not classified yet
-    into methods and variants (`vocabulary.yml` on the data branch:
-    `names`, `variant_names`, `methods` with keywords, variants and
-    verdicts; a variant needing its own DataSHIELD function is a method),
-    then checks methods and variants named in `exists$min_papers` (3)
-    usable papers against the catalogue's function inventory
+    passing it don't break; PRs stay for the candidates). **Four jobs**
+    (user, 2026-11-18; until then one job, which also lost its pushes to
+    the expired token): `read` → `vocabulary` → `candidates` (only when
+    due) → `report`, handing over through the data branch (without a hub:
+    the run's artifact), each with its own hub token
+    (`literature-watch-setup` composite: data, R, Claude Code;
+    `push-data.sh`). **Vocabulary** (`R/vocabulary_literature.R`; not
+    after a usage limit): Opus (profiles `methods-classification`,
+    `methods-variants`) sorts names not classified yet into methods and
+    variants (`vocabulary.yml` on the data branch: `names`,
+    `variant_names`, `methods` with keywords, variants and verdicts; a
+    variant needing its own DataSHIELD function is a method).
+    **"Exists?" only down the ranking** (user, 2026-11-18: not nightly for
+    every method): in the candidates job, `rank_candidates()` ranks every
+    method and variant (`method_units()`), then `exists_for_ranked()`
+    checks them in rank order against the catalogue's function inventory
     (FederatedMethods/packages' `datashield_functions_metadata.json` +
     `package_list.csv`; retired packages and server functions left out;
-    `read_function_inventory()`): R preselects candidates by shared words
-    (`preselect_functions()`), Claude answers yes / partial / none /
-    unclear with function and quote, `check_exists_answer()` turns an
-    unchecked one into `unconfirmed` and a match in a development package
-    into `development` (shown as "no", user 2026-11-16); asked again only
-    when the candidates' hash changes. Call caps `vocabulary$max_calls`,
-    `exists$max_calls`. The report merges names (`paper_methods()`,
+    `read_function_inventory()`) until each list has its gaps (a variant
+    after its method; a variant of a `none` method is covered by it).
+    **Two lists** (user, 2026-11-18, replacing "share of the last 3
+    years"): `most_used` (7) by share over all years read, then `rising`
+    (3): a rising trend (`method_trend()`, p < 0.05), ordered by the share
+    in the last `report$share_years`, leaving out the first list's gaps and
+    their variants (`exists_for_ranked(exclude =)`); one call budget
+    `exists$max_calls` for both, a verdict from the first walk reused; PR
+    sections "Most used" / "On the rise", record field `list`. Exists: R preselects candidates by shared words (`preselect_functions()`),
+    Opus (`methods-exists`) answers yes / partial / none / unclear with
+    function and quote, `check_exists_answer()` turns an unchecked one
+    into `unconfirmed` and a match in a development package into
+    `development` (shown as "no", user 2026-11-16); a stored verdict
+    counts until the candidates' hash changes. Call caps
+    `vocabulary$max_calls`, `exists$max_calls`. The report merges names (`paper_methods()`,
     `resolve_method()`) and has an "In DataSHIELD" column. Nightly in the
     runner (its caller's schedule), in the implementer's `concurrency`
     group. Measured on Max 5x: about 2,000 papers per 5-hour session. **Candidates**
-    (built 2026-11-17, `R/candidates_literature.R`, after the reading
-    step; input `candidates`: auto = once the first round is complete,
-    then monthly; always; never): `rank_candidates()` (methods and
-    variants with verdict none / partial, share of recent usable papers,
+    (built 2026-11-17, `R/candidates_literature.R`, job `candidates`;
+    input `candidates`: auto = once the first round is complete,
+    then monthly; always; never): `rank_candidates()` (every method and
+    variant by share of usable papers over all years, with the recent share
+    and trend, then Exists? down both lists, see above; gaps = none / partial,
     trend; statuses tracked / skipped / deferred / new from hub issues'
     `<!-- literature-watch-method: KEY -->` markers, listed by
     `tracked-ideas.sh`, and `decisions.json` on the data branch), Opus with
@@ -387,6 +422,36 @@ the live caller used to validate changes before wider rollout.
     missing (not the step's title). **Docs pending:** a page each (a new
     sidebar section "Function ideas"), the analysis details page's gap
     link already updated.
+  - `idea-check.yml`, `idea-check-start.yml` — "Exists in DataSHIELD?" for
+    new hub issues (user, 2026-11-17; built, **not yet run**): checks only,
+    no triage; never closes, routes or edits an issue. The hub's caller
+    (`issues: opened`, anyone; by hand only `allowed-logins`) dispatches the
+    runner's `idea-check.yml` (own `concurrency` group `idea-check`, not
+    `claude-subscription`: GitHub keeps one pending run per group, so a
+    queued check would push out a queued implementer or literature watch).
+    The runner only "looks now": `list-ideas.sh` takes open issues without
+    an `<!-- idea-check: VERDICT -->` comment, oldest first, at most
+    `max-issues` (5), leaving out `skip-labels` (`bot-suspicious`) and the
+    literature watch's own issues; `R/check_ideas.R` (loads `shared/` +
+    `literature/`; gets a file, no token): Sonnet reads the method,
+    keywords and up to 3 similar hub issues (profile `idea-reading`,
+    `prompts/idea-reading-prompt.md`, `build_idea_tool()`), R preselects
+    from `read_function_inventory()` (settings from `exists` of
+    `config/literature-watch.yml`), Opus judges with the literature watch's
+    `methods-exists` prompt and tool, `check_exists_answer()` checks;
+    `format_idea_comment()` (Claude's text through `plain_comment_text()`,
+    moved to `shared/`), `post-results.sh` posts comment and label
+    (`config/idea-check.yml`: `exists`, `exists-partly`, `in-development`;
+    none for `none` / `unclear` / `unconfirmed`). **Vocabulary match**
+    (user, 2026-11-18): with the hub's data branch checked out (read only),
+    a method the literature watch's vocabulary knows by exactly that name
+    (`match_vocabulary_method()`: a name the papers gave, the key, or a
+    method's own name; never a guess) gets its paper count in the comment
+    and the watch's marker `<!-- literature-watch-method: KEY -->` in it;
+    `tracked-ideas.sh` reads that marker from bots' comments too (not
+    people's), so the candidate list treats the idea as tracked. Once per issue; deleting
+    the comment checks it again. Tests `tests/testthat/test-idea-check.R`,
+    `tests/shell/test-idea-check.sh`. **Docs pending:** with the hub pages.
 - This repository's own, non-reusable workflows carry the prefix `REPO-`
   (user, 2026-11-17: upper case, so others see at once in
   `.github/workflows/` which ones aren't reusable). Besides `REPO-ci.yml`,

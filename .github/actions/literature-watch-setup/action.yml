@@ -1,0 +1,64 @@
+name: Literature watch setup
+description: >
+  What every job of literature-watch.yml needs after the hub's checkout and
+  the shared scripts: the hub's data branch in watch-data (with the hub
+  token in the clone command's header only), or, without a hub, the
+  previous job's data from the run's artifact; R with the packages; and
+  Claude Code, pinned as in the other bots.
+
+inputs:
+  hub-repository:
+    description: 'The hub (owner/name); empty: no hub, the data goes from job to job as an artifact.'
+    required: false
+    default: ''
+  hub-token:
+    description: 'A token for the hub with Contents: read (the clone).'
+    required: false
+    default: ''
+  data-branch:
+    description: 'The hub''s data branch.'
+    required: false
+    default: 'data'
+  first-job:
+    description: '''true'' in the first job: without a hub there is no earlier data to fetch.'
+    required: false
+    default: 'false'
+  claude-code:
+    description: 'Install Claude Code (''false'' for the report).'
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: The data so far
+      shell: bash
+      env:
+        HUB: ${{ inputs.hub-repository }}
+        HUB_TOKEN: ${{ inputs.hub-token }}
+        DATA_BRANCH: ${{ inputs.data-branch }}
+      run: |
+        bash "$GITHUB_ACTION_PATH/../literature-watch/checkout-data.sh"
+        echo "watch-data/" >> .git/info/exclude
+
+    - name: The data of the earlier jobs (no hub)
+      if: inputs.hub-repository == '' && inputs.first-job != 'true'
+      continue-on-error: true
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        name: literature-watch-data
+        path: watch-data
+
+    - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+      with:
+        use-public-rspm: true
+    - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+      with:
+        packages: any::httr2, any::jsonlite, any::purrr, any::yaml, any::xml2, any::processx, any::openssl
+
+    # Single calls without shell or file tools (the research step may
+    # search the web), so no sandbox.
+    - name: Claude Code
+      if: inputs.claude-code == 'true'
+      shell: bash
+      run: npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312  # zizmor: ignore[adhoc-packages] exact version, as in the other bots
