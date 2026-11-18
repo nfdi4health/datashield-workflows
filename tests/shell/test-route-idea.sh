@@ -27,6 +27,7 @@ cat > "$BIN/gh" <<STANDIN
 #!/usr/bin/env bash
 printf '%s | token=%s\n' "\$*" "\$GH_TOKEN" >> "$WORK/calls"
 case "\$*" in
+  *"idea-check"*) cat "$WORK/checks" 2> /dev/null ;;
   *"--paginate"*) cat "$WORK/comments" ;;
   "api repos/target-owner/dsCluster/issues "*) echo "https://github.com/target-owner/dsCluster/issues/7" ;;
 esac
@@ -82,6 +83,24 @@ rc=1; if grep -q "Copied from https://github.com/hub/ideas/issues/12" "$WORK/cal
 check "the copy links back to the hub issue" "$rc"
 rc=1; if ! grep -q "for @someone" "$WORK/calls" && [ ! -e pwned ] && [ ! -e "$WORK/pwned" ]; then rc=0; fi
 check "mentions are defused and the title is never run" "$rc"
+
+# The hub's check comment goes along, the newest one, without its markers
+# and note; a person's comment never does (the stand-in gets what the jq
+# filter would keep: bots' check comments, base64, oldest first).
+: > "$WORK/comments"
+{ printf '**Exists in DataSHIELD?**\n\nOld verdict.\n<!-- idea-check: none -->\n' | base64 -w0; echo
+  printf '**Exists in DataSHIELD?**\n\nPartly: `dsX::ds.y` ping @someone.\n\n<sub>delete this comment to have it run again</sub>\n\n<!-- idea-check: partial -->\n<!-- literature-watch-method: k-medoids -->\n' | base64 -w0; echo; } > "$WORK/checks"
+run copy maintainer dsClusterAnalysis
+calls="$(cat "$WORK/calls")"
+rc=1; if grep -q "The hub's check of this idea, when it was routed" <<< "$calls" && grep -q 'Partly: `dsX::ds.y`' <<< "$calls" \
+  && ! grep -q "Old verdict" <<< "$calls" && ! grep -q "idea-check: partial" <<< "$calls" \
+  && ! grep -q "literature-watch-method" <<< "$calls" && ! grep -q "run it again\|have it run again" <<< "$calls" \
+  && ! grep -q "ping @someone" <<< "$calls"; then rc=0; fi
+check "the newest check comment goes into the copy, without markers, note or live mentions" "$rc"
+rm -f "$WORK/checks"
+run copy maintainer dsClusterAnalysis
+rc=1; if ! grep -q "The hub's check" "$WORK/calls"; then rc=0; fi
+check "without a check comment the copy has no check section" "$rc"
 
 # labels: creates the route labels the hub lacks (the stand-in answers the
 # label list from $WORK/comments), leaves existing ones alone.
