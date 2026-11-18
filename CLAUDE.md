@@ -286,7 +286,10 @@ the live caller used to validate changes before wider rollout.
     `sandboxSettings()`: `env` blanks both, a `SessionStart` hook
     (`stripGitCredentials`) strips the remote URLs and auth header;
     confirmed by the last run (runner run 44094807375, all eight checks
-    pass).
+    pass). claude-code-action 1.0.273+ (Dependabot #133) adds, with
+    `allowed_bots`, a credential helper that answers with `$GH_TOKEN`
+    (blank there); the hook removes it too (2026-11-18). Rerun the probe
+    after the bump.
     ~~**Docs pending:**~~ Done in the docs pass of 2026-11-12: a page (Issue flow section) with the runner setup,
     and the label-check page.
   - `route-idea.yml`, `literature-watch.yml` — for the hub of missing

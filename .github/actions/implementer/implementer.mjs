@@ -94,8 +94,12 @@ export function parseReview(text) {
 // result leaves as a bundle), so the remote needs none.
 export const stripGitCredentials =
   "for r in $(git remote 2>/dev/null); do git remote set-url \"$r\" \"$(git remote get-url \"$r\" | sed -E 's#://[^/@]+@#://#')\"; done; " +
-  "git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null; true";
+  "git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null; " +
+  "git config --local --unset-all credential.https://github.com.helper 2>/dev/null; true";
 
+// claude-code-action 1.0.273+ (with allowed_bots) also sets a credential
+// helper that answers with $GH_TOKEN; `env` below blanks that, and the hook
+// removes the helper too, so git in the agent's shell has no way to the token.
 // Claude Code's settings for the agents: the sandbox (only the listed
 // hosts), and no GitHub token where the agent's commands could read it.
 // claude-code-action passes its token to Claude Code as GITHUB_TOKEN and
