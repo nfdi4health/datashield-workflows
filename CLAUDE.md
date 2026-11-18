@@ -338,38 +338,58 @@ the live caller used to validate changes before wider rollout.
     branch: `read-loop.sh` runs `R/watch_literature.R` (`run_watch_chunk()`)
     in stretches of 250 papers and pushes after each, up to
     `papers_per_run` (1,500) or the input `max-papers`, stopping at the
-    usage limit; R never sees the hub token. The report
+    usage limit; R never sees the hub token. The App token lasts an hour, the
+    run up to 5½ (run 44202459011 lost its vocabulary and report pushes at
+    67 minutes, 2026-11-18): `push()` renews it after 40 minutes with
+    `hub-token.sh` (JWT signed with the App's key, `iss` = client ID; token
+    for the hub only, Contents: write), the key never reaches R; the steps
+    after the reading make fresh tokens (`hub_token_after`, `hub_token_pr`). The report
     (`R/report_literature.R`, `format_watch_report()`: progress, shares per
     year with a trend test, Mermaid charts, variants, searches) and
     `progress.csv` (`watch_progress_table()`) go to the `data` branch at the
     end of every run, no pull request (user, 2026-11-16: a progress report
     has nothing to decide; the `report` input is kept, unused, so callers
-    passing it don't break; PRs stay for the candidates). **Vocabulary
-    and "Exists?"** (built 2026-11-17, `R/classify_literature.R`, run by
-    `read-loop.sh` after the reading, not at the usage limit; a failure is
-    a warning): Opus (profiles `methods-classification`,
-    `methods-variants`, `methods-exists`) sorts names not classified yet
-    into methods and variants (`vocabulary.yml` on the data branch:
-    `names`, `variant_names`, `methods` with keywords, variants and
-    verdicts; a variant needing its own DataSHIELD function is a method),
-    then checks methods and variants named in `exists$min_papers` (3)
-    usable papers against the catalogue's function inventory
+    passing it don't break; PRs stay for the candidates). **Four jobs**
+    (user, 2026-11-18; until then one job, which also lost its pushes to
+    the expired token): `read` → `vocabulary` → `candidates` (only when
+    due) → `report`, handing over through the data branch (without a hub:
+    the run's artifact), each with its own hub token
+    (`literature-watch-setup` composite: data, R, Claude Code;
+    `push-data.sh`). **Vocabulary** (`R/vocabulary_literature.R`; not
+    after a usage limit): Opus (profiles `methods-classification`,
+    `methods-variants`) sorts names not classified yet into methods and
+    variants (`vocabulary.yml` on the data branch: `names`,
+    `variant_names`, `methods` with keywords, variants and verdicts; a
+    variant needing its own DataSHIELD function is a method).
+    **"Exists?" only down the ranking** (user, 2026-11-18: not nightly for
+    every method): in the candidates job, `rank_candidates()` ranks every
+    method and variant (`method_units()`), then `exists_for_ranked()`
+    checks them in rank order against the catalogue's function inventory
     (FederatedMethods/packages' `datashield_functions_metadata.json` +
     `package_list.csv`; retired packages and server functions left out;
-    `read_function_inventory()`): R preselects candidates by shared words
-    (`preselect_functions()`), Claude answers yes / partial / none /
-    unclear with function and quote, `check_exists_answer()` turns an
-    unchecked one into `unconfirmed` and a match in a development package
-    into `development` (shown as "no", user 2026-11-16); asked again only
-    when the candidates' hash changes. Call caps `vocabulary$max_calls`,
-    `exists$max_calls`. The report merges names (`paper_methods()`,
+    `read_function_inventory()`) until each list has its gaps (a variant
+    after its method; a variant of a `none` method is covered by it).
+    **Two lists** (user, 2026-11-18, replacing "share of the last 3
+    years"): `most_used` (7) by share over all years read, then `rising`
+    (3): a rising trend (`method_trend()`, p < 0.05), ordered by the share
+    in the last `report$share_years`, leaving out the first list's gaps and
+    their variants (`exists_for_ranked(exclude =)`); one call budget
+    `exists$max_calls` for both, a verdict from the first walk reused; PR
+    sections "Most used" / "On the rise", record field `list`. Exists: R preselects candidates by shared words (`preselect_functions()`),
+    Opus (`methods-exists`) answers yes / partial / none / unclear with
+    function and quote, `check_exists_answer()` turns an unchecked one
+    into `unconfirmed` and a match in a development package into
+    `development` (shown as "no", user 2026-11-16); a stored verdict
+    counts until the candidates' hash changes. Call caps
+    `vocabulary$max_calls`, `exists$max_calls`. The report merges names (`paper_methods()`,
     `resolve_method()`) and has an "In DataSHIELD" column. Nightly in the
     runner (its caller's schedule), in the implementer's `concurrency`
     group. Measured on Max 5x: about 2,000 papers per 5-hour session. **Candidates**
-    (built 2026-11-17, `R/candidates_literature.R`, after the reading
-    step; input `candidates`: auto = once the first round is complete,
-    then monthly; always; never): `rank_candidates()` (methods and
-    variants with verdict none / partial, share of recent usable papers,
+    (built 2026-11-17, `R/candidates_literature.R`, job `candidates`;
+    input `candidates`: auto = once the first round is complete,
+    then monthly; always; never): `rank_candidates()` (every method and
+    variant by share of usable papers over all years, with the recent share
+    and trend, then Exists? down both lists, see above; gaps = none / partial,
     trend; statuses tracked / skipped / deferred / new from hub issues'
     `<!-- literature-watch-method: KEY -->` markers, listed by
     `tracked-ideas.sh`, and `decisions.json` on the data branch), Opus with

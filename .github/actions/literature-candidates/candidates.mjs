@@ -51,7 +51,9 @@ export function issueTitle(c) {
 export function issueBody(c, prUrl) {
   const r = c.research;
   const lines = [
-    `Proposed by the literature watch (${prUrl}): used in ${Math.round(100 * c.share)}% of the sampled health research papers of the recent years (${c.papers} papers), trend ${c.trend}, mostly in ${plain(c.fields)}.`,
+    `Proposed by the literature watch (${prUrl})${c.list === "rising" ? " as a method on the rise" : ""}: used in ${(100 * c.share).toFixed(1)}% of the sampled health research papers of all years read (${c.papers} papers)` +
+      (c.recent_share != null ? `, ${(100 * c.recent_share).toFixed(1)}% in the last years` : "") +
+      `, trend ${c.trend}, mostly in ${plain(c.fields)}.`,
     "",
     `**In DataSHIELD:** ${c.verdict === "partial" ? `partly (\`${plain(c.function)}\`)` : "no"}. ${plain(c.note)}`,
   ];

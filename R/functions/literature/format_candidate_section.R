@@ -8,8 +8,8 @@ format_candidate_section <- function(i, row, vocab, research) {
   verdict <- switch(row$verdict, none = "no", partial = sprintf("partly (`%s`)", row[["function"]]), row$verdict)
   examples <- jsonlite::fromJSON(row$examples, simplifyVector = FALSE)
   out <- c(sprintf("### %d. %s", i, title), "", candidate_boxes(row$key), "",
-    sprintf("Used in %.0f%% of the sampled papers of the recent years (%d papers), trend: %s. Mostly in: %s.",
-      100 * row$share, row$papers, row$trend, row$fields),
+    sprintf("Used in %.1f%% of the sampled papers of all years read (%d papers), %.1f%% in the last years (%d), trend: %s. Mostly in: %s.",
+      100 * row$share, row$papers, 100 * (row$recent_share %||% row$share), row$recent_papers %||% row$papers, row$trend, row$fields),
     sprintf("In DataSHIELD: %s.%s", verdict, if (nzchar(row$note)) paste0(" ", candidate_text(row$note)) else ""), "")
   if (is.null(research)) {
     out <- c(out, "_The research step couldn't run for this one; it is tried again with the next pull request._", "")
