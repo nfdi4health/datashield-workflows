@@ -355,9 +355,15 @@ the live caller used to validate changes before wider rollout.
     checks them in rank order against the catalogue's function inventory
     (FederatedMethods/packages' `datashield_functions_metadata.json` +
     `package_list.csv`; retired packages and server functions left out;
-    `read_function_inventory()`) until `candidates$max` gaps are found (a
-    variant after its method; a variant of a `none` method is covered by
-    it): R preselects candidates by shared words (`preselect_functions()`),
+    `read_function_inventory()`) until each list has its gaps (a variant
+    after its method; a variant of a `none` method is covered by it).
+    **Two lists** (user, 2026-11-18, replacing "share of the last 3
+    years"): `most_used` (7) by share over all years read, then `rising`
+    (3): a rising trend (`method_trend()`, p < 0.05), ordered by the share
+    in the last `report$share_years`, leaving out the first list's gaps and
+    their variants (`exists_for_ranked(exclude =)`); one call budget
+    `exists$max_calls` for both, a verdict from the first walk reused; PR
+    sections "Most used" / "On the rise", record field `list`. Exists: R preselects candidates by shared words (`preselect_functions()`),
     Opus (`methods-exists`) answers yes / partial / none / unclear with
     function and quote, `check_exists_answer()` turns an unchecked one
     into `unconfirmed` and a match in a development package into
@@ -370,8 +376,8 @@ the live caller used to validate changes before wider rollout.
     (built 2026-11-17, `R/candidates_literature.R`, job `candidates`;
     input `candidates`: auto = once the first round is complete,
     then monthly; always; never): `rank_candidates()` (every method and
-    variant by share of recent usable papers, then Exists? down the
-    ranking, see above; gaps = none / partial,
+    variant by share of usable papers over all years, with the recent share
+    and trend, then Exists? down both lists, see above; gaps = none / partial,
     trend; statuses tracked / skipped / deferred / new from hub issues'
     `<!-- literature-watch-method: KEY -->` markers, listed by
     `tracked-ideas.sh`, and `decisions.json` on the data branch), Opus with

@@ -10,10 +10,11 @@
 # its method has a verdict; a variant of a method DataSHIELD lacks
 # (`none`) is covered by the method. The walk stops once `want` gaps
 # (`none` or `partial`; `development` doesn't count, user 2026-11-16) are
-# found. Deferred rows keep the verdict they have. Returns list(vocab,
+# found. Deferred rows keep the verdict they have. `exclude`: keys left
+# out with their variants (the other list's candidates). Returns list(vocab,
 # ranked with verdict, function and note, gaps = the keys in order, calls,
 # limit, checked, complete = FALSE when the calls ran out first).
-exists_for_ranked <- function(ranked, vocab, claude, inventory, settings, today, by, calls, want) {
+exists_for_ranked <- function(ranked, vocab, claude, inventory, settings, today, by, calls, want, exclude = character(0)) {
   e <- settings$exists
   gap <- c("none", "partial")
   cands <- new.env()
@@ -44,7 +45,10 @@ exists_for_ranked <- function(ranked, vocab, claude, inventory, settings, today,
   done <- 0
   limit <- FALSE
   complete <- TRUE
-  rows <- which(ranked$status == "new")
+  # Keys already proposed (the other list) and their variants are left out.
+  excluded <- ranked$key %in% exclude | ranked$method %in% exclude
+  rows <- which(ranked$status == "new" & !excluded)
+  if (want <= 0) rows <- integer(0)
   repeat {
     gaps <- character(0)
     needed <- list()
@@ -123,15 +127,6 @@ exists_for_ranked <- function(ranked, vocab, claude, inventory, settings, today,
       break
     }
   }
-  ranked$verdict <- ""
-  ranked$`function` <- ""
-  ranked$note <- ""
-  for (i in seq_len(nrow(ranked))) {
-    rec <- exists_record(vocab, ranked$method[i], ranked$variant[i])
-    if (is.null(rec)) next
-    ranked$verdict[i] <- rec$verdict
-    ranked$`function`[i] <- rec[["function"]] %||% ""
-    ranked$note[i] <- rec$note %||% ""
-  }
+  ranked <- annotate_verdicts(ranked, vocab)
   list(vocab = vocab, ranked = ranked, gaps = gaps, calls = made, limit = limit, checked = done, complete = complete)
 }

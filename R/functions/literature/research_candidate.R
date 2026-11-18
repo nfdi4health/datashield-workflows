@@ -10,8 +10,8 @@ research_candidate <- function(claude, row, vocab) {
       method_label(vocab, row$method, row$variant)),
     sprintf("DataSHIELD verdict: %s%s. %s", row$verdict, if (nzchar(row[["function"]])) sprintf(" (closest: %s)", row[["function"]]) else "",
       row$note),
-    sprintf("Used in %.0f%% of the sampled health research papers of the last years (%d papers), trend %s, mostly in: %s.",
-      100 * row$share, row$papers, row$trend, row$fields))
+    sprintf("Used in %.1f%% of the sampled health research papers of all years read (%d papers), %.1f%% in the last years, trend %s, mostly in: %s.",
+      100 * row$share, row$papers, 100 * (row$recent_share %||% row$share), row$trend, row$fields))
   res <- call_watch_claude(claude, build_research_tool(), fill_template(claude$prompt, list(CANDIDATE = paste(lines, collapse = "\n"))),
     sprintf("research on %s", row$key))
   if (is.null(res$answer)) return(list(research = NULL, limit = res$limit))

@@ -2,9 +2,11 @@
 # The literature watch's candidates (literature-watch.yml, job
 # `candidates`, after the vocabulary): when due (candidates_due():
 # WATCH_CANDIDATES auto, always or never), every method and variant is
-# ranked by how much the recent papers use it (rank_candidates()), then
-# checked against the DataSHIELD functions down that ranking until
-# `candidates$max` gaps are found (exists_for_ranked(), profile
+# ranked by how much the papers of all years use it (rank_candidates()),
+# then checked against the DataSHIELD functions down that ranking until
+# `candidates$most_used` gaps are found, and down the rising methods
+# (ordered by their share in the last years) until `candidates$rising`
+# more are (exists_for_ranked(), profile
 # methods-exists; verdicts stored in vocabulary.yml, asked again only when
 # a method's candidate functions change). The gaps are researched by
 # Claude with web search (profile methods-research) and written for a
@@ -58,21 +60,36 @@ exists_claude <- claude_client("methods-exists", "prompts/methods-exists-prompt.
 by_exists <- hash_keys(paste(exists_claude$config$model %||% "", hash_keys(exists_claude$prompt %||% "")))
 update_lookup_table(file.path(dir, "readers.csv"), data.frame(fingerprint = by_exists, group = "exists",
   model = exists_claude$config$model, prompt = hash_keys(exists_claude$prompt)), today)
-want <- settings$candidates$max %||% 10
-x <- exists_for_ranked(ranked, vocab, exists_claude, inventory, settings, today, by_exists,
-  as.integer(settings$exists$max_calls %||% 15), want)
+# Two lists (user, 2026-11-18): the most used methods DataSHIELD lacks
+# (share over all years read), then those on the rise (a rising trend,
+# ordered by their share in the last years), leaving out the first list's
+# candidates and their variants. Exists? runs down each list until it has
+# enough gaps; a method checked in the first walk isn't asked again.
+cs <- settings$candidates
+calls <- as.integer(settings$exists$max_calls %||% 15)
+x <- exists_for_ranked(ranked, vocab, exists_claude, inventory, settings, today, by_exists, calls,
+  as.integer(cs$most_used %||% 7))
 vocab <- x$vocab
+rising_ranked <- ranked[ranked$trend == "rising", , drop = FALSE]
+rising_ranked <- rising_ranked[order(-rising_ranked$recent_share, rising_ranked$key), , drop = FALSE]
+y <- list(vocab = vocab, gaps = character(0), calls = 0, limit = FALSE, checked = 0, complete = TRUE)
+if (!x$limit) {
+  y <- exists_for_ranked(rising_ranked, vocab, exists_claude, inventory, settings, today, by_exists,
+    calls - x$calls, as.integer(cs$rising %||% 3), exclude = x$gaps)
+  vocab <- y$vocab
+}
 write_vocabulary(vocab, dir)
-message(sprintf("Exists in DataSHIELD?: %d verdicts from Claude (%d calls) down the ranking, against %d functions; %d gaps.",
-  x$checked, x$calls, nrow(inventory), length(x$gaps)))
-if (x$limit) {
+message(sprintf("Exists in DataSHIELD?: %d verdicts from Claude (%d calls) down the rankings, against %d functions; %d most used and %d rising gaps.",
+  x$checked + y$checked, x$calls + y$calls, nrow(inventory), length(x$gaps), length(y$gaps)))
+if (x$limit || y$limit) {
   message("Stopped at the subscription's usage limit; the candidates are proposed with a later run.")
   quit(save = "no")
 }
-if (!x$complete) message("The calls for Exists? ran out before the ranking was checked far enough; the gaps found so far are proposed.")
-ranked <- x$ranked
+if (!x$complete || !y$complete) message("The calls for Exists? ran out before the rankings were checked far enough; the gaps found so far are proposed.")
+ranked <- annotate_verdicts(ranked, vocab)
 gap <- c("none", "partial")
-new <- ranked[match(x$gaps, ranked$key), , drop = FALSE]
+new <- rbind(cbind(ranked[match(x$gaps, ranked$key), , drop = FALSE], list = rep("most-used", length(x$gaps))),
+  cbind(ranked[match(y$gaps, ranked$key), , drop = FALSE], list = rep("rising", length(y$gaps))))
 deferred <- ranked[ranked$status == "deferred" & ranked$verdict %in% gap, , drop = FALSE]
 tracked_rows <- ranked[ranked$status == "tracked", , drop = FALSE]
 if (nrow(new) + nrow(deferred) == 0) {
@@ -99,7 +116,8 @@ record <- list(month = month, created = as.character(today), researched_by = by,
     list(key = row$key, method = row$method, variant = row$variant, name = method_label(vocab, row$method),
       variant_name = if (nzchar(row$variant)) method_label(vocab, row$method, row$variant) else "",
       verdict = row$verdict, `function` = row[["function"]], note = candidate_text(row$note), papers = row$papers,
-      share = round(row$share, 4), trend = row$trend, fields = row$fields,
+      share = round(row$share, 4), recent_papers = row$recent_papers, recent_share = round(row$recent_share, 4),
+      list = row$list, trend = row$trend, fields = row$fields,
       examples = fromJSON(row$examples, simplifyVector = FALSE), research = research[[row$key]])
   }),
   deferred = lapply(seq_len(nrow(deferred)), function(i) list(key = deferred$key[i], name = method_label(vocab, deferred$method[i]),

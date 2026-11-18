@@ -146,3 +146,45 @@ test_that("candidates_literature.R researches the new candidates and writes the 
   expect_true(any(body == "<!-- literature-watch-candidates: 2026-11 -->"))
   expect_equal(sum(body == "- [ ] Open an issue"), 2)
 })
+
+test_that("rank_candidates() ranks by share over all years and keeps the recent share apart", {
+  r <- rank_candidates(cand_register(), cand_vocab(), cand_settings, list(), list(), c("2026-09", "2026-08"), "2026-09")
+  cox <- r[r$key == "cox-regression", ]
+  expect_equal(r$key[1], "cox-regression")
+  expect_equal(cox$papers, 8)
+  expect_equal(cox$recent_papers, 0)
+  expect_equal(cox$recent_share, 0)
+  expect_equal(r$recent_papers[r$key == "fine-gray"], 6)
+})
+
+test_that("the rising list leaves out the first list's candidates and their variants", {
+  v <- list(methods = list(), names = list(), variant_names = list())
+  v$methods[["a"]] <- list(name = "alpha method", variants = list(v1 = list(name = "v1")))
+  v$methods[["b"]] <- list(name = "beta method")
+  done <- function(verdict) list(verdict = verdict, `function` = "", quote = "", note = "", candidates = "h")
+  ranked <- data.frame(key = c("a", "a/v1", "b"), method = c("a", "a", "b"), variant = c("", "v1", ""), status = "new")
+  local_global_mock(call_claude_tool = function(claude, tool, prompt) stop("not asked"),
+    preselect_functions = function(inventory, words, n) inventory[0, , drop = FALSE])
+  r <- exists_for_ranked(ranked, v, list(prompt = "{{METHODS}}", config = list()), data.frame(), list(exists = list()),
+    Sys.Date(), "fp", 5, want = 3, exclude = "a")
+  expect_equal(r$gaps, "b")
+  expect_null(r$vocab$methods$a$exists)
+  expect_null(r$vocab$methods$a$variants$v1$exists)
+})
+
+test_that("the pull request lists the most used and the rising candidates in their own sections", {
+  v <- cand_vocab()
+  row <- function(key, method, list) data.frame(key = key, method = method, variant = "", verdict = "none", `function` = "",
+    note = "", papers = 6, share = 0.4, recent_papers = 6, recent_share = 0.5, trend = "rising", fields = "cancer",
+    examples = "[]", list = list, check.names = FALSE)
+  new <- rbind(row("fine-gray", "fine-gray", "most-used"), row("mice", "mice", "rising"))
+  empty <- new[0, ]
+  body <- format_candidates_body(new, empty, empty, list(), v, list(), "2026-11")
+  most <- which(body == "## Most used")
+  rise <- which(body == "## On the rise")
+  expect_length(most, 1)
+  expect_length(rise, 1)
+  expect_lt(which(body == "<!-- candidate: fine-gray -->"), rise)
+  expect_gt(which(body == "<!-- candidate: mice -->"), rise)
+  expect_true(any(grepl("40.0% of the sampled papers of all years read (6 papers), 50.0% in the last years", body, fixed = TRUE)))
+})
