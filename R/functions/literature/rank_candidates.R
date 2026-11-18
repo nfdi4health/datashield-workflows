@@ -1,4 +1,6 @@
-# The candidates in order (candidate_units()): per key its papers and share
+# The candidates in order (method_units(): every method and variant of the
+# vocabulary, whether DataSHIELD has it or not, which is checked later
+# down this ranking, exists_for_ranked()): per key its papers and share
 # among the usable papers of the recent months (all fields, each paper
 # once), the trend by year (method_trend()), the fields using it most, and
 # example papers (the newest). Keys in fewer than `candidates$min_papers`
@@ -9,7 +11,7 @@
 # on ties.
 rank_candidates <- function(reg, vocab, settings, decisions, tracked, months, recent) {
   cs <- settings$candidates
-  units <- candidate_units(vocab)
+  units <- method_units(vocab)
   empty <- data.frame(key = character(0), papers = integer(0), share = numeric(0), trend = character(0), status = character(0))
   if (nrow(units) == 0) return(empty)
   papers <- Filter(function(p) isTRUE(p$usable) && p$month %in% months, reg$papers)

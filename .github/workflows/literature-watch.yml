@@ -8,19 +8,29 @@ name: Literature Watch
 # (the hub starts it with literature-watch-start.yml), so it shares the
 # implementer's queue and the subscription token stays in one place.
 #
-# Each field of the hub's config/literature-watch.yml gets a random sample
-# of target_per_month papers per publication month over years_back years
-# (newest first); Sonnet reads each paper's abstract and methods section
-# once and lists its methods (R/watch_literature.R, profile
-# methods-extraction). The data goes to the hub's data branch after every
-# stretch of papers. Then Opus sorts the new method names into the
-# vocabulary and checks the methods named often enough against the
-# DataSHIELD functions' documentation (R/classify_literature.R). At the
-# end of each run the report and progress.csv go to the same branch
-# (literature-watch/reports/); no pull request, as a progress report has
-# nothing to decide. At
-# the subscription's usage limit or after papers_per_run (or max-papers)
-# papers the run stops; the next one carries on.
+# Four jobs, one after the other, handing over through the hub's data
+# branch (each with its own hub token, and its own pass or fail):
+#   read        each field of the hub's config/literature-watch.yml gets a
+#               random sample of target_per_month papers per publication
+#               month over years_back years (newest first); Sonnet reads
+#               each paper's abstract and methods section once and lists
+#               its methods (R/watch_literature.R, profile
+#               methods-extraction), pushed after every stretch. Stops at
+#               papers_per_run (or max-papers) or the usage limit.
+#   vocabulary  Opus sorts the new method names into methods and variants,
+#               so one method counts once however papers word it
+#               (R/vocabulary_literature.R). Not after a usage limit.
+#   candidates  only when due (once the first round is complete, then
+#               monthly; or `candidates: always`): every method and variant
+#               ranked by use, checked against the DataSHIELD functions
+#               down that ranking until enough gaps are found ("Exists in
+#               DataSHIELD?"), the gaps researched with web search and
+#               proposed to the hub as a pull request
+#               (R/candidates_literature.R).
+#   report      progress, shares, trends and progress.csv to the data
+#               branch (R/report_literature.R), after every run, whatever
+#               happened before; no pull request, a progress report has
+#               nothing to decide.
 on:
   workflow_call:
     inputs:
@@ -82,9 +92,14 @@ permissions:
   contents: read
 
 jobs:
-  watch:
+  read:
     runs-on: ubuntu-latest
     timeout-minutes: 330
+    outputs:
+      stopped: ${{ steps.read.outputs.stopped }}
+      repository: ${{ steps.hub.outputs.repository }}
+      owner: ${{ steps.hub.outputs.owner }}
+      name: ${{ steps.hub.outputs.name }}
     steps:
       - name: May this login use the subscription?
         if: inputs.subscription-logins != ''
@@ -110,8 +125,8 @@ jobs:
             echo "repository=$GITHUB_REPOSITORY" >> "$GITHUB_OUTPUT"
           fi
 
-      # The hub's token, for that repository only: pushing the data branch,
-      # reading its issues and proposing the candidates.
+      # The hub's token, for that repository only: pushing the data branch.
+      # It lasts an hour; read-loop.sh renews it.
       - name: Token for the hub
         id: hub_token
         if: inputs.hub-repository != ''
@@ -122,8 +137,6 @@ jobs:
           owner: ${{ steps.hub.outputs.owner }}
           repositories: ${{ steps.hub.outputs.name }}
           permission-contents: write
-          permission-pull-requests: write
-          permission-issues: read
 
       # The hub's main branch: its config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -136,34 +149,18 @@ jobs:
       - name: Shared scripts
         uses: $/.github/actions/shared-files
 
-      - name: The data so far
-        env:
-          HUB: ${{ inputs.hub-repository }}
-          HUB_TOKEN: ${{ steps.hub_token.outputs.token }}
-          DATA_BRANCH: ${{ inputs.data-branch }}
-        run: |
-          bash .shared-workflows/.github/actions/literature-watch/checkout-data.sh
-          echo "watch-data/" >> .git/info/exclude
-
-      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+      - name: Data, R and Claude Code
+        uses: $/.github/actions/literature-watch-setup
         with:
-          use-public-rspm: true
-      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
-        with:
-          packages: any::httr2, any::jsonlite, any::purrr, any::yaml, any::xml2, any::processx, any::openssl
-
-      # The same pinned Claude Code as the other bots; single calls without
-      # shell or file tools (the research step may search the web), so no
-      # sandbox.
-      - name: Claude Code
-        run: npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312  # zizmor: ignore[adhoc-packages] exact version, as in the other bots
+          hub-repository: ${{ inputs.hub-repository }}
+          hub-token: ${{ steps.hub_token.outputs.token }}
+          data-branch: ${{ inputs.data-branch }}
+          first-job: 'true'
 
       - name: Read
         id: read
         env:
           SCRIPT: .shared-workflows/R/watch_literature.R
-          CLASSIFY_SCRIPT: .shared-workflows/R/classify_literature.R
-          REPORT_SCRIPT: .shared-workflows/R/report_literature.R
           WATCH_FIELD: ${{ inputs.field }}
           MAX_PAPERS: ${{ inputs.max-papers }}
           HUB_TOKEN: ${{ steps.hub_token.outputs.token }}
@@ -177,33 +174,128 @@ jobs:
           APP_PRIVATE_KEY: ${{ inputs.hub-repository != '' && secrets.app-private-key || '' }}
         run: bash .shared-workflows/.github/actions/literature-watch/read-loop.sh
 
-      # A new hub token for the steps after the reading (the first one has
-      # run out by now).
-      - name: Token for the hub, again
-        id: hub_token_after
-        if: inputs.hub-repository != '' && inputs.candidates != 'never'
+      - name: Keep the data
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: literature-watch-data
+          path: |
+            watch-data/
+            !watch-data/.git/
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
+
+  vocabulary:
+    needs: read
+    if: ${{ !cancelled() && needs.read.outputs.repository != '' && needs.read.outputs.stopped != 'limit' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    outputs:
+      status: ${{ steps.vocabulary.outputs.status }}
+    steps:
+      - name: Token for the hub
+        id: hub_token
+        if: inputs.hub-repository != ''
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ secrets.app-client-id }}
           private-key: ${{ secrets.app-private-key }}
-          owner: ${{ steps.hub.outputs.owner }}
-          repositories: ${{ steps.hub.outputs.name }}
+          owner: ${{ needs.read.outputs.owner }}
+          repositories: ${{ needs.read.outputs.name }}
           permission-contents: write
-          permission-pull-requests: write
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ needs.read.outputs.repository }}
+          ref: ${{ inputs.hub-repository != '' && inputs.hub-branch || '' }}
+          persist-credentials: false
+
+      - name: Shared scripts
+        uses: $/.github/actions/shared-files
+
+      - name: Data, R and Claude Code
+        uses: $/.github/actions/literature-watch-setup
+        with:
+          hub-repository: ${{ inputs.hub-repository }}
+          hub-token: ${{ steps.hub_token.outputs.token }}
+          data-branch: ${{ inputs.data-branch }}
+
+      - name: Vocabulary
+        id: vocabulary
+        env:
+          WATCH_DATA_DIR: watch-data
+          WATCH_VOCABULARY_STATUS: vocabulary_status.txt
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
+        run: |
+          Rscript .shared-workflows/R/vocabulary_literature.R
+          echo "status=$(cat vocabulary_status.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Push the vocabulary
+        env:
+          HUB_TOKEN: ${{ steps.hub_token.outputs.token }}
+          DATA_BRANCH: ${{ inputs.data-branch }}
+        run: bash .shared-workflows/.github/actions/literature-watch/push-data.sh vocabulary
+
+      - name: Keep the data
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: literature-watch-data
+          path: |
+            watch-data/
+            !watch-data/.git/
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
+
+  candidates:
+    needs: [read, vocabulary]
+    if: >-
+      ${{ !cancelled() && inputs.candidates != 'never' && needs.vocabulary.result == 'success'
+      && needs.vocabulary.outputs.status != 'limit' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - name: Token for the hub
+        id: hub_token
+        if: inputs.hub-repository != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ needs.read.outputs.owner }}
+          repositories: ${{ needs.read.outputs.name }}
+          permission-contents: write
           permission-issues: read
 
-      # The methods already tracked by a hub issue (its hidden marker), for
-      # the candidates; R gets the list, not the token.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ needs.read.outputs.repository }}
+          ref: ${{ inputs.hub-repository != '' && inputs.hub-branch || '' }}
+          persist-credentials: false
+
+      - name: Shared scripts
+        uses: $/.github/actions/shared-files
+
+      - name: Data, R and Claude Code
+        uses: $/.github/actions/literature-watch-setup
+        with:
+          hub-repository: ${{ inputs.hub-repository }}
+          hub-token: ${{ steps.hub_token.outputs.token }}
+          data-branch: ${{ inputs.data-branch }}
+
+      # The methods already tracked by a hub issue (its hidden marker); R
+      # gets the list, not the token.
       - name: Tracked ideas
-        if: inputs.hub-repository != '' && inputs.candidates != 'never'
         env:
           HUB: ${{ inputs.hub-repository }}
-          GH_TOKEN: ${{ steps.hub_token_after.outputs.token }}
+          GH_TOKEN: ${{ steps.hub_token.outputs.token }}
         run: bash .shared-workflows/.github/actions/literature-watch/tracked-ideas.sh tracked.json
 
+      # Ranking, "Exists in DataSHIELD?" down the ranking, research.
       - name: Candidates
         id: candidates
-        if: steps.read.outcome == 'success' && inputs.candidates != 'never'
         env:
           WATCH_DATA_DIR: watch-data
           WATCH_CANDIDATES: ${{ inputs.candidates }}
@@ -217,18 +309,26 @@ jobs:
             echo "month=$(date -u +%Y-%m)"
           } >> "$GITHUB_OUTPUT"
 
-      # The research step can take a while: one more fresh token.
-      - name: Token for the hub, for the pull request
-        id: hub_token_pr
-        if: steps.candidates.outputs.due == 'yes' && inputs.hub-repository != ''
+      # The verdicts are kept also when nothing is proposed; the research
+      # can take a while, so a fresh token.
+      - name: Token for the hub, after the research
+        id: hub_token_after
+        if: ${{ !cancelled() && inputs.hub-repository != '' }}
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ secrets.app-client-id }}
           private-key: ${{ secrets.app-private-key }}
-          owner: ${{ steps.hub.outputs.owner }}
-          repositories: ${{ steps.hub.outputs.name }}
+          owner: ${{ needs.read.outputs.owner }}
+          repositories: ${{ needs.read.outputs.name }}
           permission-contents: write
           permission-pull-requests: write
+
+      - name: Push the verdicts
+        if: ${{ !cancelled() }}
+        env:
+          HUB_TOKEN: ${{ steps.hub_token_after.outputs.token }}
+          DATA_BRANCH: ${{ inputs.data-branch }}
+        run: bash .shared-workflows/.github/actions/literature-watch/push-data.sh "Exists? verdicts"
 
       - name: Propose the candidates to the hub
         if: steps.candidates.outputs.due == 'yes' && inputs.hub-repository != ''
@@ -240,7 +340,7 @@ jobs:
           title: ${{ steps.candidates.outputs.title }}
           body-file: candidates_body.md
           commit-message: 'docs: literature watch candidates ${{ steps.candidates.outputs.month }}'
-          token: ${{ steps.hub_token_pr.outputs.token }}
+          token: ${{ steps.hub_token_after.outputs.token }}
           repository: ${{ inputs.hub-repository }}
 
       - name: Keep the data
@@ -252,6 +352,64 @@ jobs:
             watch-data/
             !watch-data/.git/
           if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
+
+  report:
+    needs: [read, vocabulary, candidates]
+    if: ${{ !cancelled() && needs.read.outputs.repository != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Token for the hub
+        id: hub_token
+        if: inputs.hub-repository != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ needs.read.outputs.owner }}
+          repositories: ${{ needs.read.outputs.name }}
+          permission-contents: write
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ needs.read.outputs.repository }}
+          ref: ${{ inputs.hub-repository != '' && inputs.hub-branch || '' }}
+          persist-credentials: false
+
+      - name: Shared scripts
+        uses: $/.github/actions/shared-files
+
+      - name: Data and R
+        uses: $/.github/actions/literature-watch-setup
+        with:
+          hub-repository: ${{ inputs.hub-repository }}
+          hub-token: ${{ steps.hub_token.outputs.token }}
+          data-branch: ${{ inputs.data-branch }}
+          claude-code: 'false'
+
+      - name: Report
+        env:
+          WATCH_DATA_DIR: watch-data
+        run: Rscript .shared-workflows/R/report_literature.R
+
+      - name: Push the report
+        env:
+          HUB_TOKEN: ${{ steps.hub_token.outputs.token }}
+          DATA_BRANCH: ${{ inputs.data-branch }}
+        run: bash .shared-workflows/.github/actions/literature-watch/push-data.sh report
+
+      - name: Keep the data
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: literature-watch-data
+          path: |
+            watch-data/
+            !watch-data/.git/
+          if-no-files-found: ignore
+          overwrite: true
           retention-days: 30
 
       # Counts this run once, anonymously, by workflow, outcome and version
@@ -262,4 +420,4 @@ jobs:
         uses: $/.github/actions/count-run
         with:
           workflow: literature-watch
-          job-status: ${{ job.status }}
+          job-status: ${{ contains(needs.*.result, 'failure') && 'failure' || job.status }}

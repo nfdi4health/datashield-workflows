@@ -1,5 +1,5 @@
 # The literature watch's vocabulary (vocabulary.yml in the data folder,
-# written by R/classify_literature.R, never by hand): `methods` by key
+# written by R/vocabulary_literature.R and, for the verdicts, R/candidates_literature.R, never by hand): `methods` by key
 # (name, description, keywords, variants by key, and the "Exists in
 # DataSHIELD?" verdicts), `names` (each name the papers gave -> its method
 # key and the variant the name implies; method "" for a name that isn't a

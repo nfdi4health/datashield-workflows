@@ -31,17 +31,17 @@ cand_register <- function() {
 }
 cand_settings <- list(candidates = list(min_papers = 5, resuggest_factor = 2, examples = 2, max = 10))
 
-test_that("candidate_units() takes missing and partial methods and variants, not development ones", {
-  u <- candidate_units(cand_vocab())
-  expect_setequal(u$key, c("fine-gray", "cox-regression/time-varying"))
+test_that("method_units() takes every method and variant, whether DataSHIELD has it or not", {
+  u <- method_units(cand_vocab())
+  expect_setequal(u$key, c("fine-gray", "cox-regression", "cox-regression/time-varying", "mice"))
 })
 
 test_that("rank_candidates() counts papers, orders by share and applies tracked issues and decisions", {
   months <- c("2026-09", "2026-08")
   r <- rank_candidates(cand_register(), cand_vocab(), cand_settings, list(), list(), months, months)
-  expect_equal(r$key, c("cox-regression/time-varying", "fine-gray"))
-  expect_equal(r$papers, c(6, 6))
-  expect_equal(r$status, c("new", "new"))
+  expect_equal(r$key, c("cox-regression", "cox-regression/time-varying", "fine-gray", "mice"))
+  expect_equal(r$papers, c(8, 6, 6, 6))
+  expect_equal(r$status, c("new", "new", "new", "new"))
   expect_equal(r$fields[r$key == "fine-gray"], "cancer")
   expect_length(jsonlite::fromJSON(r$examples[1], simplifyVector = FALSE), 2)
   tracked <- rank_candidates(cand_register(), cand_vocab(), cand_settings, list(), list(`fine-gray` = 7), months, months)
@@ -54,7 +54,7 @@ test_that("rank_candidates() counts papers, orders by share and applies tracked 
   again <- rank_candidates(cand_register(), cand_vocab(), cand_settings, d, list(), months, months)
   expect_equal(again$status[again$key == "fine-gray"], "new")
   few <- rank_candidates(cand_register(), cand_vocab(), list(candidates = list(min_papers = 7)), list(), list(), months, months)
-  expect_equal(nrow(few), 0)
+  expect_equal(few$key, "cox-regression")
 })
 
 test_that("candidates_due() follows the mode, the round and this month's file", {
@@ -76,7 +76,17 @@ test_that("candidates_literature.R researches the new candidates and writes the 
   dir <- withr::local_tempdir()
   dir.create(file.path(dir, "config"))
   writeLines(c("fields:", "  - name: cancer", "    pubmed: 'x'", "sampling:", "  target_per_month: 25", "  years_back: 1",
-    "candidates:", "  min_papers: 5"), file.path(dir, "config", "literature-watch.yml"))
+    "candidates:", "  min_papers: 5", "exists:", "  functions_url: https://example.org/functions.json",
+    "  packages_url: https://example.org/packages.csv"), file.path(dir, "config", "literature-watch.yml"))
+  functions <- jsonlite::toJSON(data.frame(package = c("dsBaseClient", "dsSurvivalClient"), function_name = c("ds.mice", "ds.coxph"),
+    architecture_type = "client", function_type = "aggregate",
+    title = c("Multiple imputation by chained equations", "Cox proportional hazards model"),
+    description = c("Imputes missing values.", "Pooled Cox regression."), category = "", status = "", test_file = TRUE))
+  packages <- "name|description|github_link|cran_link|status\ndsBaseClient | x | | https://cran | production\ndsSurvivalClient | x | | | production"
+  mock <- function(req) {
+    body <- if (grepl("functions", req$url)) functions else packages
+    httr2::response(status_code = 200, headers = list("content-type" = "text/plain"), body = charToRaw(as.character(body)))
+  }
   shared <- file.path(dir, ".shared-workflows")
   dir.create(shared)
   for (part in c("R", "config", "prompts")) file.copy(file.path(repo_root, part), shared, recursive = TRUE)
@@ -90,6 +100,17 @@ test_that("candidates_literature.R researches the new candidates and writes the 
   asked <- character(0)
   local_global_mock(call_claude_tool = function(claude, tool, prompt) {
     asked <<- c(asked, claude$config$tool_name)
+    if (identical(claude$config$tool_name, "submit_exists_verdicts")) {
+      expect_false(grepl("Fine-Gray", prompt))
+      blocks <- strsplit(prompt, "<method ")[[1]][-1]
+      return(list(methods = lapply(seq_along(blocks), function(k) {
+        if (grepl("Method: Cox regression", blocks[k], fixed = TRUE)) {
+          list(id = paste0("m", k), verdict = "yes", `function` = "dsSurvivalClient::ds.coxph", quote = "Cox proportional hazards model", note = "")
+        } else {
+          list(id = paste0("m", k), verdict = "yes", `function` = "dsBaseClient::ds.mice", quote = "Multiple imputation by chained equations", note = "")
+        }
+      })))
+    }
     expect_match(prompt, "Fine-Gray regression", fixed = TRUE)
     list(description = "Regression for competing risks @someone.", r_packages = list(list(package = "cmprsk", `function` = "crr", note = "Classic.")),
       federated = "Done by pooling score statistics.", disclosure = "Risk sets per time point.", fit = "dsSurvival.",
@@ -101,8 +122,16 @@ test_that("candidates_literature.R researches the new candidates and writes the 
   trace_source <- function(file, ...) { base::source(file, ...); assign("call_claude_tool", stand_in, globalenv()) }
   withr::with_dir(dir, withr::with_envvar(c(WATCH_TODAY = "2026-11-17", WATCH_DATA_DIR = "watch-data", WATCH_CANDIDATES = "always",
     WATCH_TRACKED = "tracked.json", CLAUDE_CODE_OAUTH_TOKEN = "x"),
-    sys.source(file.path(".shared-workflows", "R", "candidates_literature.R"), envir = list2env(list(source = trace_source), parent = globalenv()))))
-  expect_equal(asked, "submit_candidate_research")
+    httr2::with_mocked_responses(mock, sys.source(file.path(".shared-workflows", "R", "candidates_literature.R"),
+      envir = list2env(list(source = trace_source), parent = globalenv())))))
+  # Exists? only down the ranking, in one batch: Cox regression and multiple
+  # imputation exist, Fine-Gray has no candidate functions (R says none);
+  # the deferred variant isn't asked again.
+  expect_equal(asked, c("submit_exists_verdicts", "submit_candidate_research"))
+  v <- read_vocabulary(data)
+  expect_equal(v$methods[["mice"]]$exists$verdict, "yes")
+  expect_equal(v$methods[["fine-gray"]]$exists$by, "R")
+  expect_equal(v$methods[["cox-regression"]]$variants[["time-varying"]]$exists$verdict, "partial")
   expect_equal(readLines(file.path(dir, "candidates_due.txt")), "yes")
   expect_equal(readLines(file.path(dir, "candidates_files.txt")), "literature-watch/candidates/2026-11.json")
   rec <- jsonlite::fromJSON(file.path(dir, "literature-watch/candidates/2026-11.json"), simplifyVector = FALSE)

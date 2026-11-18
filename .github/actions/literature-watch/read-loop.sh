@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
-# The literature watch's reading: R/watch_literature.R reads one stretch
-# (WATCH_CHUNK papers) into watch-data, this script pushes it to the hub's
-# data branch, and starts the next stretch while the run's budget lasts
+# The literature watch's reading (literature-watch.yml, job `read`):
+# R/watch_literature.R reads one stretch (WATCH_CHUNK papers) into
+# watch-data, this script pushes it to the hub's data branch
+# (push-data.sh), and starts the next stretch while the run's budget lasts
 # (watch_status.json: "chunk"). A stop at the usage limit, the budget or
 # an error loses at most the papers of the current stretch that weren't
-# written yet (R writes after every fetch). Then $CLASSIFY_SCRIPT (if set,
-# and the reading didn't stop at the usage limit) updates the vocabulary
-# and the "Exists?" verdicts, pushed as its own commit; a failure there is
-# a warning, the report still follows. Then $REPORT_SCRIPT (if set)
-# writes the report and progress.csv into watch-data, pushed the same way,
-# also after a stop by an error. R runs without $HUB_TOKEN and the App's
-# key in its environment.
+# written yet (R writes after every fetch). The vocabulary, the candidates
+# and the report are jobs of their own. R runs without $HUB_TOKEN and the
+# App's key in its environment.
 #
-# The hub token lasts an hour, the run up to five and a half: with
-# $APP_CLIENT_ID and $APP_PRIVATE_KEY, push() gets a new one (hub-token.sh)
-# once the current one is $TOKEN_RENEW_SECONDS (40 minutes) old.
+# The hub token lasts an hour, the reading up to five and a half: with
+# $APP_CLIENT_ID and $APP_PRIVATE_KEY, a new one is made (hub-token.sh)
+# before a push once the current one is $TOKEN_RENEW_SECONDS (40 minutes)
+# old.
 set -uo pipefail
 dir=watch-data
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,28 +30,17 @@ renew_token() {
     echo "::warning::The hub token couldn't be renewed; the old one is used while it lasts."
   fi
 }
-# R and Claude get neither the hub token nor the App's key.
-rscript() { env -u HUB_TOKEN -u APP_PRIVATE_KEY -u APP_CLIENT_ID "$@"; }
 push() {
   [ -n "${HUB_TOKEN:-}" ] || return 0
   renew_token
-  git -C "$dir" add -A
-  if git -C "$dir" diff --cached --quiet; then return 0; fi
-  git -C "$dir" commit --quiet -m "data: literature watch, $1"
-  local auth
-  auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$HUB_TOKEN" | base64 -w0)"
-  # The hub's candidate workflow may have added decisions.json meanwhile:
-  # then put this commit on top of it and push again.
-  git -C "$dir" -c "http.https://github.com/.extraheader=$auth" push --quiet origin "HEAD:refs/heads/$DATA_BRANCH" ||
-    { git -C "$dir" -c "http.https://github.com/.extraheader=$auth" pull --quiet --rebase origin "$DATA_BRANCH" &&
-      git -C "$dir" -c "http.https://github.com/.extraheader=$auth" push --quiet origin "HEAD:refs/heads/$DATA_BRANCH"; }
+  HUB_TOKEN="$HUB_TOKEN" WATCH_DATA_DIR="$dir" bash "$here/push-data.sh" "$1"
 }
 remaining="${MAX_PAPERS:-}"
 stopped="error"
 progress=""
 while :; do
   rm -f watch_status.json
-  if ! rscript WATCH_MAX_PAPERS="$remaining" WATCH_DATA_DIR="$dir" Rscript "$SCRIPT"; then
+  if ! env -u HUB_TOKEN -u APP_PRIVATE_KEY -u APP_CLIENT_ID WATCH_MAX_PAPERS="$remaining" WATCH_DATA_DIR="$dir" Rscript "$SCRIPT"; then
     push "stretch stopped by an error" || true
     echo "::error::The reading stopped with an error; what was read until then is pushed."
     stopped="error"
@@ -67,23 +54,8 @@ while :; do
   echo "Stretch: $read papers ($stopped). $progress"
   [ "$stopped" = "chunk" ] || break
 done
-if [ -n "${CLASSIFY_SCRIPT:-}" ] && [ "$stopped" != "limit" ]; then
-  if rscript WATCH_DATA_DIR="$dir" Rscript "$CLASSIFY_SCRIPT"; then
-    push "vocabulary" || { echo "::error::Pushing the vocabulary to the data branch failed."; stopped="error"; }
-  else
-    echo "::warning::The vocabulary step failed; the next run tries again."
-  fi
-fi
-if [ -n "${REPORT_SCRIPT:-}" ]; then
-  if rscript WATCH_DATA_DIR="$dir" Rscript "$REPORT_SCRIPT"; then
-    push "report" || { echo "::error::Pushing the report to the data branch failed."; stopped="error"; }
-  else
-    echo "::error::The report could not be built."
-    stopped="error"
-  fi
-fi
 {
-  echo "### Literature watch"
+  echo "### Literature watch: reading"
   echo
   echo "$progress"
   echo
