@@ -399,6 +399,36 @@ the live caller used to validate changes before wider rollout.
     missing (not the step's title). **Docs pending:** a page each (a new
     sidebar section "Function ideas"), the analysis details page's gap
     link already updated.
+  - `idea-check.yml`, `idea-check-start.yml` — "Exists in DataSHIELD?" for
+    new hub issues (user, 2026-11-17; built, **not yet run**): checks only,
+    no triage; never closes, routes or edits an issue. The hub's caller
+    (`issues: opened`, anyone; by hand only `allowed-logins`) dispatches the
+    runner's `idea-check.yml` (own `concurrency` group `idea-check`, not
+    `claude-subscription`: GitHub keeps one pending run per group, so a
+    queued check would push out a queued implementer or literature watch).
+    The runner only "looks now": `list-ideas.sh` takes open issues without
+    an `<!-- idea-check: VERDICT -->` comment, oldest first, at most
+    `max-issues` (5), leaving out `skip-labels` (`bot-suspicious`) and the
+    literature watch's own issues; `R/check_ideas.R` (loads `shared/` +
+    `literature/`; gets a file, no token): Sonnet reads the method,
+    keywords and up to 3 similar hub issues (profile `idea-reading`,
+    `prompts/idea-reading-prompt.md`, `build_idea_tool()`), R preselects
+    from `read_function_inventory()` (settings from `exists` of
+    `config/literature-watch.yml`), Opus judges with the literature watch's
+    `methods-exists` prompt and tool, `check_exists_answer()` checks;
+    `format_idea_comment()` (Claude's text through `plain_comment_text()`,
+    moved to `shared/`), `post-results.sh` posts comment and label
+    (`config/idea-check.yml`: `exists`, `exists-partly`, `in-development`;
+    none for `none` / `unclear` / `unconfirmed`). **Vocabulary match**
+    (user, 2026-11-18): with the hub's data branch checked out (read only),
+    a method the literature watch's vocabulary knows by exactly that name
+    (`match_vocabulary_method()`: a name the papers gave, the key, or a
+    method's own name; never a guess) gets its paper count in the comment
+    and the watch's marker `<!-- literature-watch-method: KEY -->` in it;
+    `tracked-ideas.sh` reads that marker from bots' comments too (not
+    people's), so the candidate list treats the idea as tracked. Once per issue; deleting
+    the comment checks it again. Tests `tests/testthat/test-idea-check.R`,
+    `tests/shell/test-idea-check.sh`. **Docs pending:** with the hub pages.
 - This repository's own, non-reusable workflows carry the prefix `REPO-`
   (user, 2026-11-17: upper case, so others see at once in
   `.github/workflows/` which ones aren't reusable). Besides `REPO-ci.yml`,

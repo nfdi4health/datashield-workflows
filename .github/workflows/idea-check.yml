@@ -1,0 +1,176 @@
+name: Idea Check
+
+# "Exists in DataSHIELD?" for new issues in the hub of missing DataSHIELD
+# functions (e.g. nfdi4health/datashield-function-ideas). Called from the
+# private runner repository, which holds the subscription token; the hub
+# starts it with idea-check-start.yml when an issue is opened. Per open
+# issue without a check comment (oldest first, at most max-issues): Claude
+# (Sonnet) reads which method the issue asks for and names similar hub
+# issues, R picks the closest functions of the DataSHIELD packages from the
+# catalogue's inventory (FederatedMethods/packages, as the literature
+# watch's "Exists?"), Claude (Opus) judges them with a quote from the
+# function's documentation, which R checks. One comment per issue (the
+# verdict, the closest functions, similar ideas; for a method the
+# literature watch's vocabulary knows by exactly this name, its paper count
+# and the watch's marker, so the candidate list doesn't propose it again)
+# and a label for yes,
+# partly and in development (config/idea-check.yml). It never closes,
+# routes or edits an issue. R/check_ideas.R gets the issues as a file and
+# never sees a token.
+on:
+  workflow_call:
+    inputs:
+      hub-repository:
+        description: 'The hub (owner/name): its open issues are checked, its config/idea-check.yml (and config/literature-watch.yml for the inventory) merged over the defaults.'
+        required: true
+        type: string
+      hub-branch:
+        description: 'The hub''s branch its config is read from.'
+        required: false
+        type: string
+        default: 'main'
+      max-issues:
+        description: 'At most this many issues per run; the rest waits for the next run.'
+        required: false
+        type: string
+        default: '5'
+      data-branch:
+        description: 'The hub''s branch with the literature watch''s data: its vocabulary tells which issues name a method the watch knows.'
+        required: false
+        type: string
+        default: 'data'
+      skip-labels:
+        description: 'Issues carrying one of these labels aren''t checked (separated by commas or spaces).'
+        required: false
+        type: string
+        default: 'bot-suspicious'
+      subscription-logins:
+        description: 'Who may start a run on the Claude subscription: exact GitHub logins, separated by commas or spaces. Empty: no check (a private runner, started by its owner and the hub''s start).'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      claude-code-oauth-token:
+        description: 'Token of a Claude subscription (claude setup-token).'
+        required: true
+      app-client-id:
+        description: 'Client ID of the bots'' GitHub App, installed on the hub with Issues: read and write, Contents: read.'
+        required: true
+      app-private-key:
+        description: 'Its private key.'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: May this login use the subscription?
+        if: inputs.subscription-logins != ''
+        env:
+          LOGINS: ${{ inputs.subscription-logins }}
+          ACTOR: ${{ github.triggering_actor }}
+        run: |
+          for login in $(tr ',' ' ' <<< "$LOGINS"); do
+            [ "$login" = "$ACTOR" ] && exit 0
+          done
+          echo "::error::$ACTOR may not start runs on the subscription (subscription-logins)."
+          exit 1
+
+      - name: Which repository is the hub
+        id: hub
+        env:
+          HUB: ${{ inputs.hub-repository }}
+        run: |
+          [[ "$HUB" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "::error::hub-repository is not owner/name: $HUB"; exit 1; }
+          { echo "owner=${HUB%%/*}"; echo "name=${HUB#*/}"; } >> "$GITHUB_OUTPUT"
+
+      # The hub's token: its issues, and reading the data branch.
+      - name: Token for the hub
+        id: hub_token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ steps.hub.outputs.owner }}
+          repositories: ${{ steps.hub.outputs.name }}
+          permission-issues: write
+          permission-contents: read
+
+      # The hub's branch: its config (a public repository, no token).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ inputs.hub-repository }}
+          ref: ${{ inputs.hub-branch }}
+          persist-credentials: false
+
+      # Scripts, config and prompts at the commit of this workflow.
+      - name: Shared scripts
+        uses: $/.github/actions/shared-files
+
+      - name: Unchecked issues
+        id: list
+        env:
+          HUB: ${{ inputs.hub-repository }}
+          GH_TOKEN: ${{ steps.hub_token.outputs.token }}
+          MAX_ISSUES: ${{ inputs.max-issues }}
+          SKIP_LABELS: ${{ inputs.skip-labels }}
+        run: |
+          [[ "$MAX_ISSUES" =~ ^[0-9]+$ ]] || { echo "::error::max-issues is not a number: $MAX_ISSUES"; exit 1; }
+          bash .shared-workflows/.github/actions/idea-check/list-ideas.sh "$RUNNER_TEMP/ideas.json"
+          echo "count=$(jq '.ideas | length' "$RUNNER_TEMP/ideas.json")" >> "$GITHUB_OUTPUT"
+
+      # The literature watch's data, read only: which methods it knows.
+      - name: The literature watch's data
+        if: steps.list.outputs.count != '0'
+        env:
+          HUB: ${{ inputs.hub-repository }}
+          HUB_TOKEN: ${{ steps.hub_token.outputs.token }}
+          DATA_BRANCH: ${{ inputs.data-branch }}
+        run: |
+          bash .shared-workflows/.github/actions/literature-watch/checkout-data.sh
+          echo "watch-data/" >> .git/info/exclude
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        if: steps.list.outputs.count != '0'
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        if: steps.list.outputs.count != '0'
+        with:
+          packages: any::httr2, any::jsonlite, any::purrr, any::yaml, any::processx, any::openssl
+
+      # The same pinned Claude Code as the other bots; single calls without
+      # shell or file tools, so no sandbox.
+      - name: Claude Code
+        if: steps.list.outputs.count != '0'
+        run: npm install -g --no-fund --no-audit @anthropic-ai/claude-code@2.1.312  # zizmor: ignore[adhoc-packages] exact version, as in the other bots
+
+      - name: Check
+        if: steps.list.outputs.count != '0'
+        env:
+          IDEAS_FILE: ${{ runner.temp }}/ideas.json
+          IDEA_RESULTS: ${{ runner.temp }}/idea_results.json
+          WATCH_DATA_DIR: watch-data
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
+        run: Rscript .shared-workflows/R/check_ideas.R
+
+      - name: Post the results
+        if: steps.list.outputs.count != '0'
+        env:
+          HUB: ${{ inputs.hub-repository }}
+          GH_TOKEN: ${{ steps.hub_token.outputs.token }}
+        run: bash .shared-workflows/.github/actions/idea-check/post-results.sh "$RUNNER_TEMP/idea_results.json"
+
+      # Counts this run once, anonymously, by workflow, outcome and version
+      # (see docs: usage counting). Nothing about this repository is sent.
+      - name: Count this run
+        if: always() && steps.list.outputs.count != '0'
+        continue-on-error: true
+        uses: $/.github/actions/count-run
+        with:
+          workflow: idea-check
+          job-status: ${{ job.status }}
