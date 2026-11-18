@@ -10,6 +10,10 @@ on:
   push:
     branches: [main]
     paths: ['config/routes.yml', '.github/workflows/route-idea.yml']
+  # Once a day: how the copies are doing (closed, reopened), reported on
+  # the hub issues. A run by hand does the labels and this check.
+  schedule:
+    - cron: '41 4 * * *'
   workflow_dispatch:
 
 jobs:
