@@ -407,7 +407,14 @@ the live caller used to validate changes before wider rollout.
     `format_idea_comment()` (Claude's text through `plain_comment_text()`,
     moved to `shared/`), `post-results.sh` posts comment and label
     (`config/idea-check.yml`: `exists`, `exists-partly`, `in-development`;
-    none for `none` / `unclear` / `unconfirmed`). Once per issue; deleting
+    none for `none` / `unclear` / `unconfirmed`). **Vocabulary match**
+    (user, 2026-11-18): with the hub's data branch checked out (read only),
+    a method the literature watch's vocabulary knows by exactly that name
+    (`match_vocabulary_method()`: a name the papers gave, the key, or a
+    method's own name; never a guess) gets its paper count in the comment
+    and the watch's marker `<!-- literature-watch-method: KEY -->` in it;
+    `tracked-ideas.sh` reads that marker from bots' comments too (not
+    people's), so the candidate list treats the idea as tracked. Once per issue; deleting
     the comment checks it again. Tests `tests/testthat/test-idea-check.R`,
     `tests/shell/test-idea-check.sh`. **Docs pending:** with the hub pages.
 - This repository's own, non-reusable workflows carry the prefix `REPO-`

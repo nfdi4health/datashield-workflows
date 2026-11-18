@@ -97,3 +97,41 @@ test_that("a usage limit or a failed call leaves the issue for the next run", {
   expect_true(x$failed)
   expect_null(x$result)
 })
+
+test_that("match_vocabulary_method() matches only exact names, keys and method names", {
+  v <- list(methods = list(), names = list(), variant_names = list())
+  v$methods[["k-medoids"]] <- list(name = "k-medoids clustering")
+  v$methods[["cox-regression"]] <- list(name = "Cox regression", variants = list(stratified = list(name = "stratified")))
+  v$names[["pam clustering"]] <- list(method = "k-medoids")
+  v$names[["stratified cox model"]] <- list(method = "cox-regression", variant = "stratified")
+  v$names[["p-value"]] <- list(method = "")
+  v$variant_names[["cox-regression"]][["stratified"]] <- list(variant = "stratified")
+  expect_equal(match_vocabulary_method(v, "PAM clustering."), "k-medoids")
+  expect_equal(match_vocabulary_method(v, "K-Medoids Clustering"), "k-medoids")
+  expect_equal(match_vocabulary_method(v, "k-medoids"), "k-medoids")
+  expect_equal(match_vocabulary_method(v, "Stratified Cox model"), "cox-regression/stratified")
+  expect_equal(match_vocabulary_method(v, "p-value"), "")
+  expect_equal(match_vocabulary_method(v, "medoids"), "")
+  expect_equal(match_vocabulary_method(v, "clustering around medoids"), "")
+})
+
+test_that("a matched method gets its paper count and the literature watch's marker", {
+  v <- list(methods = list(`k-medoids` = list(name = "k-medoids clustering")), names = list(`pam` = list(method = "k-medoids")),
+    variant_names = list())
+  reg <- new.env()
+  reg$papers <- list(
+    `1` = list(pmid = "1", usable = TRUE, methods = list(list(name = "pam"))),
+    `2` = list(pmid = "2", usable = TRUE, methods = list(list(name = "lasso"))),
+    `3` = list(pmid = "3", usable = FALSE, methods = list()))
+  lit <- idea_literature("PAM", v, reg)
+  expect_equal(lit, list(key = "k-medoids", papers = 1L, usable = 2L))
+  expect_null(idea_literature("lasso regression", v, reg))
+  expect_null(idea_literature("PAM", NULL, reg))
+  r <- list(number = 7, method = "PAM", similar = integer(0), candidates = idea_inventory()[0, ], literature = lit,
+    verdict = list(verdict = "none", `function` = "", quote = "", note = ""))
+  body <- format_idea_comment(r, idea_settings(), Sys.Date())$body
+  expect_match(body, "named in 1 of the 2 usable papers", fixed = TRUE)
+  expect_match(body, "<!-- literature-watch-method: k-medoids -->", fixed = TRUE)
+  r$literature <- NULL
+  expect_false(grepl("literature-watch-method", format_idea_comment(r, idea_settings(), Sys.Date())$body))
+})

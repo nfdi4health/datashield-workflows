@@ -6,7 +6,9 @@
 # catalogue's inventory, Claude judges them (the literature watch's
 # "Exists?" prompt), and R checks the answer and writes the comment and
 # label to IDEA_RESULTS (post-results.sh posts them). R never sees a GitHub
-# token. At the usage limit it stops; the rest waits for the next run.
+# token. A method the literature watch's vocabulary knows by exactly this
+# name gets its paper count and the watch's marker, so the candidate list
+# treats it as tracked. At the usage limit it stops; the rest waits for the next run.
 # IDEA_TODAY for tests.
 
 library(jsonlite)
@@ -34,6 +36,11 @@ if (is.null(inventory)) {
   write_results()
   quit(save = "no")
 }
+# The literature watch's data (the hub's data branch, checked out by the
+# workflow), for the vocabulary match; without it the comments go without.
+data_dir <- file.path(Sys.getenv("WATCH_DATA_DIR", "watch-data"), watch$files$data %||% "literature-watch/data")
+vocab <- if (dir.exists(data_dir)) read_vocabulary(data_dir) else NULL
+reg <- if (dir.exists(data_dir)) read_register(data_dir) else NULL
 auth <- claude_auth()
 reader <- claude_client("idea-reading", "prompts/idea-reading-prompt.md", auth = auth)
 judge <- claude_client("methods-exists", "prompts/methods-exists-prompt.md", auth = auth)
@@ -45,6 +52,7 @@ for (issue in ideas$ideas) {
     break
   }
   if (is.null(x$result)) next
+  if (!is.null(x$result$verdict)) x$result$literature <- idea_literature(x$result$method, vocab, reg)
   comment <- format_idea_comment(x$result, settings, today)
   results[[length(results) + 1]] <- list(number = issue$number, body = comment$body, label = comment$label)
   message(sprintf("#%s: %s", issue$number, if (is.null(x$result$verdict)) "not a method" else x$result$verdict$verdict))

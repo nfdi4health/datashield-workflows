@@ -33,4 +33,5 @@ texts:
   note: "Note: %s"
   closest: "Closest functions:"
   similar: "Similar ideas here: %s."
+  literature: "The literature watch knows this method: named in %d of the %d usable papers read so far. It won't propose it again as a candidate."
   footer: "Checked against the DataSHIELD package catalogue (FederatedMethods/packages) on %s, from the functions' titles and descriptions only, so read a function's documentation before relying on this. The check runs once per issue; delete this comment to have it run again."

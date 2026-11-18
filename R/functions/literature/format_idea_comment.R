@@ -2,7 +2,10 @@
 # result), with the hidden marker `<!-- idea-check: VERDICT -->` that
 # tells later runs the issue is done. Everything Claude wrote (the method's
 # name, the note) and the catalogue's texts pass plain_comment_text(), so
-# the comment can mention, link or show nothing. Returns list(body, label).
+# the comment can mention, link or show nothing. A method the literature
+# watch knows (`result$literature`) gets its paper count and the watch's
+# marker <!-- literature-watch-method: KEY -->, which the candidate list
+# reads from bots' comments as tracked. Returns list(body, label).
 format_idea_comment <- function(result, settings, today) {
   s <- settings
   t <- s$texts
@@ -28,10 +31,15 @@ format_idea_comment <- function(result, settings, today) {
         ifelse(nzchar(cand$status), sprintf(" (%s)", cand$status), ""), vapply(cand$title, plain, "", n = 160)))
     }
   }
+  lit <- result$literature
+  if (!is.null(lit)) {
+    lines <- c(lines, "", sprintf(t$literature, lit$papers, lit$usable))
+  }
   if (length(result$similar)) {
     lines <- c(lines, "", sprintf(t$similar, paste0("#", result$similar, collapse = ", ")))
   }
   lines <- c(lines, "", sprintf("<sub>%s</sub>", sprintf(t$footer, format(today))), "",
-    sprintf("<!-- idea-check: %s -->", verdict))
+    sprintf("<!-- idea-check: %s -->", verdict),
+    if (!is.null(lit)) sprintf("<!-- literature-watch-method: %s -->", lit$key))
   list(body = paste(lines, collapse = "\n"), label = s$labels[[verdict]] %||% "")
 }

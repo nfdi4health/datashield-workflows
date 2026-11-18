@@ -10,7 +10,10 @@ name: Idea Check
 # catalogue's inventory (FederatedMethods/packages, as the literature
 # watch's "Exists?"), Claude (Opus) judges them with a quote from the
 # function's documentation, which R checks. One comment per issue (the
-# verdict, the closest functions, similar ideas) and a label for yes,
+# verdict, the closest functions, similar ideas; for a method the
+# literature watch's vocabulary knows by exactly this name, its paper count
+# and the watch's marker, so the candidate list doesn't propose it again)
+# and a label for yes,
 # partly and in development (config/idea-check.yml). It never closes,
 # routes or edits an issue. R/check_ideas.R gets the issues as a file and
 # never sees a token.
@@ -31,6 +34,11 @@ on:
         required: false
         type: string
         default: '5'
+      data-branch:
+        description: 'The hub''s branch with the literature watch''s data: its vocabulary tells which issues name a method the watch knows.'
+        required: false
+        type: string
+        default: 'data'
       skip-labels:
         description: 'Issues carrying one of these labels aren''t checked (separated by commas or spaces).'
         required: false
@@ -46,7 +54,7 @@ on:
         description: 'Token of a Claude subscription (claude setup-token).'
         required: true
       app-client-id:
-        description: 'Client ID of the bots'' GitHub App, installed on the hub with Issues: read and write.'
+        description: 'Client ID of the bots'' GitHub App, installed on the hub with Issues: read and write, Contents: read.'
         required: true
       app-private-key:
         description: 'Its private key.'
@@ -80,7 +88,7 @@ jobs:
           [[ "$HUB" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "::error::hub-repository is not owner/name: $HUB"; exit 1; }
           { echo "owner=${HUB%%/*}"; echo "name=${HUB#*/}"; } >> "$GITHUB_OUTPUT"
 
-      # The hub's token, for its issues only.
+      # The hub's token: its issues, and reading the data branch.
       - name: Token for the hub
         id: hub_token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
@@ -90,6 +98,7 @@ jobs:
           owner: ${{ steps.hub.outputs.owner }}
           repositories: ${{ steps.hub.outputs.name }}
           permission-issues: write
+          permission-contents: read
 
       # The hub's branch: its config (a public repository, no token).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -114,6 +123,17 @@ jobs:
           bash .shared-workflows/.github/actions/idea-check/list-ideas.sh "$RUNNER_TEMP/ideas.json"
           echo "count=$(jq '.ideas | length' "$RUNNER_TEMP/ideas.json")" >> "$GITHUB_OUTPUT"
 
+      # The literature watch's data, read only: which methods it knows.
+      - name: The literature watch's data
+        if: steps.list.outputs.count != '0'
+        env:
+          HUB: ${{ inputs.hub-repository }}
+          HUB_TOKEN: ${{ steps.hub_token.outputs.token }}
+          DATA_BRANCH: ${{ inputs.data-branch }}
+        run: |
+          bash .shared-workflows/.github/actions/literature-watch/checkout-data.sh
+          echo "watch-data/" >> .git/info/exclude
+
       - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         if: steps.list.outputs.count != '0'
         with:
@@ -134,6 +154,7 @@ jobs:
         env:
           IDEAS_FILE: ${{ runner.temp }}/ideas.json
           IDEA_RESULTS: ${{ runner.temp }}/idea_results.json
+          WATCH_DATA_DIR: watch-data
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
         run: Rscript .shared-workflows/R/check_ideas.R
 
