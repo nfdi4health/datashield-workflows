@@ -170,7 +170,27 @@ jobs:
           DATA_BRANCH: ${{ inputs.data-branch }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.claude-code-oauth-token }}
           NCBI_API_KEY: ${{ secrets.ncbi-api-key }}
+          # The hub token lasts an hour, the reading up to five and a half:
+          # read-loop.sh renews it with the App's key (never given to R).
+          HUB: ${{ inputs.hub-repository }}
+          APP_CLIENT_ID: ${{ inputs.hub-repository != '' && secrets.app-client-id || '' }}
+          APP_PRIVATE_KEY: ${{ inputs.hub-repository != '' && secrets.app-private-key || '' }}
         run: bash .shared-workflows/.github/actions/literature-watch/read-loop.sh
+
+      # A new hub token for the steps after the reading (the first one has
+      # run out by now).
+      - name: Token for the hub, again
+        id: hub_token_after
+        if: inputs.hub-repository != '' && inputs.candidates != 'never'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ steps.hub.outputs.owner }}
+          repositories: ${{ steps.hub.outputs.name }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: read
 
       # The methods already tracked by a hub issue (its hidden marker), for
       # the candidates; R gets the list, not the token.
@@ -178,7 +198,7 @@ jobs:
         if: inputs.hub-repository != '' && inputs.candidates != 'never'
         env:
           HUB: ${{ inputs.hub-repository }}
-          GH_TOKEN: ${{ steps.hub_token.outputs.token }}
+          GH_TOKEN: ${{ steps.hub_token_after.outputs.token }}
         run: bash .shared-workflows/.github/actions/literature-watch/tracked-ideas.sh tracked.json
 
       - name: Candidates
@@ -197,6 +217,19 @@ jobs:
             echo "month=$(date -u +%Y-%m)"
           } >> "$GITHUB_OUTPUT"
 
+      # The research step can take a while: one more fresh token.
+      - name: Token for the hub, for the pull request
+        id: hub_token_pr
+        if: steps.candidates.outputs.due == 'yes' && inputs.hub-repository != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ steps.hub.outputs.owner }}
+          repositories: ${{ steps.hub.outputs.name }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - name: Propose the candidates to the hub
         if: steps.candidates.outputs.due == 'yes' && inputs.hub-repository != ''
         uses: $/.github/actions/propose-branch
@@ -207,7 +240,7 @@ jobs:
           title: ${{ steps.candidates.outputs.title }}
           body-file: candidates_body.md
           commit-message: 'docs: literature watch candidates ${{ steps.candidates.outputs.month }}'
-          token: ${{ steps.hub_token.outputs.token }}
+          token: ${{ steps.hub_token_pr.outputs.token }}
           repository: ${{ inputs.hub-repository }}
 
       - name: Keep the data

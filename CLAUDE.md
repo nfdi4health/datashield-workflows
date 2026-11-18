@@ -326,7 +326,12 @@ the live caller used to validate changes before wider rollout.
     branch: `read-loop.sh` runs `R/watch_literature.R` (`run_watch_chunk()`)
     in stretches of 250 papers and pushes after each, up to
     `papers_per_run` (1,500) or the input `max-papers`, stopping at the
-    usage limit; R never sees the hub token. The report
+    usage limit; R never sees the hub token. The App token lasts an hour, the
+    run up to 5½ (run 44202459011 lost its vocabulary and report pushes at
+    67 minutes, 2026-11-18): `push()` renews it after 40 minutes with
+    `hub-token.sh` (JWT signed with the App's key, `iss` = client ID; token
+    for the hub only, Contents: write), the key never reaches R; the steps
+    after the reading make fresh tokens (`hub_token_after`, `hub_token_pr`). The report
     (`R/report_literature.R`, `format_watch_report()`: progress, shares per
     year with a trend test, Mermaid charts, variants, searches) and
     `progress.csv` (`watch_progress_table()`) go to the `data` branch at the

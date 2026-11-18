@@ -9,12 +9,34 @@
 # and the "Exists?" verdicts, pushed as its own commit; a failure there is
 # a warning, the report still follows. Then $REPORT_SCRIPT (if set)
 # writes the report and progress.csv into watch-data, pushed the same way,
-# also after a stop by an error. R runs without $HUB_TOKEN in its
-# environment.
+# also after a stop by an error. R runs without $HUB_TOKEN and the App's
+# key in its environment.
+#
+# The hub token lasts an hour, the run up to five and a half: with
+# $APP_CLIENT_ID and $APP_PRIVATE_KEY, push() gets a new one (hub-token.sh)
+# once the current one is $TOKEN_RENEW_SECONDS (40 minutes) old.
 set -uo pipefail
 dir=watch-data
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+token_time=$(date +%s)
+renew_token() {
+  [ -n "${APP_PRIVATE_KEY:-}" ] && [ -n "${APP_CLIENT_ID:-}" ] || return 0
+  [ $(( $(date +%s) - token_time )) -ge "${TOKEN_RENEW_SECONDS:-2400}" ] || return 0
+  local fresh
+  if fresh="$(bash "${HUB_TOKEN_SCRIPT:-$here/hub-token.sh}")" && [ -n "$fresh" ]; then
+    echo "::add-mask::$fresh"
+    HUB_TOKEN="$fresh"
+    token_time=$(date +%s)
+    echo "The hub token was renewed."
+  else
+    echo "::warning::The hub token couldn't be renewed; the old one is used while it lasts."
+  fi
+}
+# R and Claude get neither the hub token nor the App's key.
+rscript() { env -u HUB_TOKEN -u APP_PRIVATE_KEY -u APP_CLIENT_ID "$@"; }
 push() {
   [ -n "${HUB_TOKEN:-}" ] || return 0
+  renew_token
   git -C "$dir" add -A
   if git -C "$dir" diff --cached --quiet; then return 0; fi
   git -C "$dir" commit --quiet -m "data: literature watch, $1"
@@ -31,7 +53,7 @@ stopped="error"
 progress=""
 while :; do
   rm -f watch_status.json
-  if ! env -u HUB_TOKEN WATCH_MAX_PAPERS="$remaining" WATCH_DATA_DIR="$dir" Rscript "$SCRIPT"; then
+  if ! rscript WATCH_MAX_PAPERS="$remaining" WATCH_DATA_DIR="$dir" Rscript "$SCRIPT"; then
     push "stretch stopped by an error" || true
     echo "::error::The reading stopped with an error; what was read until then is pushed."
     stopped="error"
@@ -46,14 +68,14 @@ while :; do
   [ "$stopped" = "chunk" ] || break
 done
 if [ -n "${CLASSIFY_SCRIPT:-}" ] && [ "$stopped" != "limit" ]; then
-  if env -u HUB_TOKEN WATCH_DATA_DIR="$dir" Rscript "$CLASSIFY_SCRIPT"; then
+  if rscript WATCH_DATA_DIR="$dir" Rscript "$CLASSIFY_SCRIPT"; then
     push "vocabulary" || { echo "::error::Pushing the vocabulary to the data branch failed."; stopped="error"; }
   else
     echo "::warning::The vocabulary step failed; the next run tries again."
   fi
 fi
 if [ -n "${REPORT_SCRIPT:-}" ]; then
-  if env -u HUB_TOKEN WATCH_DATA_DIR="$dir" Rscript "$REPORT_SCRIPT"; then
+  if rscript WATCH_DATA_DIR="$dir" Rscript "$REPORT_SCRIPT"; then
     push "report" || { echo "::error::Pushing the report to the data branch failed."; stopped="error"; }
   else
     echo "::error::The report could not be built."

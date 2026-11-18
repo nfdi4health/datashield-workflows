@@ -18,7 +18,7 @@ run_loop() {
 if [ "$1" = "classify.R" ]; then echo "${HUB_TOKEN:-unset}" > classify_env; [ -f classify_fails ] && exit 1; exit 0; fi
 if [ "$1" = "report.R" ]; then echo "${HUB_TOKEN:-unset}" > report_env; [ -f report_fails ] && exit 1; exit 0; fi
 n=$(cat calls 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > calls
-echo "${HUB_TOKEN:-unset} ${WATCH_MAX_PAPERS:-empty}" >> rscript_env
+echo "${HUB_TOKEN:-unset} ${WATCH_MAX_PAPERS:-empty} ${APP_PRIVATE_KEY:-nokey}" >> rscript_env
 line=$(sed -n "${n}p" answers)
 [ "$line" = "error" ] && exit 1
 set -- $line
@@ -83,6 +83,26 @@ check "and doesn't fail the step" "$(cat "$work/exit")" 0
 PUSH_FAILS_ONCE=1 run_loop 'done 3 1497' secret
 check "a rejected push is put on top of the branch and pushed again" "$(grep -c 'pull --quiet --rebase origin data' "$work/git_calls")" 1
 check "and the run goes on" "$(cat "$work/exit")" 0
+
+# The hub token lasts an hour: with the App's ID and key, push() gets a new
+# one once the old one is TOKEN_RENEW_SECONDS old (here at once).
+stub_dir="$(mktemp -d)"
+printf '#!/usr/bin/env bash\necho fresh-token\n' > "$stub_dir/new-token.sh"
+printf '#!/usr/bin/env bash\nexit 1\n' > "$stub_dir/no-token.sh"
+fresh_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' fresh-token | base64 -w0)"
+APP_CLIENT_ID=client APP_PRIVATE_KEY=the-key TOKEN_RENEW_SECONDS=0 HUB_TOKEN_SCRIPT="$stub_dir/new-token.sh" \
+  run_loop $'chunk 250 1250\nbudget 250 1000' old-token report.R
+check "an old token is renewed before each push" "$(grep -c "extraheader=$fresh_header" "$work/git_calls")" 3
+old_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' old-token | base64 -w0)"
+check "and the old one isn't used again" "$(grep -c "extraheader=$old_header" "$work/git_calls")" 0
+check "R never sees the App's key" "$(cut -d' ' -f3 "$work/rscript_env" | sort -u)" "nokey"
+check "nor the renewed token" "$(cat "$work/report_env")" "unset"
+APP_CLIENT_ID=client APP_PRIVATE_KEY=the-key TOKEN_RENEW_SECONDS=3600 HUB_TOKEN_SCRIPT="$stub_dir/new-token.sh" \
+  run_loop 'budget 250 1250' old-token
+check "a young token is kept" "$(grep -c 'fresh-token\|extraheader=AUTHORIZATION: basic' "$work/git_calls")" 1
+APP_CLIENT_ID=client APP_PRIVATE_KEY=the-key TOKEN_RENEW_SECONDS=0 HUB_TOKEN_SCRIPT="$stub_dir/no-token.sh" \
+  run_loop 'budget 250 1250' old-token
+check "a failed renewal keeps the old token and goes on" "$(cat "$work/exit")" 0
 
 # tracked-ideas.sh: the markers of the hub's issues, with a stand-in for gh.
 tracked="$here/../../.github/actions/literature-watch/tracked-ideas.sh"
