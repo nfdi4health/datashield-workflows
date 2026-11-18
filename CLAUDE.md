@@ -302,7 +302,9 @@ the live caller used to validate changes before wider rollout.
     the maintainer's name in any public repository, also `datashield`'s),
     else the bots' App token (installed there, Issues: write), links it back with a hidden `routed-to` marker (copied once
     per target) and labels the hub issue `routed`; mentions in the copy
-    are defused. Any other event (a push of the routes, by hand) creates
+    are defused; the newest idea-check comment by a bot goes along, without
+    its markers (user, 2026-11-18: the package's maintainers don't start
+    from scratch). Any other event (a push of the routes, by hand) creates
     the route labels the hub lacks (step `labels`). Composite action `route-idea`, tests
     `tests/shell/test-route-idea.sh`. Literature watch (named so
     2026-11-16, was `methods-scan`; the pilot's question is answered:

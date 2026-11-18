@@ -103,6 +103,19 @@ case "$step" in
     # Mentions in the copy would notify people a second time: @name loses
     # its effect with a zero-width space after the @.
     body="$(event_field .issue.body | sed 's/@\([A-Za-z0-9]\)/@\xe2\x80\x8b\1/g')"
+    # The hub's "Exists in DataSHIELD?" check (idea-check.yml) goes along,
+    # so the package's maintainers don't start from scratch: the newest
+    # check comment written by a bot (not a person's), without its hidden
+    # markers and its note on running the check again, which only apply
+    # in the hub.
+    check="$(gh api "repos/$GITHUB_REPOSITORY/issues/$number/comments" --paginate \
+        --jq '.[] | select(.user.type == "Bot" and (.body | contains("<!-- idea-check:"))) | .body | @base64' 2> /dev/null |
+      tail -n 1 | base64 -d 2> /dev/null |
+      grep -v -e '<!-- idea-check:' -e '<!-- literature-watch-method:' -e '^<sub>' |
+      sed 's/@\([A-Za-z0-9]\)/@\xe2\x80\x8b\1/g' || true)"
+    if [ -n "$(tr -d '[:space:]' <<< "$check")" ]; then
+      body="$(printf '%s\n\n---\n\n**The hub'"'"'s check of this idea, when it was routed:**\n\n%s' "$body" "$check")"
+    fi
     copy_body="$(printf 'Copied from %s, where missing DataSHIELD functions are collected. Discussion and work happen here; a 👍 there counts the demand.\n\n---\n\n%s\n\n<!-- function-idea: %s#%s -->' \
       "$url" "$body" "$GITHUB_REPOSITORY" "$number")"
     new_url="$(GH_TOKEN="$TARGET_TOKEN" gh api "repos/$TARGET/issues" -f title="$title" -f body="$copy_body" --jq '.html_url')"
