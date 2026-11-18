@@ -454,17 +454,19 @@ test("prompts, sandbox settings, the API", async () => {
   assert.equal((await listAll(async () => pages[call++], "x?y=1")).length, 101);
 });
 
-test("the session-start hook takes the token out of the remote URLs and the auth header", () => {
+test("the session-start hook takes the token out of the remote URLs, the auth header and the credential helper", () => {
   const dir = mkdtempSync(join(tmpdir(), "strip-"));
   const git = (...args) => execFileSync("git", ["-C", dir, ...args], { encoding: "utf8" }).trim();
   git("init", "-q");
   git("remote", "add", "origin", "https://x-access-token:ghs_secret@github.com/o/r.git");
   git("remote", "add", "plain", "https://github.com/o/p.git");
   git("config", "--local", "http.https://github.com/.extraheader", "AUTHORIZATION: basic abc");
+  git("config", "--local", "credential.https://github.com.helper", "!'/tmp/helper.sh'");
   execFileSync("bash", ["-c", stripGitCredentials], { cwd: dir });
   assert.equal(git("remote", "get-url", "origin"), "https://github.com/o/r.git");
   assert.equal(git("remote", "get-url", "plain"), "https://github.com/o/p.git");
   assert.throws(() => git("config", "--local", "--get", "http.https://github.com/.extraheader"));
+  assert.throws(() => git("config", "--local", "--get", "credential.https://github.com.helper"));
   execFileSync("bash", ["-c", stripGitCredentials], { cwd: tmpdir() });
 });
 
