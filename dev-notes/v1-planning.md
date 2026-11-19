@@ -295,8 +295,10 @@ items, **all of A–J before v1**:
 ## 6b. The hub and the researcher — before v1 (user, 2026-11-10)
 
 The user named the researcher (skill and workflow) as part of the work
-before v1 on 2026-11-10; the design is in [issue-agents.md](issue-agents.md),
-"A central hub" (2026-11-11). Hub: `nfdi4health/datashield-function-ideas`
+before v1 on 2026-11-10; the design was in [issue-agents.md](issue-agents.md),
+"A central hub" (2026-11-11). **Since 2026-11-19 the hub's pipeline and its
+design notes live in the hub itself** (`dev-notes/hub-design.md` there);
+nothing of it is left in this repository but the shared helpers it uses. Hub: `nfdi4health/datashield-function-ideas`
 (created by the user 2026-11-13, main only, the researcher on the user's
 subscription). **Built 2026-11-13, not yet run:** routing
 (`route-idea.yml`), the researcher's phase 0 (`methods-scan.yml`, mode
