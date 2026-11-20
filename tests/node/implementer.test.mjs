@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { Refusal, githubApi, labelNames, listAll, parseTargets, safeText, stripClosingKeywords } from "../../.github/actions/implementer/lib.mjs";
-import { commitType, listQueue, parseRequest, pickNext, verifyIssue } from "../../.github/actions/implementer/queue.mjs";
+import { commitType, countWaiting, listQueue, parseRequest, pickNext, verifyIssue } from "../../.github/actions/implementer/queue.mjs";
 import { finalOutcome, nextRound, parseLimit, readExecution, splitDisclosureReview } from "../../.github/actions/implementer/outcome.mjs";
 import { failureComment, needsInputComment, publish, pullRequestBody, reviewChanges } from "../../.github/actions/implementer/publish.mjs";
 import { mergeEvents, statusRows, timelineEvents, toCsv } from "../../.github/actions/implementer/log.mjs";
@@ -182,6 +182,24 @@ test("the queue: oldest approval first, without running issues and pull requests
     return [labeled("owner-login", times[n])];
   };
   assert.deepEqual((await listQueue(api, cfg, targets)).map((q) => q.issue), ["2", "1"]);
+});
+
+test("waiting issues are counted over all targets, from the labels alone; none means no next run", async () => {
+  const lists = {
+    "org/pkg": [{ ...openIssue, number: 1 }, { ...openIssue, number: 3, labels: [{ name: "bot-proceed" }, { name: "bot-in-progress" }] }],
+    "org/other": [{ ...openIssue, number: 5 }, { ...openIssue, number: 6, pull_request: {} }],
+  };
+  const paths = [];
+  const api = (answers) => async (path) => {
+    paths.push(path);
+    return answers[path.match(/^repos\/([^/]+\/[^/]+)\/issues\?/)[1]];
+  };
+  const both = { "org/pkg": { base: "dev" }, "org/other": { base: "main" } };
+  assert.equal(await countWaiting(api(lists), cfg, both), 2);
+  assert.ok(paths.every((path) => path.includes("labels=bot-proceed") && !path.includes("/events")));
+  // The issue just worked on lost its approval, or is the only one and still running.
+  assert.equal(await countWaiting(api({ "org/pkg": [], "org/other": [] }), cfg, both), 0);
+  assert.equal(await countWaiting(api({ "org/pkg": [lists["org/pkg"][1]] }), cfg, targets), 0);
 });
 
 test("a refused issue leaves the list with a comment; the next one runs", async () => {

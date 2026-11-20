@@ -62,6 +62,14 @@ The issue's labels show where it stands:
 To retry, set `bot-proceed` again. After `bot-needs-input`, answer in a
 comment: a new triage updates the spec, then approve again.
 
+**One after another:** a run works on one issue. At its end it starts the
+next run if another approved issue is waiting; an empty list ends the
+chain. The runner's `concurrency` group lets one run work at a time. If
+other workflows use the same subscription and share that group, give
+each of them `queue: max` (see the example): GitHub otherwise keeps a
+single waiting run per group and cancels it for the next start, without a
+notice.
+
 **Subscription limits:** at a 5-hour limit the issue keeps its approval and
 its place; a timer in the target repository (`implementer-timer.yml`)
 waits for the reset and starts the runner again. A weekly limit pauses
