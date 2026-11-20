@@ -13,7 +13,13 @@ on:
         required: false
         type: string
 
-# One agent at a time: the subscription's limits are shared.
+# One agent at a time: the subscription's limits are shared. GitHub keeps
+# one waiting run per group and cancels it for the next start. For the
+# implementer alone that loses nothing: the approved issues are the list.
+# If other workflows share the group (e.g. scheduled ones on the same
+# subscription), add `queue: max` here and to each of them, so that
+# waiting runs are kept and run in the order they arrived; a start from
+# a workflow without it cancels every waiting run of the group.
 concurrency:
   group: implementer
   cancel-in-progress: false
