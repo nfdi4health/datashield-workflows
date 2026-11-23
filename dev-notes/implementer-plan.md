@@ -71,6 +71,17 @@ No spec review step and no second approval.
   chain quietly. GitHub keeps only one waiting run, so dropped dispatches
   don't matter: the next run finds the issue anyway. Six approvals are done
   one after another, in approval order.
+  **Since 2026-11-20** the run dispatches itself only while an approved
+  issue is waiting (command `waiting`: the labels alone, `pick` checks the
+  approvals; if the list can't be read, it dispatches as before). Reason:
+  in the runner the group is shared with scheduled workflows (the hub's
+  literature watch and candidate selection), and the dispatch after the
+  last issue cancelled the one waiting there, without a notice. The runner
+  also sets `queue: max` on the group's workflows now (GitHub, May 2026:
+  up to 100 waiting runs, in order; a start from a workflow without it
+  cancels all waiting runs), so every approval's dispatch is kept: three
+  approvals at once are three runs plus the chain's, of which the surplus
+  ones find nothing and end within a minute.
 - **Start:** the dispatch after the label check, or by hand. **No scheduled
   run** of the implementer (user, 2026-11-09; replaces the daily run decided
   earlier the same day).
