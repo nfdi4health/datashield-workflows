@@ -8,7 +8,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Refusal, githubApi, labelNames, parseTargets, splitLogins, writeOutputs } from "./lib.mjs";
-import { parseRequest, pickNext, verifyIssue } from "./queue.mjs";
+import { countWaiting, parseRequest, pickNext, verifyIssue } from "./queue.mjs";
 import { finalOutcome, nextRound, readExecution, readJson, splitDisclosureReview } from "./outcome.mjs";
 import { publish, readResult, prepareBranch, setLabels } from "./publish.mjs";
 import { appendToLog, collectEvents, collectRuns, readEvents } from "./log.mjs";
@@ -232,6 +232,15 @@ const commands = {
       method: "POST",
       body: { body: `The agent's run ended without a result. \`${cfg.labels.proceed}\` stays, so the issue is tried again with the next start.${env.RUN_URL ? `\n\nRun (private): ${env.RUN_URL}` : ""}` },
     });
+  },
+
+  // At the end of a run: whether an approved issue is waiting. Only then
+  // is the next run started (implement-issue.yml, job `finish`), so a run
+  // that would find nothing doesn't take a place in the caller's queue.
+  async waiting() {
+    const count = await countWaiting(githubApi(env.GH_TOKEN), config(), parseTargets(env.TARGETS));
+    console.log(count ? `${count} approved issue(s) waiting.` : "No approved issue is waiting.");
+    await writeOutputs({ waiting: String(count > 0) });
   },
 
   async "log-run"() {

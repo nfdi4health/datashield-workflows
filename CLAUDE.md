@@ -272,7 +272,12 @@ the live caller used to validate changes before wider rollout.
     `bot-proceed` stays, and a `repository_dispatch` `implementer-timer`
     to the target starts `implementer-timer.yml` there, which waits until
     the reset), `finish` (event log, then `gh workflow run` of itself for
-    the next issue). Log: branch `log` of the runner, `events.json`
+    the next issue; since 2026-11-20 only while an approved issue is
+    waiting, command `waiting`, because the dispatch after the last issue
+    cancelled a scheduled run waiting in the runner's shared concurrency
+    group; the runner's callers on the subscription also set `queue: max`
+    since then, see dev-notes/implementer-plan.md, "Queue"). Log: branch
+    `log` of the runner, `events.json`
     append-only (key repository, issue, event, time, actor, label, run),
     `status.csv` rebuilt; `implementer-log.yml` adds timelines and runs
     daily. Logic in the composite action `implementer` (Node,

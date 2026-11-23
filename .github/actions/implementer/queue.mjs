@@ -137,19 +137,32 @@ export async function verifyIssue(api, cfg, request) {
   };
 }
 
-// Open issues with the approval label and without the running label, oldest
-// approval first, over all target repositories.
+// A repository's open issues with the approval label and without the
+// running label.
+async function waitingIssues(api, cfg, repository) {
+  const issues = await listAll(api, `repos/${repository}/issues?state=open&labels=${encodeURIComponent(cfg.labels.proceed)}`);
+  return issues.filter((issue) => !issue.pull_request && !hasLabel(issue, cfg.labels.inProgress));
+}
+
+// Those issues, oldest approval first, over all target repositories.
 export async function listQueue(api, cfg, targets) {
   const queue = [];
   for (const repository of Object.keys(targets)) {
-    const issues = await listAll(api, `repos/${repository}/issues?state=open&labels=${encodeURIComponent(cfg.labels.proceed)}`);
-    for (const issue of issues) {
-      if (issue.pull_request || hasLabel(issue, cfg.labels.inProgress)) continue;
+    for (const issue of await waitingIssues(api, cfg, repository)) {
       const approval = latestApproval(await listAll(api, `repos/${repository}/issues/${issue.number}/events`), cfg.labels.proceed);
       queue.push({ repository, issue: String(issue.number), approvedAt: approval?.created_at ?? issue.created_at });
     }
   }
   return queue.sort((a, b) => new Date(a.approvedAt) - new Date(b.approvedAt));
+}
+
+// How many issues are waiting, over all target repositories. At the end of
+// a run this decides whether the next run is started: the labels alone,
+// without checking each approval, which `pick` does when that run starts.
+export async function countWaiting(api, cfg, targets) {
+  let count = 0;
+  for (const repository of Object.keys(targets)) count += (await waitingIssues(api, cfg, repository)).length;
+  return count;
 }
 
 // A refused issue leaves the list with the reason on it, so the next run

@@ -8,7 +8,7 @@ description: >
 
 inputs:
   command:
-    description: 'pick, verify, prompt, settings, oracle, checks, docs-scope, docs-verdict, save-review, round, outcome, publish, cleanup, log-run or log-update.'
+    description: 'pick, verify, prompt, settings, oracle, checks, docs-scope, docs-verdict, save-review, round, outcome, publish, cleanup, waiting, log-run or log-update.'
     required: true
   working-directory:
     description: 'Where the command runs.'
@@ -93,6 +93,9 @@ outputs:
   refused:
     description: 'See implementer.mjs (refused).'
     value: ${{ steps.run.outputs.refused }}
+  waiting:
+    description: 'See implementer.mjs (waiting).'
+    value: ${{ steps.run.outputs.waiting }}
 
 runs:
   using: composite
