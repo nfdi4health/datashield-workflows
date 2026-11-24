@@ -103,6 +103,7 @@ are read too:
 | [`build_roxygen_block()`](https://github.com/nfdi4health/datashield-workflows/blob/main/R/functions/roxygen/build_roxygen_block.R) | Assembles the new block in the configured tag order: accepted parts from Claude, all other lines and tags (`@export`, `@seealso`, …) exactly as they were. |
 | [`strip_artifact_lines()`](https://github.com/nfdi4health/datashield-workflows/blob/main/R/functions/shared/strip_artifact_lines.R) | Removes stray `#'` or `@tag` lines Claude might have copied into a field; an empty required field stops the file instead of breaking it. |
 | [`write_in_place()`](https://github.com/nfdi4health/datashield-workflows/blob/main/R/functions/roxygen/write_in_place.R) | Replaces the old block with the new one in the file. |
+| [`regenerate_man_pages()`](https://github.com/nfdi4health/datashield-workflows/blob/main/R/functions/roxygen/regenerate_man_pages.R) | After all files: runs roxygen2 (only the Rd pages, your R files sourced, no tokens) and keeps only the man pages of the files it changed, so `man/` matches the new blocks; every other page stays as it was. The checkbox workflow does the same when you tick or untick a suggestion. |
 
 ## ⑦ Write the report
 

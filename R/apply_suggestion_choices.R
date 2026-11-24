@@ -6,7 +6,9 @@
 # made to match its box — checking what they contain, so the order of
 # this and a bot run doesn't matter (apply_test_choice(),
 # apply_roxygen_choice()). No Claude call. Writes
-#   updated_files.txt — the files changed or removed, for the commit;
+#   updated_files.txt — the files changed or removed (with the regenerated
+#     man pages of changed roxygen blocks, regenerate_man_pages()), for the
+#     commit;
 #   new_body.md       — the description with the boxes as applied (a
 #                       choice that can't be applied is unticked again,
 #                       with a note), if anything changed.
@@ -89,6 +91,10 @@ for (i in seq_along(state$entries)) {
   }
 }
 
+# A roxygen block changed by a choice gets its man page regenerated too.
+if (!identical(kind, "tests")) {
+  changed_files <- c(changed_files, regenerate_man_pages(unique(changed_files)))
+}
 writeLines(unique(changed_files), "updated_files.txt")
 
 # The description: everything before the report (the bot PR's intro) and
