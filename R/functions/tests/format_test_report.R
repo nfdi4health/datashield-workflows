@@ -8,6 +8,7 @@
 # issue where one was opened), "Existing tests to look at", "Generated
 # tests that didn't work"
 # (the bot's own failed tests, one line each, code and output folded),
+# "Hard to test" (paths only testable by replacing a base R function),
 # "Functions not tested" — and in each a collapsible group per
 # file. Each finding carries the commit it came from; crossed-out ones
 # stay visible, struck through with when and why (finding_line()). On
@@ -94,6 +95,9 @@ format_test_report <- function(state, latest = NULL, legacy = NULL, open = integ
             "The bot's own tests that failed because of the test or the test environment, not your code. Not proposed; nothing to do.",
             function(e) sprintf("%s — `%s`: %s", name(e), e$classification, e$explanation),
             extra = function(e) if (nzchar(e$details %||% "")) c("", e$details) else character(0)),
+    section("Hard to test", of_kind("hard"),
+            "Code paths the bot couldn't test without replacing a base R function such as `interactive()`, which R CMD check fails. An argument would make them testable.",
+            function(e) sprintf("`%s()`: %s — %s", e$fn, e$description, e$explanation)),
     section("Functions not tested", of_kind("untested"), "They need DataSHIELD connections, but the tests have no way to connect and `dslite-setup` is `never`.",
             function(e) sprintf("`%s`", e$fn))
   )

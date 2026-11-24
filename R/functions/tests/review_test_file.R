@@ -18,7 +18,8 @@
 # (materialize_bot_tests()), reviewed_sha, base_rev, datashield, ds_type,
 # may_use_dslite, dslite_setup_mode, dslite_datasets, test_role_guidance,
 # scheme, category_meanings, test_data, cache_prompt, max_new_tests,
-# accept_reasons, code_issue_confidence, issue_confidence, package_name.
+# accept_reasons, code_issue_confidence, issue_confidence, package_name,
+# own_names (package_top_level_names()).
 # Returns list(state, stats, updated, new_kept).
 review_test_file <- function(f, parsed, state, ctx) {
   function_name <- parsed$fn_name
@@ -106,7 +107,15 @@ review_test_file <- function(f, parsed, state, ctx) {
   run$bugs <- c(run$bugs, sorted$bugs)
 
   # New tests, each into its file; declined ones stay out.
-  placed <- place_new_tests(result, test_files, blocks, declined_of("new"), ctx$scheme, file_name, ctx$accept_reasons, function_name)
+  placed <- place_new_tests(result, test_files, blocks, declined_of("new"), ctx$scheme, file_name, ctx$accept_reasons, function_name,
+    ctx$own_names %||% character(0))
+  # Paths that can't be tested without replacing a base R function: from
+  # Claude (hard_to_test), and from the tests dropped for doing it anyway.
+  run$hard <- c(
+    lapply(utils::head(result$hard_to_test %||% list(), 3), function(h) list(file = f, path = h$path %||% "", suggestion = h$suggestion %||% "")),
+    lapply(placed$base_mocks, function(m) list(file = f, path = m$description,
+      suggestion = sprintf("the test replaced %s; an argument for it would make this testable", paste(m$functions, collapse = ", "))))
+  )
 
   changed_paths <- unique(c(
     names(placed$by_file),

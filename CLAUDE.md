@@ -806,7 +806,18 @@ and `CONTRIBUTING.md`); no PRs until a branch model and rules exist.
   Claude API; they would 400 on Opus 5.5 / Fable 5.1 (use `auto` then).
 - Shared caching for `r-cmd-check.yml` — flagged, not started.
 - **Two bot gaps found on dsAnalysis #38/#41 (user, 2026-11-12; to do):**
-  - **Test bot proposes tests that can't run under R CMD check:** its
+  - ~~**Test bot proposes tests that can't run under R CMD check:**~~
+    **Built 2026-11-24** (branch `agent-suggest/fix/test-bot-r-cmd-check`,
+    tested with stand-ins, not yet in CI): the prompt forbids replacing
+    base R functions; `filter_generated_tests()` drops tests that do
+    (`mocked_base_functions()`; the package's own bindings such as
+    `interactive <- NULL` are allowed, `package_top_level_names()`); Claude
+    lists untestable paths in `hard_to_test`, shown with the dropped tests
+    under "Hard to test" (finding kind `hard`); tests run against the
+    package installed once per run (`install_package_for_tests()`,
+    `BOT_TEST_LIB`), from source if that fails. **Docs pending:**
+    `test-suggest.qmd` (the report's "Hard to test", installed package).
+    The original item: its
     `internal_confirm()` tests replaced `base::interactive()` with
     `local_mocked_bindings(.package = "base")`, which testthat doesn't
     support; they passed in the bot's own run but failed R CMD check
