@@ -207,7 +207,7 @@ jobs:
 
       - name: Token for the target repositories
         id: token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           client-id: ${{ secrets.app-client-id }}
           private-key: ${{ secrets.app-private-key }}
@@ -254,7 +254,7 @@ jobs:
     steps:
       - name: Read-only token for the target repository
         id: token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           client-id: ${{ secrets.app-client-id }}
           private-key: ${{ secrets.app-private-key }}
@@ -345,7 +345,7 @@ jobs:
         id: oracle
         if: inputs.oracle
         continue-on-error: true
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
         with:
@@ -388,7 +388,7 @@ jobs:
         id: writer0
         if: success()
         continue-on-error: true
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
         with:
@@ -435,7 +435,7 @@ jobs:
         id: maintainability0
         if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
         continue-on-error: true
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
         with:
@@ -483,7 +483,7 @@ jobs:
         id: disclosure0
         if: steps.writer0.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
         continue-on-error: true
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
         with:
@@ -538,7 +538,7 @@ jobs:
         id: writer1
         if: steps.round0.outputs.again == 'true'
         continue-on-error: true
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
         with:
@@ -586,7 +586,7 @@ jobs:
         id: maintainability1
         if: steps.writer1.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
         continue-on-error: true
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
         with:
@@ -641,7 +641,7 @@ jobs:
         id: writer2
         if: steps.round1.outputs.again == 'true'
         continue-on-error: true
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
         with:
@@ -689,7 +689,7 @@ jobs:
         id: maintainability2
         if: steps.writer2.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
         continue-on-error: true
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
         with:
@@ -736,7 +736,7 @@ jobs:
         id: disclosure-recheck
         if: steps.writer1.outcome == 'success' && hashFiles('.agent/needs-input.md') == ''
         continue-on-error: true
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
         with:
@@ -789,7 +789,7 @@ jobs:
         id: roxygen
         if: steps.docs-start.outcome == 'success'
         continue-on-error: true
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         env:
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'   # keeps secrets out of what the agent's commands can read
         with:
@@ -887,7 +887,7 @@ jobs:
     steps:
       - name: Token to push and open the pull request
         id: token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           client-id: ${{ secrets.app-client-id }}
           private-key: ${{ secrets.app-private-key }}
@@ -960,7 +960,7 @@ jobs:
       - name: Token for the issue
         id: token
         if: needs.publish.result != 'success'
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           client-id: ${{ secrets.app-client-id }}
           private-key: ${{ secrets.app-private-key }}
@@ -1015,7 +1015,7 @@ jobs:
         id: queue-token
         if: needs.publish.outputs.result != 'limit'
         continue-on-error: true
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           client-id: ${{ secrets.app-client-id }}
           private-key: ${{ secrets.app-private-key }}
