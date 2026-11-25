@@ -118,6 +118,8 @@ reviewed <- review_files(files, state, function(f, parsed, state) review_roxygen
 state <- reviewed$state
 stats <- reviewed$stats
 updated_files <- reviewed$updated
+# man/ follows the changed roxygen blocks: only the changed files' pages.
+updated_files <- c(updated_files, regenerate_man_pages(updated_files))
 
 writeLines(updated_files, "updated_files.txt")
 
