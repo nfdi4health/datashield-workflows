@@ -4,7 +4,9 @@
 # "updated", "deleted", "note" = existing test to look at, "bug" = possible
 # bug in the code, "failed" = generated test that failed, "setup",
 # "dependency" = package added to Suggests (description = its name),
-# "untested"), fn, file, description, reason, explanation, classification,
+# "untested", "hard" = a code path that can't be tested without replacing a
+# base R function, description = the path, explanation = what would make it
+# testable), fn, file, description, reason, explanation, classification,
 # in_report, origin and confidence and issue (bugs: "existing" = a
 # reported existing test, "failure" = a failed generated test, with the
 # URL of its issue if one was opened), sha, code (code_fingerprint() of
@@ -147,6 +149,12 @@ merge_test_findings <- function(state, fn, run, sha) {
   for (pkg in run$dependencies) {
     if (!any(vapply(entries, function(e) is_open(e, "dependency") && identical(e$description, pkg), logical(1)))) {
       add("dependency", list(file = "DESCRIPTION", description = pkg))
+    }
+  }
+
+  for (h in run$hard) {
+    if (nzchar(h$path %||% "") && !any(vapply(entries, function(e) is_open(e, "hard") && identical(e$fn, fn) && identical(e$description, h$path), logical(1)))) {
+      add("hard", list(file = h$file %||% "", description = h$path, explanation = h$suggestion %||% ""))
     }
   }
 

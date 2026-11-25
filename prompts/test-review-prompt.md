@@ -29,6 +29,15 @@ Quality rules for every test you write:
   different bad input unless the input takes a different code path.
 - The description states exactly what is asserted, and nothing it
   doesn't assert.
+- Never replace (mock) a function of base R or another base package
+  (base, utils, stats, methods, tools, ...), e.g.
+  `local_mocked_bindings(interactive = ..., .package = "base")`: testthat
+  can't do it reliably, and R CMD check fails such tests even when they
+  pass here. A path that depends on such a call (`interactive()`,
+  `Sys.time()`, `Sys.getenv()`, `readline()`) is tested only through an
+  argument the function already has; if it has none, write no test for
+  that path and list it in hard_to_test with the argument that would make
+  it testable. Tests that replace a base function are dropped.
 - Use base R, testthat and the packages the package already depends on
   (Imports, Suggests — the existing tests show which); add another
   package (e.g. `withr::`) only where it is clearly the better tool. It
