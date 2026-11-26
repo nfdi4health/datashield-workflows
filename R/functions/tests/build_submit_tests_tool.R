@@ -110,6 +110,19 @@ build_submit_tests_tool <- function(dslite_datasets, max_new_tests, categories =
         description = "Decisions on existing tests that need action. Leave out tests that are fine — an empty array is the normal case.",
         items = existing_item_schema
       ),
+      hard_to_test = list(
+        type = "array",
+        description = paste("Code paths you could not test without replacing a function of base R (base, utils, stats, ...), e.g.",
+          "a branch that depends on interactive(), Sys.time(), Sys.getenv() or readline(). At most 3; an empty array if there are none."),
+        items = list(
+          type = "object",
+          properties = list(
+            path = list(type = "string", description = "The code path, in a few words (e.g. \"the confirmation question when R runs interactively\")."),
+            suggestion = list(type = "string", description = "One sentence: the argument or change that would make it testable without replacing a base function (e.g. \"an argument ask = interactive() that the tests can set\").")
+          ),
+          required = list("path", "suggestion")
+        )
+      ),
       earlier_findings = list(
         type = "array",
         description = "Your judgement of each earlier finding listed with the function; an empty array if there are none.",
@@ -125,7 +138,7 @@ build_submit_tests_tool <- function(dslite_datasets, max_new_tests, categories =
         )
       )
     ),
-    required = list("needs_tests", "dslite_dataset", "file_setup_code", "file_teardown_code", "tests", "existing_tests", "earlier_findings")
+    required = list("needs_tests", "dslite_dataset", "file_setup_code", "file_teardown_code", "tests", "existing_tests", "hard_to_test", "earlier_findings")
   )
 
   list(

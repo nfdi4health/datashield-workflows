@@ -4,16 +4,19 @@
 # test-<name>.R, or test-<category>-<name>.R in a categorised repository
 # (an unknown category drops the test) — and assembled into test_that()
 # blocks per file (assemble_test_block()). `name` is the R file's name
-# (test_file_name()). Returns list(tests: the kept ones, targets: their
-# file per test, by_file: assembled blocks per path).
-place_new_tests <- function(result, test_files, blocks, declined, scheme, name, accept_reasons, function_name) {
+# (test_file_name()). `own`: the package's top-level names
+# (package_top_level_names()). Returns list(tests: the kept ones, targets:
+# their file per test, by_file: assembled blocks per path, base_mocks: the
+# tests dropped for replacing a base function).
+place_new_tests <- function(result, test_files, blocks, declined, scheme, name, accept_reasons, function_name, own = character(0)) {
   tests <- if (isTRUE(result$needs_tests)) {
     all_content <- paste(vapply(test_files, function(t) t$content, character(1)), collapse = "\n")
     all_descriptions <- unlist(lapply(blocks, function(b) vapply(b, function(x) x$description, character(1))))
-    filter_generated_tests(result$tests, all_content, accept_reasons, function_name, all_descriptions)
+    filter_generated_tests(result$tests, all_content, accept_reasons, function_name, all_descriptions, own)
   } else {
     list()
   }
+  base_mocks <- attr(tests, "base_mocks") %||% list()
   for (t in Filter(function(t) t$description %in% declined, tests)) {
     message(sprintf("%s: not proposing '%s' again — declined.", function_name, t$description))
   }
@@ -41,5 +44,5 @@ place_new_tests <- function(result, test_files, blocks, declined, scheme, name, 
       by_file[[path]] <- assembled
     }
   }
-  list(tests = tests, targets = targets, by_file = by_file)
+  list(tests = tests, targets = targets, by_file = by_file, base_mocks = base_mocks)
 }

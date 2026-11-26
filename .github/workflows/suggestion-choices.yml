@@ -76,8 +76,9 @@ jobs:
         with:
           use-public-rspm: true
 
+      # roxygen2: a changed roxygen block gets its man page regenerated.
       - name: Install R packages
-        run: Rscript -e 'install.packages(c("jsonlite", "yaml"))'
+        run: Rscript -e 'install.packages(c("jsonlite", "yaml", "roxygen2"))'
 
       - name: Apply the choices
         env:

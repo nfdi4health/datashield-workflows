@@ -139,8 +139,11 @@ ctx <- list(
   test_data = test_data,
   cache_prompt = length(files) > 1,   # the prompt cache only pays with a second call in the run
   max_new_tests = max_new_tests, accept_reasons = accept_reasons,
-  code_issue_confidence = code_issue_confidence, issue_confidence = issue_confidence, package_name = package_name
+  code_issue_confidence = code_issue_confidence, issue_confidence = issue_confidence, package_name = package_name,
+  own_names = package_top_level_names()
 )
+# The tests run against the installed package, as under R CMD check.
+install_package_for_tests()
 reviewed <- review_files(files, state, function(f, parsed, state) review_test_file(f, parsed, state, ctx))
 state <- reviewed$state
 stats <- reviewed$stats

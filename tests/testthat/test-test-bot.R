@@ -182,3 +182,49 @@ test_that("possible bugs get one short comment without code", {
   expect_match(text, "`bot-suggest/tests/feature-x`", fixed = TRUE)
   expect_false(grepl("```", text, fixed = TRUE))
 })
+
+test_that("mocked_base_functions() finds replaced base functions, not the package's own or other packages'", {
+  expect_equal(mocked_base_functions('local_mocked_bindings(interactive = function() TRUE, .package = "base")'), "base::interactive")
+  expect_equal(mocked_base_functions("testthat::with_mocked_bindings(code = f(), readline = function(...) 'y')"), "base::readline")
+  expect_length(mocked_base_functions("local_mocked_bindings(interactive = function() TRUE)", own = "interactive"), 0)
+  expect_length(mocked_base_functions('local_mocked_bindings(install = function(...) NULL, .package = "renv")'), 0)
+  expect_length(mocked_base_functions("x <- ("), 0)
+})
+
+test_that("filter_generated_tests() drops a test that replaces a base function and says which", {
+  t <- function(d, code) list(description = d, reason = "edge_case", setup_code = code, assertions_code = "expect_true(TRUE)")
+  kept <- filter_generated_tests(list(t("asks", 'local_mocked_bindings(interactive = function() TRUE, .package = "base")'), t("plain", "")),
+    "", "edge_case", "f")
+  expect_equal(vapply(kept, function(x) x$description, ""), "plain")
+  expect_equal(attr(kept, "base_mocks")[[1]], list(description = "asks", functions = "base::interactive"))
+})
+
+test_that("package_top_level_names() lists functions and other bindings", {
+  dir <- local_mini_package()
+  writeLines("interactive <- NULL", file.path(dir, "R", "zzz.R"))
+  expect_setequal(package_top_level_names(file.path(dir, "R")), c("add1", "interactive"))
+})
+
+test_that("run_test_blocks() runs against the installed package when BOT_TEST_LIB holds it", {
+  dir <- local_mini_package()
+  writeLines('test_that("installed", { expect_true(nzchar(system.file(package = "minipkg"))); expect_equal(add1(1), 2) })',
+             file.path(dir, "tests", "testthat", "test-add1.R"))
+  withr::local_dir(dir)
+  withr::local_envvar(BOT_TEST_LIB = NA)
+  lib <- install_package_for_tests(".")
+  expect_true(dir.exists(file.path(lib, "minipkg")))
+  res <- run_test_blocks("tests/testthat/test-add1.R", "minipkg")
+  expect_true(res[[1]]$passed)
+})
+
+test_that("a hard-to-test path becomes one finding and its own report section", {
+  state <- list(entries = list(), next_id = 1L)
+  run <- list(hard = list(list(file = "R/f.R", path = "the question when interactive", suggestion = "an argument ask = interactive()")))
+  merged <- merge_test_findings(state, "f", run, "abc1234")
+  merged <- merge_test_findings(merged$state, "f", run, "abc1234")
+  hard <- Filter(function(e) identical(e$kind, "hard"), merged$state$entries)
+  expect_length(hard, 1)
+  body <- format_test_report(merged$state)
+  expect_true(any(grepl("Hard to test (1)", body, fixed = TRUE)))
+  expect_true(any(grepl("`f()`: the question when interactive — an argument ask = interactive()", body, fixed = TRUE)))
+})
