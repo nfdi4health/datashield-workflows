@@ -53,7 +53,7 @@ as long as the caller maps them to the workflow's secret names.
 | Repository secret | Used by | Purpose |
 |---|---|---|
 | `APP_CLIENT_ID`, `APP_PRIVATE_KEY` | release, bot suggestions | GitHub App for bot pushes and PRs — see below |
-| `CODECOV_TOKEN` | R CMD check | Coverage upload; required for private repositories |
+| `CODECOV_TOKEN` | R CMD check | Coverage upload (optional; without it a refused upload only warns) |
 | `ANTHROPIC_ORG_ID` | roxygen / test suggestions, analysis scripts | Anthropic organization ID — can be an organization-level secret |
 | `ANTHROPIC_SVAC_ID` | roxygen / test suggestions, analysis scripts | Service account of this repository |
 | `ANTHROPIC_FDRL_ROXYGEN`, `ANTHROPIC_FDRL_TESTS`, `ANTHROPIC_FDRL_ANALYSIS`, `ANTHROPIC_FDRL_TRIAGE` | roxygen / test suggestions, analysis scripts, issue triage | Federation rule per workflow |
