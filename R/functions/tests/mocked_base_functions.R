@@ -32,7 +32,10 @@ mocked_base_functions <- function(code, own = character(0)) {
         if (!is.na(from)) found <<- c(found, paste0(from, "::", m))
       }
     }
-    for (part in as.list(x)[-1]) if (is.call(part)) walk_call(part)
+    # by index: an empty argument (d[, 1]) is the missing symbol, which a
+    # loop variable can't hold
+    parts <- as.list(x)[-1]
+    for (i in seq_along(parts)) if (is.call(parts[[i]])) walk_call(parts[[i]])
   }
   for (e in exprs) walk_call(e)
   unique(found)
