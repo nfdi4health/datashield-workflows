@@ -13,6 +13,15 @@ and if Codecov refuses it (as it does for most repositories), the run gets
 a warning instead of a failed check. With a token, a failed upload fails the
 check. `run-codecov: false` skips it.
 
+With `as-cran: true` the PDF manual is built as on CRAN: TinyTeX plus the
+LaTeX packages R's manual uses. If the check fails there, a step shows the
+LaTeX error. For R-devel on macOS there are no package binaries, so
+dependencies are built from source and can fail: leave that combination out
+with `matrix-exclude: '[{"os": "macos-latest", "r-version": "devel"}]'`.
+While a dependency isn't on CRAN yet, CRAN's incoming checks give a
+WARNING on every run; `cran-incoming: false` leaves them out and keeps the
+rest of the CRAN checks.
+
 ## Example
 
 {{< example r-cmd-check.yml >}}
