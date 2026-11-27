@@ -18,6 +18,9 @@ LaTeX packages R's manual uses. If the check fails there, a step shows the
 LaTeX error. For R-devel on macOS there are no package binaries, so
 dependencies are built from source and can fail: leave that combination out
 with `matrix-exclude: '[{"os": "macos-latest", "r-version": "devel"}]'`.
+While a dependency isn't on CRAN yet, CRAN's incoming checks give a
+WARNING on every run; `cran-incoming: false` leaves them out and keeps the
+rest of the CRAN checks.
 
 ## Example
 

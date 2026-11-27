@@ -28,6 +28,11 @@ on:
         required: false
         type: string
         default: ''
+      cran-incoming:
+        description: 'With as-cran: also run CRAN''s incoming checks (maintainer, new submission, dependencies on CRAN, URLs). Turn off while a dependency is not on CRAN yet: its WARNING would fail every check.'
+        required: false
+        type: boolean
+        default: true
       matrix-exclude:
         description: 'JSON array of os / r-version combinations to leave out, e.g. ''[{"os": "macos-latest", "r-version": "devel"}]'' (no package binaries for R-devel on macOS, so dependencies are built from source and can fail there). Default: none.'
         required: false
@@ -131,8 +136,8 @@ jobs:
       - uses: r-lib/actions/check-r-package@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         if: ${{ inputs.as-cran }}
         env:
-          _R_CHECK_CRAN_INCOMING_: 'true'
-          _R_CHECK_CRAN_INCOMING_REMOTE_: 'true'
+          _R_CHECK_CRAN_INCOMING_: ${{ inputs.cran-incoming && 'true' || 'false' }}
+          _R_CHECK_CRAN_INCOMING_REMOTE_: ${{ inputs.cran-incoming && 'true' || 'false' }}
         with:
           upload-snapshots: true
           args: 'c("--as-cran")'
