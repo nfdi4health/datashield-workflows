@@ -233,9 +233,14 @@ README or the script header, not into the code logic.
   function of the known packages into `datashield_functions_metadata.json`
   (per function: package, name, `architecture_type` client/server,
   `function_type` aggregate/assign/hybrid, title, description; `category`
-  and `status` still empty). For now it's in `FlorianSchw/packages`; a PR
-  into `FederatedMethods/packages` is open. Setting `function_catalogue`
-  holds the raw URL; only that line changes when it moves.
+  and `status` still empty). It was in `FlorianSchw/packages` first.
+  **Since 2026-11-18** `FederatedMethods/packages` (now in Python) publishes
+  the functions in `packages.json` itself: per package
+  `repo$function_info$roxygen_tags` (`{function, tags}`), `repo` is
+  `"Error"` where it couldn't read a package; the old file was dropped
+  there. `function_catalogue` points to `packages.json` since 2026-11-27
+  (`catalogue_functions_from_packages()`: "ds." names that aren't server
+  functions); the old table format is still read if named.
   - **Contents on 2026-09-30:** 1110 functions in 66 packages, of which
     340 client functions in 21 client packages.
   - **In the prompt:** `read_function_catalogue()` keeps the exported
