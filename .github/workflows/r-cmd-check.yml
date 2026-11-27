@@ -28,6 +28,16 @@ on:
         required: false
         type: string
         default: ''
+      cran-incoming:
+        description: 'With as-cran: also run CRAN''s incoming checks (maintainer, new submission, dependencies on CRAN, URLs). Turn off while a dependency is not on CRAN yet: its WARNING would fail every check.'
+        required: false
+        type: boolean
+        default: true
+      matrix-exclude:
+        description: 'JSON array of os / r-version combinations to leave out, e.g. ''[{"os": "macos-latest", "r-version": "devel"}]'' (no package binaries for R-devel on macOS, so dependencies are built from source and can fail there). Default: none.'
+        required: false
+        type: string
+        default: '[]'
       as-cran:
         description: 'Check the way CRAN does before a submission: with the PDF manual (TinyTeX is installed) and CRAN''s incoming checks (maintainer, spelling of DESCRIPTION, URLs, the new-submission note). Use with an os-list of ubuntu-latest, macos-latest and windows-latest. Notes are shown, not failed: CRAN wants each explained in cran-comments.md.'
         required: false
@@ -54,6 +64,7 @@ jobs:
       matrix:
         os: ${{ fromJSON(inputs.os-list) }}
         r-version: ${{ fromJSON(inputs.r-version-list) }}
+        exclude: ${{ fromJSON(inputs.matrix-exclude) }}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -98,6 +109,15 @@ jobs:
       - uses: r-lib/actions/setup-tinytex@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         if: ${{ inputs.as-cran }}
 
+      # TinyTeX is minimal, and R CMD check doesn't install missing LaTeX
+      # packages on demand: these are the ones R's Rd.sty uses for the
+      # manual (fonts, verbatim, colour). pwsh runs tlmgr on all three
+      # systems (tlmgr.bat on Windows).
+      - name: LaTeX packages for the PDF manual
+        if: ${{ inputs.as-cran }}
+        shell: pwsh
+        run: tlmgr install inconsolata times helvetic psnfss ec upquote fancyvrb xcolor
+
       - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         with:
           extra-packages: |
@@ -116,11 +136,30 @@ jobs:
       - uses: r-lib/actions/check-r-package@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
         if: ${{ inputs.as-cran }}
         env:
-          _R_CHECK_CRAN_INCOMING_: 'true'
-          _R_CHECK_CRAN_INCOMING_REMOTE_: 'true'
+          _R_CHECK_CRAN_INCOMING_: ${{ inputs.cran-incoming && 'true' || 'false' }}
+          _R_CHECK_CRAN_INCOMING_REMOTE_: ${{ inputs.cran-incoming && 'true' || 'false' }}
         with:
           upload-snapshots: true
           args: 'c("--as-cran")'
+
+      # R CMD check only says "LaTeX errors found:" without the error; the
+      # manual's .tex stays in the check folder, so build it once more and
+      # show the end of the LaTeX log.
+      - name: Show the LaTeX error of the PDF manual
+        if: ${{ failure() && inputs.as-cran }}
+        shell: Rscript {0}
+        run: |
+          tex <- list.files("check", pattern = "-manual\\.tex$", recursive = TRUE, full.names = TRUE)
+          if (length(tex) == 0) quit(save = "no")
+          setwd(dirname(tex[1]))
+          try(tools::texi2pdf(basename(tex[1]), clean = FALSE, quiet = TRUE), silent = TRUE)
+          log <- sub("\\.tex$", ".log", basename(tex[1]))
+          if (file.exists(log)) {
+            lines <- readLines(log, warn = FALSE)
+            err <- grep("^!", lines)
+            from <- if (length(err)) max(1, err[1] - 5) else max(1, length(lines) - 40)
+            writeLines(lines[from:min(length(lines), from + 40)])
+          }
 
       - name: Show testthat output
         if: always()
