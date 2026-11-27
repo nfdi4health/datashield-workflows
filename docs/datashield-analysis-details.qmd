@@ -100,9 +100,9 @@ settings.
 ## Steps that can't be written yet
 
 The workflow knows the DataSHIELD packages from the
-[package catalogue](https://packages.datashield.org) and their functions
-from a [function catalogue](https://github.com/FlorianSchw/packages)
-(moving to [FederatedMethods](https://github.com/FederatedMethods/packages)).
+[package catalogue](https://packages.datashield.org) (built from
+[FederatedMethods/packages](https://github.com/FederatedMethods/packages)),
+which also lists their functions.
 Claude sees the client functions of the packages your studies don't have
 yet, filtered by `package-status`:
 
