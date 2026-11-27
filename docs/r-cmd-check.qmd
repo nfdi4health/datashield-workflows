@@ -8,6 +8,11 @@ description: "Runs R CMD check across a matrix of OSes and R versions, with opti
 uploads test coverage to [Codecov](https://codecov.io) from the first
 combination only.
 
+The upload is optional. Without a `CODECOV_TOKEN` secret it is still tried,
+and if Codecov refuses it (as it does for most repositories), the run gets
+a warning instead of a failed check. With a token, a failed upload fails the
+check. `run-codecov: false` skips it.
+
 ## Example
 
 {{< example r-cmd-check.yml >}}

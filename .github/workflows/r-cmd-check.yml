@@ -40,7 +40,7 @@ on:
         default: 45
     secrets:
       CODECOV_TOKEN:
-        description: 'Codecov token (required for private repos).'
+        description: 'Codecov token. Optional: without one, a refused upload gives a warning, not a failed check.'
         required: false
 
 jobs:
@@ -132,10 +132,21 @@ jobs:
         shell: Rscript {0}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        # Without a token the upload is optional: Codecov refuses tokenless
+        # uploads for most repositories, which then gives a warning, not a
+        # failed check. With a token a failed upload still fails it.
         run: |
-          covr::codecov(
-            quiet = FALSE,
-            clean = FALSE,
-            token = Sys.getenv("CODECOV_TOKEN"),
-            install_path = file.path(Sys.getenv("RUNNER_TEMP"), "package")
+          token <- Sys.getenv("CODECOV_TOKEN")
+          tryCatch(
+            covr::codecov(
+              quiet = FALSE,
+              clean = FALSE,
+              token = token,
+              install_path = file.path(Sys.getenv("RUNNER_TEMP"), "package")
+            ),
+            error = function(e) {
+              if (nzchar(token)) stop(e)
+              cat(sprintf("::warning title=Coverage not uploaded::Codecov refused the upload without a token (%s). Set the CODECOV_TOKEN secret to upload coverage, or run-codecov: false to skip it.\n",
+                gsub("[\r\n]+", " ", conditionMessage(e))))
+            }
           )
