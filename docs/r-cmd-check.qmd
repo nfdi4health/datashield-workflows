@@ -13,9 +13,13 @@ and if Codecov refuses it (as it does for most repositories), the run gets
 a warning instead of a failed check. With a token, a failed upload fails the
 check. `run-codecov: false` skips it.
 
-With `as-cran: true` the PDF manual is built as on CRAN: TinyTeX plus the
-LaTeX packages R's manual uses. If the check fails there, a step shows the
-LaTeX error. For R-devel on macOS there are no package binaries, so
+With `as-cran: true` the PDF manual is built as on CRAN, on Linux and macOS
+with the released R: TinyTeX plus the LaTeX packages R's manual uses. If
+the check fails there, a step shows the LaTeX error. The other
+combinations check with `--no-manual`: the Rd files are the same
+everywhere, and on Windows TinyTeX alone took about 19 minutes. Checks on
+several systems take longer than the default `timeout-minutes` (45)
+allows on a first run without cache: give them 90. For R-devel on macOS there are no package binaries, so
 dependencies are built from source and can fail: leave that combination out
 with `matrix-exclude: '[{"os": "macos-latest", "r-version": "devel"}]'`.
 While a dependency isn't on CRAN yet, CRAN's incoming checks give a
