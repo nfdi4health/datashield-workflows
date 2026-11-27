@@ -189,6 +189,9 @@ test_that("mocked_base_functions() finds replaced base functions, not the packag
   expect_length(mocked_base_functions("local_mocked_bindings(interactive = function() TRUE)", own = "interactive"), 0)
   expect_length(mocked_base_functions('local_mocked_bindings(install = function(...) NULL, .package = "renv")'), 0)
   expect_length(mocked_base_functions("x <- ("), 0)
+  # an empty argument is the missing symbol (dsAnalysis #53's run stopped on it)
+  expect_length(mocked_base_functions("expect_equal(d[, 1], m[1, ])"), 0)
+  expect_equal(mocked_base_functions('with_mocked_bindings(readline = function(...) "y", expect_equal(d[, 1], 1))'), "base::readline")
 })
 
 test_that("filter_generated_tests() drops a test that replaces a base function and says which", {
