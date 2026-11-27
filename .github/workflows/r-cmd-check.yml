@@ -39,7 +39,7 @@ on:
         type: string
         default: '[]'
       as-cran:
-        description: 'Check the way CRAN does before a submission: with the PDF manual (TinyTeX is installed) and CRAN''s incoming checks (maintainer, spelling of DESCRIPTION, URLs, the new-submission note). Use with an os-list of ubuntu-latest, macos-latest and windows-latest. Notes are shown, not failed: CRAN wants each explained in cran-comments.md.'
+        description: 'Check the way CRAN does before a submission: with the PDF manual on Linux and macOS with the released R (TinyTeX is installed there) and CRAN''s incoming checks (maintainer, spelling of DESCRIPTION, URLs, the new-submission note). Use with an os-list of ubuntu-latest, macos-latest and windows-latest. Notes are shown, not failed: CRAN wants each explained in cran-comments.md.'
         required: false
         type: boolean
         default: false
@@ -105,16 +105,20 @@ jobs:
             | paste -sd, -)
           echo "list=$formatted" >> "$GITHUB_OUTPUT"
 
-      # CRAN builds the PDF manual, which needs LaTeX.
+      # CRAN builds the PDF manual, which needs LaTeX. Built only on Linux
+      # and macOS with the released R: the Rd files are the same everywhere,
+      # and on Windows and R-devel R CMD check's manual build failed with
+      # TinyTeX although the same .tex compiled (dsSupportClient #101), and
+      # TinyTeX's packages took about 19 minutes on Windows.
       - uses: r-lib/actions/setup-tinytex@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
-        if: ${{ inputs.as-cran }}
+        if: ${{ inputs.as-cran && !startsWith(matrix.os, 'windows') && matrix.r-version == 'release' }}
 
       # TinyTeX is minimal, and R CMD check doesn't install missing LaTeX
       # packages on demand: these are the ones R's Rd.sty uses for the
       # manual (fonts, verbatim, colour). pwsh runs tlmgr on all three
       # systems (tlmgr.bat on Windows).
       - name: LaTeX packages for the PDF manual
-        if: ${{ inputs.as-cran }}
+        if: ${{ inputs.as-cran && !startsWith(matrix.os, 'windows') && matrix.r-version == 'release' }}
         shell: pwsh
         run: tlmgr install inconsolata times helvetic psnfss ec upquote fancyvrb xcolor
 
@@ -140,13 +144,13 @@ jobs:
           _R_CHECK_CRAN_INCOMING_REMOTE_: ${{ inputs.cran-incoming && 'true' || 'false' }}
         with:
           upload-snapshots: true
-          args: 'c("--as-cran")'
+          args: ${{ (!startsWith(matrix.os, 'windows') && matrix.r-version == 'release') && 'c("--as-cran")' || 'c("--as-cran", "--no-manual")' }}
 
       # R CMD check only says "LaTeX errors found:" without the error; the
       # manual's .tex stays in the check folder, so build it once more and
       # show the end of the LaTeX log.
       - name: Show the LaTeX error of the PDF manual
-        if: ${{ failure() && inputs.as-cran }}
+        if: ${{ failure() && inputs.as-cran && !startsWith(matrix.os, 'windows') && matrix.r-version == 'release' }}
         shell: Rscript {0}
         run: |
           tex <- list.files("check", pattern = "-manual\\.tex$", recursive = TRUE, full.names = TRUE)
